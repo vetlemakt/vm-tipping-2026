@@ -3,137 +3,35 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#080810" />
     <meta name="description" content="VM-tipping 2026 – FIFA World Cup" />
     <title>VM-tipping 2026 ⚽</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Outfit:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html { scroll-behavior: smooth; }
-      body { background: #0a0a0a; font-family: 'DM Sans', sans-serif; }
-
-      ::-webkit-scrollbar { width: 5px; height: 5px; }
-      ::-webkit-scrollbar-track { background: #0a0a0a; }
-      ::-webkit-scrollbar-thumb { background: #ff6b00; border-radius: 3px; }
-
+      body { background: #080810; font-family: 'Outfit', sans-serif; }
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: #080810; }
+      ::-webkit-scrollbar-thumb { background: #b4ff00; border-radius: 2px; }
       input[type=number]::-webkit-inner-spin-button,
       input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
-
-      /* ── Animations ── */
-      @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50%       { opacity: 0.4; }
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      @keyframes shimmer {
-        0%   { background-position: -200% center; }
-        100% { background-position: 200% center; }
-      }
-      @keyframes slideIn {
-        from { opacity: 0; transform: translateX(-12px); }
-        to   { opacity: 1; transform: translateX(0); }
-      }
-      @keyframes glow {
-        0%, 100% { box-shadow: 0 0 20px rgba(255,107,0,.3); }
-        50%       { box-shadow: 0 0 40px rgba(255,107,0,.6); }
-      }
-      @keyframes gradientShift {
-        0%   { background-position: 0% 50%; }
-        50%  { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-
-      /* ── Utility classes ── */
-      .fu  { animation: fadeUp .45s cubic-bezier(.22,1,.36,1) both; }
-      .fi  { animation: fadeIn .3s ease both; }
+      @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+      @keyframes spin { to { transform:rotate(360deg); } }
+      @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+      @keyframes neonPulse { 0%,100%{filter:drop-shadow(0 0 8px rgba(180,255,0,.6))} 50%{filter:drop-shadow(0 0 20px rgba(180,255,0,1))} }
+      @keyframes gradientFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+      .fu { animation: fadeUp .4s cubic-bezier(.22,1,.36,1) both; }
       .pulse { animation: pulse 2s ease-in-out infinite; }
-
-      /* ── Card top accent bar ── */
-      .card-accent {
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, #ff6b00, #00c853, #ff6b00);
-        background-size: 200% 100%;
-        animation: shimmer 4s linear infinite;
-      }
-
-      /* ── Leaderboard rank glow for top 3 ── */
-      .rank-1 { color: #ffd700; filter: drop-shadow(0 0 6px rgba(255,215,0,.6)); }
-      .rank-2 { color: #c0c0c0; filter: drop-shadow(0 0 6px rgba(192,192,192,.4)); }
-      .rank-3 { color: #cd7f32; filter: drop-shadow(0 0 6px rgba(205,127,50,.4)); }
-
-      /* ── Score input focus ── */
-      input[type=number]:focus {
-        border-color: #ff6b00 !important;
-        box-shadow: 0 0 0 2px rgba(255,107,0,.15);
-      }
-
-      /* ── Button hover ── */
-      button:hover { opacity: .88; }
-
-      /* ── Auth ball ── */
-      .auth-ball {
-        animation: spin 12s linear infinite;
-        display: inline-block;
-      }
-
-      /* ── Stagger animation delays for lb rows ── */
-      .lb-row:nth-child(1)  { animation-delay: .05s; }
-      .lb-row:nth-child(2)  { animation-delay: .10s; }
-      .lb-row:nth-child(3)  { animation-delay: .15s; }
-      .lb-row:nth-child(4)  { animation-delay: .20s; }
-      .lb-row:nth-child(5)  { animation-delay: .25s; }
-      .lb-row:nth-child(6)  { animation-delay: .30s; }
-      .lb-row:nth-child(7)  { animation-delay: .35s; }
-      .lb-row:nth-child(8)  { animation-delay: .40s; }
-
-      /* ── Orange accent line on active nav ── */
-      .nav-active::after {
-        content: '';
-        position: absolute;
-        bottom: -3px; left: 0; right: 0;
-        height: 3px;
-        background: #ff6b00;
-        border-radius: 3px 3px 0 0;
-      }
-
-      /* ── Green accent for points badges ── */
-      .pts-badge {
-        background: rgba(0,200,83,.1);
-        color: #00c853;
-        border: 1px solid rgba(0,200,83,.2);
-        border-radius: 4px;
-        padding: 2px 8px;
-        font-size: 11px;
-        font-family: 'Fira Code', monospace;
-      }
-
-      /* ── Diagonal background pattern ── */
-      .diagonal-bg {
-        background-image: repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 40px,
-          rgba(255,107,0,.015) 40px,
-          rgba(255,107,0,.015) 41px
-        );
-      }
+      input[type=number]:focus { border-color: #b4ff00 !important; box-shadow: 0 0 0 2px rgba(180,255,0,.1) !important; }
+      button:active { transform: scale(.97); }
+      select:focus { outline: none; border-color: #b4ff00 !important; }
     </style>
   </head>
-  <body class="diagonal-bg">
+  <body>
     <noscript>Du må aktivere JavaScript for å bruke VM-tipping 2026.</noscript>
     <div id="root"></div>
   </body>
