@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getUser, getAllUsers, createUser, updateUser,
   getResults, setResults, getPhase, setPhase,
@@ -7,7 +7,7 @@ import {
   subscribePhase, subscribeResults,
   db,
 } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection } from 'firebase/firestore';
 import { calcScore } from './scoring';
 import {
   INVITE_CODE, ADMIN_CODE, FD_API_KEY,
@@ -41,10 +41,6 @@ async function fetchLive() {
 }
 
 // ── Match Summary helpers ───────────────────────────────────────────
-async function getMatchSummary(matchId) {
-  const snap = await getDoc(doc(db, 'summaries', matchId));
-  return snap.exists() ? snap.data() : null;
-}
 async function setMatchSummary(matchId, text, author) {
   await setDoc(doc(db, 'summaries', matchId), { text, author, ts: Date.now() });
 }
@@ -134,7 +130,7 @@ function Dashboard({ me, phase }) {
   const [summaries, setSummaries] = useState({});
   const [editingSummary, setEditingSummary] = useState(null);
   const [summaryText, setSummaryText] = useState('');
-  const [liveData, setLiveData] = useState(null);
+  
   const chatBot = useRef(null);
 
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
@@ -150,7 +146,7 @@ function Dashboard({ me, phase }) {
     });
   }, [results]);
   useEffect(() => {
-    fetchLive().then(d => { if (d && !d.demo) setLiveData(d); });
+    fetchLive();
   }, []);
 
   const sendMsg = async () => {
