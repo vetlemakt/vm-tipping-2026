@@ -969,7 +969,7 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  useEffect(() => { window.scrollTo(0,0); }, []); // scroll to top on load
+  useEffect(() => { window.scrollTo({top:0, behavior:'instant'}); }, [tab]);
 
   if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
   return (
