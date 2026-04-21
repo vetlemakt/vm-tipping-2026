@@ -117,14 +117,12 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
   const ws = winStatus(phase);
 
   const NAV_U = [
-    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
     { id: 'leaderboard', icon: '🏆', label: 'Tabell' },
     { id: 'tips', icon: '✏️', label: 'Tips' },
     { id: 'myscore', icon: '📊', label: 'Poeng' },
     { id: 'video', icon: '📹', label: 'Video' },
   ];
   const NAV_A = [
-    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
     { id: 'admin', icon: '⚙️', label: 'Admin' },
   ];
   const nav = user.isAdmin ? NAV_A : NAV_U;
@@ -132,9 +130,10 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
   return (
     <div>
       <div style={{ ...C.banner, ...(isMobile ? C.bannerMobile : {}) }}>
-        {/* Logo – overflows below banner */}
-        <div style={{ ...C.bannerLogo, ...(isMobile ? C.bannerLogoMobile : {}), position:'relative', zIndex:20 }}>
-          <img src="/vm-logo.png" alt="VM-tipping 2026"
+        {/* Logo – klikk for dashboard */}
+        <div style={{ ...C.bannerLogo, ...(isMobile ? C.bannerLogoMobile : {}), position:'relative', zIndex:20, cursor:'pointer' }}
+          onClick={() => setTab('dashboard')}>
+          <img src="/vm-logo.png" alt="Gå til dashboard"
             style={isMobile ? C.bannerLogoImgMobile : C.bannerLogoImg} />
         </div>
 

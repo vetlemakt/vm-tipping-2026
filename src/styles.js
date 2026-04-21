@@ -15,7 +15,7 @@ export const C = {
   // ── BANNER ─────────────────────────────────────────────────
   banner: {
     background: '#01174C',
-    height: 134,
+    height: 90,
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -30,8 +30,8 @@ export const C = {
 
   // Logo: overflows below banner
   bannerLogo: {
-    width: 110,
-    minWidth: 110,
+    width: 80,
+    minWidth: 80,
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
@@ -41,8 +41,8 @@ export const C = {
     zIndex: 20,
   },
   bannerLogoImg: {
-    height: 200,
-    width: 200,
+    height: 133,
+    width: 133,
     objectFit: 'contain',
     marginTop: 0,
     marginLeft: 0,
@@ -66,7 +66,7 @@ export const C = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'flex-end',
-    padding: '8px 16px 0 8px',
+    padding: '8px 16px 0 32px',
   },
 
   bannerUser: {
