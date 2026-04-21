@@ -898,18 +898,25 @@ function InfoPage() {
 
 // ── Music Player ─────────────────────────────────────────────────────
 const TRACKS = [
-  { title: "Fanfare for Space", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fanfare%20for%20Space.mp3" },
-  { title: "Impact Moderato", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Impact%20Moderato.mp3" },
-  { title: "Sovereign", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sovereign.mp3" },
-  { title: "Heroic Age", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3" },
-  { title: "Clash Defiant", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Clash%20Defiant.mp3" },
+  { title: "Epic Victory", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/01/27/audio_d0ef5b6abe.mp3?filename=epic-victory-132871.mp3" },
+  { title: "Stadium Anthem", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2023/06/15/audio_6a3e3fd15e.mp3?filename=stadium-anthem-159267.mp3" },
+  { title: "Sports Fanfare", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/10/30/audio_1b3a8e7e87.mp3?filename=sports-fanfare-164472.mp3" },
+  { title: "Champions Theme", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2023/03/22/audio_c196c8d2fc.mp3?filename=champions-theme-168007.mp3" },
+  { title: "Victory March", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3?filename=victory-march-114994.mp3" },
 ];
 
 function MusicPlayer() {
   const [trackIdx, setTrackIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.4);
+  const [volume, setVolume] = useState(0.5);
   const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.src = TRACKS[0].url;
+      audioRef.current.volume = 0.5;
+    }
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -921,7 +928,10 @@ function MusicPlayer() {
     const audio = audioRef.current;
     if (!audio) return;
     if (playing) {
-      audio.play().catch(() => setPlaying(false));
+      audio.play().catch(err => {
+        console.warn('Playback failed:', err);
+        setPlaying(false);
+      });
     } else {
       audio.pause();
     }
@@ -950,7 +960,8 @@ function MusicPlayer() {
       display: 'flex', flexDirection: 'column', gap: 6,
       minWidth: 220, maxWidth: 260,
     }}>
-      <audio ref={audioRef} onEnded={next} />
+      <audio ref={audioRef} onEnded={next} crossOrigin="anonymous"
+        onError={() => { console.log('Audio error, trying next'); next(); }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 16 }}>🎵</span>
         <div style={{ flex: 1, overflow: 'hidden' }}>

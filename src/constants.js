@@ -3,18 +3,18 @@ export const ADMIN_CODE  = 'ADMIN2026';
 export const FD_API_KEY  = 'YOUR_KEY_HERE'; // Replace with your football-data.org key
 
 export const GROUPS = {
-  A: ['USA',       'Mexico',       'Canada',             'Panama'],
-  B: ['Brasil',    'Argentina',    'Colombia',           'Ecuador'],
-  C: ['Frankrike', 'Spania',       'England',            'Belgia'],
-  D: ['Portugal',  'Nederland',    'Danmark',            'Polen'],
-  E: ['Tyskland',  'Kroatia',      'Serbia',             'Sveits'],
-  F: ['Japan',     'Sør-Korea',    'Australia',          'Iran'],
-  G: ['Marokko',   'Senegal',      'Ghana',              'Tunisia'],
-  H: ['Qatar',     'Saudi-Arabia', 'Uruguay',            'Kamerun'],
-  I: ['Ukraina',   'Tyrkia',       'Romania',            'Slovakia'],
-  J: ['Østerrike', 'Tsjekkia',     'Skottland',          'Albania'],
-  K: ['Honduras',  'Costa Rica',   'Jamaica',            'Trinidad og Tobago'],
-  L: ['Peru',      'Chile',        'Paraguay',           'Bolivia'],
+  A: ['Mexico',     'Sør-Afrika',  'Sør-Korea',    'Tsjekkia'],
+  B: ['Canada',     'Bosnia-Herz', 'Qatar',        'Sveits'],
+  C: ['Brasil',     'Marokko',     'Haiti',        'Skottland'],
+  D: ['USA',        'Paraguay',    'Australia',    'Tyrkia'],
+  E: ['Tyskland',   'Curacao',     'Elfenbenskysten','Ecuador'],
+  F: ['Nederland',  'Japan',       'Sverige',      'Tunisia'],
+  G: ['Belgia',     'Egypt',       'Iran',         'New Zealand'],
+  H: ['Spania',     'Kapp Verde',  'Saudi-Arabia', 'Uruguay'],
+  I: ['Frankrike',  'Senegal',     'Irak',         'Norge'],
+  J: ['Argentina',  'Algerie',     'Østerrike',    'Jordan'],
+  K: ['Portugal',   'Kongo DR',    'Usbekistan',   'Colombia'],
+  L: ['England',    'Kroatia',     'Ghana',        'Panama'],
 };
 
 export const ALL_TEAMS = [...new Set(Object.values(GROUPS).flat())].sort();
@@ -37,13 +37,21 @@ export const KNOCKOUT_ROUNDS = [
   { phase:'final',  label:'Gullfinalen',          count:1,  dates:['2026-07-19'] },
 ];
 
-export const KNOCKOUT_MATCHES = KNOCKOUT_ROUNDS.flatMap(({ phase, count, dates }) =>
-  Array.from({ length: count }, (_, i) => ({
+export const KNOCKOUT_MATCHES = KNOCKOUT_ROUNDS.flatMap(({ phase, count, dates }) => {
+  const R32_SLOTS = [
+    ['Vinner A','Toer B'],['Vinner C','Toer D'],['Vinner E','Toer F'],['Vinner G','Toer H'],
+    ['Vinner I','Toer J'],['Vinner K','Toer L'],['Toer A','Vinner B'],['Toer C','Vinner D'],
+    ['Toer E','Vinner F'],['Toer G','Vinner H'],['Toer I','Vinner J'],['Toer K','Vinner L'],
+    ['Best 3er (1)','Best 3er (2)'],['Best 3er (3)','Best 3er (4)'],
+    ['Best 3er (5)','Best 3er (6)'],['Best 3er (7)','Best 3er (8)'],
+  ];
+  return Array.from({ length: count }, (_, i) => ({
     id: `${phase}_${i+1}`, phase,
-    home: '?', away: '?',
+    home: phase==='r32' && R32_SLOTS[i] ? R32_SLOTS[i][0] : '?',
+    away: phase==='r32' && R32_SLOTS[i] ? R32_SLOTS[i][1] : '?',
     date: dates[Math.min(i, dates.length - 1)],
-  }))
-);
+  }));
+});
 
 export const PHASE_OPTIONS = [
   { value:'pre',         label:'🕐 Før turnering – åpent for alle tips' },
@@ -76,7 +84,16 @@ export const FLAGS = {
   'Chile':'🇨🇱','Paraguay':'🇵🇾','Bolivia':'🇧🇴','Ukraina':'🇺🇦',
   'Tyrkia':'🇹🇷','Romania':'🇷🇴','Slovakia':'🇸🇰','Østerrike':'🇦🇹',
   'Tsjekkia':'🇨🇿','Skottland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Albania':'🇦🇱',
-  'Trinidad og Tobago':'🇹🇹',
+  'Sør-Afrika':'🇿🇦','Tsjekkia':'🇨🇿','Bosnia-Herz':'🇧🇦',
+  'Qatar':'🇶🇦','Haiti':'🇭🇹','Skottland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'Paraguay':'🇵🇾','Australia':'🇦🇺','Tyrkia':'🇹🇷',
+  'Curacao':'🇨🇼','Elfenbenskysten':'🇨🇮','Ecuador':'🇪🇨',
+  'Sverige':'🇸🇪','Tunisia':'🇹🇳','Egypt':'🇪🇬',
+  'Iran':'🇮🇷','New Zealand':'🇳🇿','Kapp Verde':'🇨🇻',
+  'Saudi-Arabia':'🇸🇦','Uruguay':'🇺🇾','Senegal':'🇸🇳',
+  'Irak':'🇮🇶','Norge':'🇳🇴','Algerie':'🇩🇿',
+  'Østerrike':'🇦🇹','Jordan':'🇯🇴','Kongo DR':'🇨🇩',
+  'Usbekistan':'🇺🇿','Colombia':'🇨🇴','Ghana':'🇬🇭','Panama':'🇵🇦',
 };
 
 export const WS_MSGS = {
