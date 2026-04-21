@@ -1,6 +1,6 @@
 export const INVITE_CODE = 'VM2026';
 export const ADMIN_CODE  = 'ADMIN2026';
-export const FD_API_KEY  = '6ce1f4deb4bd4cf9b0657606a267a212'; // 
+export const FD_API_KEY  = 'YOUR_KEY_HERE'; // Replace with your football-data.org key
 
 export const GROUPS = {
   A: ['USA',       'Mexico',       'Canada',             'Panama'],
@@ -99,6 +99,6 @@ export const SPEC_FIELDS = [
   { key:'champion',    label:'🥇 Verdensmester',   pts:25 },
   { key:'runner_up',   label:'🥈 Sølvvinner',       pts:15 },
   { key:'third',       label:'🥉 Bronsevinner',      pts:10 },
-  { key:'topscorer',   label:'⚽ Toppscorer – lag',  pts:20 },
+  { key:'topscorer',   label:'⚽ Toppscorer',         pts:20 },
   { key:'most_carded', label:'🟨 Mest kort – lag',   pts:10 },
 ];

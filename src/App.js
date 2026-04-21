@@ -109,31 +109,31 @@ function AuthScreen({ onLogin }) {
   );
 }
 
-// ── Window Toast ────────────────────────────────────────────────────
-function WindowToast({ phase, isAdmin }) {
+// ── Status Bar (bottom) ─────────────────────────────────────────────
+function StatusBar({ phase, isAdmin }) {
   const [visible, setVisible] = useState(true);
   const ws = winStatus(phase);
   if (isAdmin || !visible) return null;
+  const isOpen = ws.open;
   return (
     <div style={{
-      position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
-      zIndex: 999, display: 'flex', alignItems: 'center', gap: 10,
-      background: ws.open ? 'rgba(10,40,20,.88)' : 'rgba(60,10,10,.88)',
-      backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-      color: ws.open ? '#7fffaa' : '#ffaaaa',
-      borderRadius: 30, padding: '7px 16px 7px 12px',
-      boxShadow: ws.open ? '0 2px 16px rgba(0,120,50,.3)' : '0 2px 16px rgba(160,30,30,.3)',
-      fontSize: 12, fontWeight: 600, letterSpacing: .5, whiteSpace: 'nowrap',
-      animation: 'fadeUp .4s ease both',
-      border: `1px solid ${ws.open ? 'rgba(100,255,150,.2)' : 'rgba(255,100,100,.2)'}`,
+      position: 'fixed', bottom: 0, left: 0, right: 0,
+      zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: isOpen ? 'rgba(0,80,30,.92)' : 'rgba(100,20,20,.92)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      color: isOpen ? '#a0ffb8' : '#ffaaaa',
+      height: 32, fontSize: 12, fontWeight: 600, letterSpacing: 1,
+      borderTop: `1px solid ${isOpen ? 'rgba(100,255,150,.15)' : 'rgba(255,100,100,.15)'}`,
+      fontFamily: "'Kanit',sans-serif",
     }}>
-      <span style={{ fontSize: 16 }}>{ws.open ? '🟢' : '🔴'}</span>
-      {ws.label}
+      {isOpen ? 'Åpent – lever dine tips!' : ws.label}
       <button onClick={() => setVisible(false)} style={{
-        background: 'rgba(255,255,255,.2)', border: 'none', color: '#fff',
-        borderRadius: '50%', width: 18, height: 18, cursor: 'pointer',
-        fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginLeft: 4, flexShrink: 0, fontFamily: 'inherit',
+        position: 'absolute', right: 12,
+        background: 'rgba(255,255,255,.15)', border: 'none',
+        color: 'rgba(255,255,255,.6)', borderRadius: '50%',
+        width: 18, height: 18, cursor: 'pointer', fontSize: 11,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'inherit',
       }}>×</button>
     </div>
   );
@@ -149,7 +149,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
     { id: 'leaderboard', icon: null, img: '/tabell.png', label: 'Tabell' },
     { id: 'tips',        icon: null, img: '/tips.png',   label: 'Tips' },
     { id: 'myscore',     icon: null, img: '/poeng.png',  label: 'Poeng' },
-    { id: 'video',       icon: null, img: '/video.png',  label: 'Video' },
+    { id: 'info',        icon: null, img: '/info.png',   label: 'Info' },
   ];
   const NAV_A = [
     { id: 'admin', icon: '⚙️', img: null, label: 'Admin' },
@@ -496,7 +496,7 @@ function TipsForm({ me, phase }) {
     <div style={C.card}>
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot} /> Mine tips</span>
-        <span style={{ ...C.badge, background: ws.open ? 'rgba(46,170,74,.1)' : 'rgba(230,50,50,.1)', color: ws.open ? GRN : '#ff7777', border: `1px solid ${ws.open ? 'rgba(46,170,74,.2)' : 'rgba(230,50,50,.2)'}` }}>{ws.label}</span>
+
       </div>
       <div style={C.cardBody}>
         <div style={C.specBox}>
@@ -834,13 +834,76 @@ function AdminPanel() {
 }
 
 
+// ── Info Page ────────────────────────────────────────────────────────
+function InfoPage() {
+  return (
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+      <div style={{ background:'rgba(22,27,44,.75)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28, marginBottom:16 }}>
+        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, marginBottom:20 }}>ℹ️ Om VM-tipping 2026</h2>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🏆 Poengsystem – Kamper</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>✅ Riktig utfall (H/U/B): <strong style={{color:'#FFD700'}}>2 poeng</strong></div>
+          <div>⚽ Riktig antall mål hjemmelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
+          <div>⚽ Riktig antall mål bortelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
+          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Maks per kamp: 4 poeng</div>
+        </div>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>📋 Poengsystem – Grupper</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>🎯 Riktig grupplassering: <strong style={{color:'#FFD700'}}>5 poeng per lag</strong></div>
+          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Maks per gruppe: 20 poeng (4 lag × 5p)</div>
+        </div>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🌟 Spesialtips (låses før gruppespillet)</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>🥇 Riktig verdensmester: <strong style={{color:'#FFD700'}}>25 poeng</strong></div>
+          <div>🥈 Riktig sølvvinner: <strong style={{color:'#FFD700'}}>15 poeng</strong></div>
+          <div>🥉 Riktig bronsevinner: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
+          <div>⚽ Riktig toppscorer: <strong style={{color:'#FFD700'}}>20 poeng</strong></div>
+          <div>🟨 Riktig lag med mest kort: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
+        </div>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🔒 Tidsvindu</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>• Alle tips leveres <strong style={{color:'#FFD700'}}>før</strong> gruppespillet starter</div>
+          <div>• Sluttspill-tips kan endres mellom hver runde</div>
+          <div>• Vinduet stenges 2 timer før kampstart i hver ny runde</div>
+          <div>• Spesialtips (VM-vinner, toppscorer osv.) kan <strong style={{color:'#f87171'}}>ikke</strong> endres etter at gruppespillet starter</div>
+        </div>
+      </div>
+
+      <div style={{ background:'rgba(22,27,44,.75)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28 }}>
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:12, textTransform:'uppercase', letterSpacing:1 }}>📅 VM 2026 – Nøkkeldatoer</h3>
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {[
+            { date:'11. juni 2026', event:'Første gruppespillkamp' },
+            { date:'25. juni 2026', event:'Siste gruppespillkamp' },
+            { date:'28. juni – 1. juli', event:'Sekstendelsfinalene' },
+            { date:'4–6. juli 2026', event:'Åttendedelsfinalene' },
+            { date:'9–10. juli 2026', event:'Kvartfinalene' },
+            { date:'14–15. juli 2026', event:'Semifinalene' },
+            { date:'18. juli 2026', event:'Bronsefinalen' },
+            { date:'19. juli 2026', event:'🏆 Gullfinalen' },
+          ].map(({date,event})=>(
+            <div key={date} style={{display:'flex',gap:12,padding:'8px 12px',background:'rgba(255,255,255,.03)',borderRadius:8,border:'1px solid rgba(255,255,255,.05)'}}>
+              <span style={{color:'#FFD700',fontFamily:"'Fira Code',monospace",fontSize:12,minWidth:160,flexShrink:0}}>{date}</span>
+              <span style={{color:'rgba(255,255,255,.8)',fontSize:14}}>{event}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Music Player ─────────────────────────────────────────────────────
 const TRACKS = [
-  { title: "Fanfare for the Common Man", artist: "Aaron Copland (Public Domain)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/8/8b/Fanfare_for_the_Common_Man.ogg/Fanfare_for_the_Common_Man.ogg.mp3" },
-  { title: "Pomp and Circumstance", artist: "Elgar (Public Domain)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/3/3d/Elgar-_Pomp_and_Circumstance_March_No_1.ogg/Elgar-_Pomp_and_Circumstance_March_No_1.ogg.mp3" },
-  { title: "Olympic Fanfare", artist: "John Williams (Archive)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e0/Olympic_Fanfare_and_Theme.ogg/Olympic_Fanfare_and_Theme.ogg.mp3" },
-  { title: "Also Sprach Zarathustra", artist: "Strauss (Public Domain)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4c/Richard_Strauss_-_Also_sprach_Zarathustra.ogg/Richard_Strauss_-_Also_sprach_Zarathustra.ogg.mp3" },
-  { title: "Victory March", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fanfare%20for%20Space.mp3" },
+  { title: "Fanfare for Space", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fanfare%20for%20Space.mp3" },
+  { title: "Impact Moderato", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Impact%20Moderato.mp3" },
+  { title: "Sovereign", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sovereign.mp3" },
+  { title: "Heroic Age", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3" },
+  { title: "Clash Defiant", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Clash%20Defiant.mp3" },
 ];
 
 function MusicPlayer() {
@@ -931,19 +994,21 @@ export default function App() {
 
   if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
 
+  useEffect(() => { window.scrollTo(0,0); }, []); // scroll to top on load
   return (
     <div style={C.app}>
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={() => setUser(null)} />
-      <WindowToast phase={phase} isAdmin={user.isAdmin} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
         {tab === 'leaderboard' && <Leaderboard me={user} />}
         {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} />}
         {tab === 'myscore'     && !user.isAdmin && <MyScore me={user} />}
         {tab === 'video'       && !user.isAdmin && <VideoChat me={user} />}
+        {tab === 'info'        && !user.isAdmin && <InfoPage />}
         {tab === 'admin'       && user.isAdmin  && <AdminPanel />}
       </div>
       <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
+      <StatusBar phase={phase} isAdmin={user.isAdmin} />
       <MusicPlayer />
     </div>
   );
