@@ -952,6 +952,71 @@ function InfoPage() {
 }
 
 // ── Music Player ─────────────────────────────────────────────────────
+
+// ── Info Page ────────────────────────────────────────────────────────
+function InfoPage() {
+  return (
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+      <div style={{ background:'rgba(22,27,44,.75)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28, marginBottom:16 }}>
+        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, marginBottom:20 }}>ℹ️ Om VM-tipping 2026</h2>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🏆 Poengsystem – Kamper</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>✅ Riktig utfall (H/U/B): <strong style={{color:'#FFD700'}}>2 poeng</strong></div>
+          <div>⚽ Riktig antall mål hjemmelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
+          <div>⚽ Riktig antall mål bortelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
+          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Maks per kamp: 4 poeng</div>
+        </div>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>📋 Poengsystem – Grupper</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>🎯 Riktig grupplassering: <strong style={{color:'#FFD700'}}>5 poeng per lag</strong></div>
+          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Maks per gruppe: 20 poeng (4 lag × 5p)</div>
+        </div>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🌟 Spesialtips (låses før gruppespillet)</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>🥇 Riktig verdensmester: <strong style={{color:'#FFD700'}}>25 poeng</strong></div>
+          <div>🥈 Riktig sølvvinner: <strong style={{color:'#FFD700'}}>15 poeng</strong></div>
+          <div>🥉 Riktig bronsevinner: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
+          <div>⚽ Riktig toppscorer: <strong style={{color:'#FFD700'}}>20 poeng</strong></div>
+          <div>🟨 Riktig lag med mest kort: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
+        </div>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🔒 Tidsvindu</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>• Alle tips leveres <strong style={{color:'#FFD700'}}>før</strong> gruppespillet starter</div>
+          <div>• Sluttspill-tips kan endres mellom hver runde</div>
+          <div>• Vinduet stenges 2 timer før kampstart i hver ny runde</div>
+          <div>• Spesialtips (VM-vinner, toppscorer osv.) kan <strong style={{color:'#f87171'}}>ikke</strong> endres etter at gruppespillet starter</div>
+        </div>
+      </div>
+
+      <div style={{ background:'rgba(22,27,44,.75)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28 }}>
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:12, textTransform:'uppercase', letterSpacing:1 }}>📅 VM 2026 – Nøkkeldatoer</h3>
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {[
+            { date:'11. juni 2026', event:'Første gruppespillkamp' },
+            { date:'25. juni 2026', event:'Siste gruppespillkamp' },
+            { date:'28. juni – 1. juli', event:'Sekstendelsfinalene' },
+            { date:'4–6. juli 2026', event:'Åttendedelsfinalene' },
+            { date:'9–10. juli 2026', event:'Kvartfinalene' },
+            { date:'14–15. juli 2026', event:'Semifinalene' },
+            { date:'18. juli 2026', event:'Bronsefinalen' },
+            { date:'19. juli 2026', event:'🏆 Gullfinalen' },
+          ].map(({date,event})=>(
+            <div key={date} style={{display:'flex',gap:12,padding:'8px 12px',background:'rgba(255,255,255,.03)',borderRadius:8,border:'1px solid rgba(255,255,255,.05)'}}>
+              <span style={{color:'#FFD700',fontFamily:"'Fira Code',monospace",fontSize:12,minWidth:160,flexShrink:0}}>{date}</span>
+              <span style={{color:'rgba(255,255,255,.8)',fontSize:14}}>{event}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Music Player ─────────────────────────────────────────────────────
 const TRACKS = [
   { title: "Epic Victory", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/01/27/audio_d0ef5b6abe.mp3?filename=epic-victory-132871.mp3" },
   { title: "Stadium Anthem", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2023/06/15/audio_6a3e3fd15e.mp3?filename=stadium-anthem-159267.mp3" },
@@ -1060,7 +1125,6 @@ export default function App() {
       </div>
       <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
       <StatusBar phase={phase} isAdmin={user.isAdmin} />
-      <MusicPlayer />
     </div>
   );
 }
