@@ -132,8 +132,8 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
   return (
     <div>
       <div style={{ ...C.banner, ...(isMobile ? C.bannerMobile : {}) }}>
-        {/* Logo */}
-        <div style={{ ...C.bannerLogo, ...(isMobile ? C.bannerLogoMobile : {}) }}>
+        {/* Logo – overflows below banner */}
+        <div style={{ ...C.bannerLogo, ...(isMobile ? C.bannerLogoMobile : {}), position:'relative', zIndex:20 }}>
           <img src="/vm-logo.png" alt="VM-tipping 2026"
             style={isMobile ? C.bannerLogoImgMobile : C.bannerLogoImg} />
         </div>
@@ -220,6 +220,8 @@ function Dashboard({ me }) {
   };
 
   const medals = ['🥇', '🥈', '🥉'];
+  const myRank = users.findIndex(u => u.id === me.username) + 1;
+  const myPts = users.find(u => u.id === me.username)?.total || 0;
   const finishedMatches = GROUP_MATCHES.filter(m => {
     const r = results[m.id];
     return r && r.home !== undefined && r.away !== undefined;
@@ -228,7 +230,21 @@ function Dashboard({ me }) {
   const gridStyle = isMobile ? C.dashGrid1 : C.dashGrid2;
 
   return (
-    <div style={gridStyle}>
+    <div>
+      {/* Stats widgets */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:16 }}>
+        {[
+          { num: myRank ? `#${myRank}` : '–', label: 'Din plassering' },
+          { num: myPts, label: 'Dine poeng' },
+          { num: users.length, label: 'Deltakere' },
+        ].map(({ num, label }) => (
+          <div key={label} style={C.statWidget}>
+            <div style={C.statNum}>{num}</div>
+            <div style={C.statLabel}>{label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={gridStyle}>
       {/* Poengtabell */}
       <div style={C.card}>
         <div style={C.cardHeader}>
@@ -277,7 +293,7 @@ function Dashboard({ me }) {
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
             placeholder="Skriv melding…" />
-          <button style={{ ...C.btnGold, padding: '8px 16px', fontSize: 12 }} onClick={sendMsg}>Send</button>
+          <button style={{ ...C.btnCyan, padding: '8px 16px', fontSize: 12 }} onClick={sendMsg}>Send</button>
         </div>
       </div>
 
@@ -329,6 +345,7 @@ function Dashboard({ me }) {
             );
           })}
         </div>
+      </div>
       </div>
     </div>
   );
