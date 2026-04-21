@@ -140,25 +140,23 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
 
         {/* Nav area */}
         <div style={C.bannerNav}>
-          {/* User + logout */}
-          <div style={C.bannerTopRow}>
-            <div style={C.bannerUser}>
-              <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
-              <span>{user.displayName}</span>
-            </div>
-            <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
-          </div>
-
-          {/* Nav tabs */}
-          <div style={C.bannerNavTabs}>
+          {/* Nav tabs + user on same row */}
+          <div style={{ display:'flex', alignItems:'flex-end', width:'100%', gap:4 }}>
             {nav.map(n => (
               <button key={n.id}
                 style={{ ...C.navBtn, ...(tab === n.id ? C.navOn : {}) }}
                 onClick={() => setTab(n.id)}>
-                <span style={{ fontSize: 18 }}>{n.icon}</span>
-                <span>{n.label}</span>
+                <span style={{ fontSize: isMobile ? 14 : 18 }}>{n.icon}</span>
+                {!isMobile && <span>{n.label}</span>}
               </button>
             ))}
+            <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, paddingBottom:8 }}>
+              {!isMobile && <div style={C.bannerUser}>
+                <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
+                <span>{user.displayName}</span>
+              </div>}
+              <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
+            </div>
           </div>
         </div>
       </div>

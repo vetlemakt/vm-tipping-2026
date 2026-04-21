@@ -12,9 +12,9 @@ export const C = {
   // ── App shell ──────────────────────────────────────────────
   app: {
     minHeight: '100vh',
-    background: '#0b0f1a',
+    background: '#f2f5fc',
     fontFamily: "'Plus Jakarta Sans', sans-serif",
-    color: '#e8eaf0',
+    color: '#1a2040',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -22,7 +22,7 @@ export const C = {
   // ── TOP BANNER ─────────────────────────────────────────────
   banner: {
     background: NAV,
-    height: 300,
+    height: 100,
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -33,21 +33,22 @@ export const C = {
   bannerMobile: {
     height: 'auto',
     flexDirection: 'column',
+    minHeight: 80,
   },
 
   // Logo section (left side of banner)
   bannerLogo: {
-    width: 260,
-    minWidth: 260,
+    width: 100,
+    minWidth: 100,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '16px 0 16px 16px',
+    padding: '6px 0 6px 12px',
     flexShrink: 0,
   },
   bannerLogoImg: {
-    height: 260,
-    width: 260,
+    height: 88,
+    width: 88,
     objectFit: 'contain',
   },
   bannerLogoMobile: {
@@ -65,8 +66,8 @@ export const C = {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: '24px 24px 0 16px',
+    justifyContent: 'flex-end',
+    padding: '8px 16px 0 16px',
   },
 
   // Top row in banner: user info + logout
@@ -75,6 +76,8 @@ export const C = {
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 12,
+    marginLeft: 'auto',
+    paddingBottom: 0,
   },
   bannerUser: {
     display: 'flex',
@@ -114,6 +117,7 @@ export const C = {
     alignItems: 'flex-end',
     gap: 4,
     flexWrap: 'wrap',
+    width: '100%',
   },
   navBtn: {
     background: 'transparent',
@@ -164,8 +168,8 @@ export const C = {
 
   // ── Cards ──────────────────────────────────────────────────
   card: {
-    background: '#141928',
-    border: '1px solid #2a3050',
+    background: '#ffffff',
+    border: '1px solid #b8cce8',
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 16,
@@ -176,13 +180,13 @@ export const C = {
     justifyContent: 'space-between',
     padding: '14px 18px',
     borderBottom: '1px solid #2a3050',
-    background: '#0f1422',
+    background: '#eef2fb',
   },
   cardTitle: {
     fontFamily: "'Space Grotesk', sans-serif",
     fontSize: 14,
     fontWeight: 700,
-    color: W,
+    color: '#01174C',
     textTransform: 'uppercase',
     letterSpacing: 1,
     display: 'flex',
@@ -203,7 +207,7 @@ export const C = {
   secH: {
     fontFamily: "'Fira Code', monospace",
     fontSize: 11,
-    color: '#9aa0c0',
+    color: '#5a7aaa',
     textTransform: 'uppercase',
     letterSpacing: 2,
     display: 'block',
@@ -211,7 +215,7 @@ export const C = {
   },
   mono12: {
     fontSize: 12,
-    color: '#9aa0c0',
+    color: '#5a7aaa',
     fontFamily: "'Fira Code', monospace",
   },
 
@@ -235,7 +239,7 @@ export const C = {
     padding: '11px 14px',
     borderRadius: 10,
     marginBottom: 5,
-    background: '#0b0f1a',
+    background: '#f4f8ff',
     border: '1px solid transparent',
   },
   lbMe: {
@@ -243,7 +247,7 @@ export const C = {
     border: `1px solid rgba(255,215,0,.2)`,
   },
   lbRank: { width: 30, textAlign: 'center', fontSize: 18, flexShrink: 0 },
-  lbName: { flex: 1, fontWeight: 600, fontSize: 15, color: '#e8eaf0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  lbName: { flex: 1, fontWeight: 600, fontSize: 15, color: '#1a2040', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   lbPts: {
     fontFamily: "'Space Grotesk', sans-serif",
     fontSize: 26,
@@ -277,7 +281,7 @@ export const C = {
     flexDirection: 'column',
     gap: 8,
     padding: '12px 16px',
-    background: '#0b0f1a',
+    background: '#f8faff',
   },
   chatMsg: { display: 'flex', flexDirection: 'column', gap: 2, maxWidth: '80%' },
   chatBubble: {
@@ -285,7 +289,7 @@ export const C = {
     padding: '7px 12px',
     fontSize: 14,
     lineHeight: 1.5,
-    color: '#e8eaf0',
+    color: '#1a2040',
   },
   chatUser: { fontSize: 11, color: YEL, fontFamily: "'Fira Code', monospace", marginBottom: 1 },
   chatTime: { fontSize: 10, color: '#6070a0', fontFamily: "'Fira Code', monospace" },
@@ -295,14 +299,14 @@ export const C = {
     padding: '10px 16px',
     borderTop: '1px solid #2a3050',
     alignItems: 'center',
-    background: '#0f1422',
+    background: '#eef2fb',
   },
 
   // ── Match cards ────────────────────────────────────────────
   matchCard: {
     padding: '11px 16px',
-    borderBottom: '1px solid #2a3050',
-    background: '#0b0f1a',
+    borderBottom: '1px solid #dde8f8',
+    background: '#fafcff',
   },
   matchTeams: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
   matchTeam: { flex: 1, fontSize: 14, fontWeight: 600, color: '#e8eaf0' },
@@ -310,10 +314,10 @@ export const C = {
     fontFamily: "'Fira Code', monospace",
     fontSize: 18,
     fontWeight: 700,
-    color: GRN,
+    color: '#01174C',
     padding: '3px 12px',
-    background: 'rgba(46,170,74,.1)',
-    border: '1px solid rgba(46,170,74,.2)',
+    background: 'rgba(1,23,76,.08)',
+    border: '1px solid rgba(1,23,76,.15)',
     borderRadius: 6,
   },
   matchScorers: { fontSize: 12, color: '#8090b0', marginTop: 2 },
@@ -334,9 +338,9 @@ export const C = {
     color: '#c0c8e0',
     lineHeight: 1.6,
     padding: '8px 12px',
-    background: '#141928',
+    background: '#eef2fb',
     borderRadius: 7,
-    border: '1px solid #2a3050',
+    border: '1px solid #b8cce8',
   },
   matchSummaryAuthor: {
     fontSize: 11,
@@ -351,7 +355,7 @@ export const C = {
     background: '#0b0f1a',
     border: '1px solid #2a3050',
     borderRadius: 9,
-    color: '#e8eaf0',
+    color: '#1a2040',
     padding: '11px 14px',
     fontSize: 15,
     marginBottom: 10,
@@ -362,7 +366,7 @@ export const C = {
     background: '#0b0f1a',
     border: '1px solid #2a3050',
     borderRadius: 8,
-    color: '#e8eaf0',
+    color: '#1a2040',
     padding: '7px 10px',
     fontSize: 13,
     fontFamily: 'inherit',
@@ -373,7 +377,7 @@ export const C = {
     background: '#0b0f1a',
     border: '1px solid #2a3050',
     borderRadius: 9,
-    color: '#e8eaf0',
+    color: '#1a2040',
     padding: '10px 12px',
     fontSize: 13,
     fontFamily: "'Fira Code', monospace",
@@ -397,8 +401,8 @@ export const C = {
   },
   btnSecondary: {
     background: 'transparent',
-    border: '1px solid #2a3050',
-    color: '#9aa0c0',
+    border: '1px solid #b8cce8',
+    color: '#5a7aaa',
     borderRadius: 8,
     padding: '8px 16px',
     cursor: 'pointer',
@@ -419,7 +423,7 @@ export const C = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#0b0f1a',
+    background: '#f2f5fc',
     padding: 16,
   },
   authGlow: {
@@ -428,8 +432,8 @@ export const C = {
   },
   authBox: {
     position: 'relative', zIndex: 1,
-    background: '#141928',
-    border: '1px solid #2a3050',
+    background: '#ffffff',
+    border: '1px solid #b8cce8',
     borderRadius: 20,
     padding: '44px 36px',
     width: '100%', maxWidth: 420,
@@ -448,7 +452,7 @@ export const C = {
     marginBottom: 28,
     fontFamily: "'Fira Code', monospace",
   },
-  tabs: { display: 'flex', borderBottom: '1px solid #2a3050', marginBottom: 20 },
+  tabs: { display: 'flex', borderBottom: '1px solid #b8cce8', marginBottom: 20 },
   tab: {
     flex: 1, background: 'transparent', border: 'none',
     borderBottom: '2px solid transparent', color: '#6070a0',
@@ -461,8 +465,8 @@ export const C = {
   // ── Tips ───────────────────────────────────────────────────
   gTabs: { display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 14 },
   gTab: {
-    background: 'transparent', border: '1px solid #2a3050',
-    color: '#9aa0c0', borderRadius: 7, padding: '4px 11px',
+    background: 'transparent', border: '1px solid #b8cce8',
+    color: '#5a7aaa', borderRadius: 7, padding: '4px 11px',
     cursor: 'pointer', fontSize: 12, fontFamily: "'Fira Code', monospace",
     transition: 'all .15s',
   },
@@ -473,13 +477,13 @@ export const C = {
   matchList: { display: 'flex', flexDirection: 'column', gap: 3 },
   mRow: {
     display: 'flex', alignItems: 'center', gap: 7,
-    padding: '7px 10px', borderRadius: 7, background: '#0b0f1a', flexWrap: 'wrap',
+    padding: '7px 10px', borderRadius: 7, background: '#f0f4fc', flexWrap: 'wrap',
   },
   mDate: { fontSize: 10, color: '#4a5a80', fontFamily: "'Fira Code', monospace", minWidth: 40 },
-  mTeam: { fontSize: 13, flex: 1, minWidth: 80, fontWeight: 500, color: '#e8eaf0' },
+  mTeam: { fontSize: 13, flex: 1, minWidth: 80, fontWeight: 500, color: '#1a2040' },
   sInp: {
-    width: 46, background: '#141928', border: '1px solid #2a3050',
-    borderRadius: 7, color: YEL, padding: '6px 3px',
+    width: 46, background: '#f0f4fc', border: '1px solid #b8cce8',
+    borderRadius: 7, color: '#01174C', padding: '6px 3px',
     fontSize: 17, textAlign: 'center', fontWeight: 700,
     fontFamily: "'Fira Code', monospace", outline: 'none',
   },
@@ -516,7 +520,7 @@ export const C = {
     padding: '2px 7px', fontFamily: "'Fira Code', monospace",
   },
   lockBanner: {
-    background: 'rgba(230,50,50,.07)', border: '1px solid rgba(230,50,50,.2)',
+    background: 'rgba(230,50,50,.05)', border: '1px solid rgba(230,50,50,.2)',
     borderRadius: 9, padding: '11px 14px', marginBottom: 14,
     color: '#ff8888', fontSize: 13,
   },
@@ -535,7 +539,7 @@ export const C = {
     fontSize: 44, fontWeight: 700, letterSpacing: .5, lineHeight: 1,
   },
   scoreL: {
-    fontSize: 10, color: '#6070a0', marginTop: 6,
+    fontSize: 10, color: '#7a9ac0', marginTop: 6,
     fontFamily: "'Fira Code', monospace",
     textTransform: 'uppercase', letterSpacing: 2,
   },
@@ -543,7 +547,7 @@ export const C = {
   // ── Admin ──────────────────────────────────────────────────
   phBtn: {
     display: 'block', width: '100%', background: 'transparent',
-    border: '1px solid #2a3050', color: '#9aa0c0', borderRadius: 8,
+    border: '1px solid #b8cce8', color: '#5a7aaa', borderRadius: 8,
     padding: '9px 14px', marginBottom: 4, cursor: 'pointer',
     textAlign: 'left', fontSize: 13, fontFamily: 'inherit', transition: 'all .15s',
   },
@@ -562,8 +566,8 @@ export const C = {
   // ── Footer ─────────────────────────────────────────────────
   footer: {
     textAlign: 'center', padding: '16px',
-    color: '#2a3050', fontSize: 11,
-    borderTop: '1px solid #1a2038',
+    color: '#8aabcc', fontSize: 11,
+    borderTop: '1px solid #dde8f8',
     fontFamily: "'Fira Code', monospace",
     letterSpacing: 1,
   },
