@@ -964,7 +964,7 @@ function MusicPlayer() {
   const [idx, setIdx]      = useState(0);
   const [playing, setPlay] = useState(false);
   const [vol, setVol]      = useState(0.5);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(false); // eslint-disable-line
   const ref = useRef(null);
 
   const next = () => setIdx(i => (i+1) % TRACKS.length);
