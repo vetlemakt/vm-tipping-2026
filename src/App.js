@@ -8,7 +8,7 @@ import {
   db,
 } from './firebase';
 import { doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
-import { calcScore } from './scoring';
+import { calcScore, calcMatchPts } from './scoring';
 import {
   INVITE_CODE, ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
@@ -1000,7 +1000,7 @@ function MusicPlayer() {
       display: 'flex', flexDirection: 'column', gap: 6,
       minWidth: 220, maxWidth: 260,
     }}>
-      <audio ref={audioRef} onEnded={next} crossOrigin="anonymous"
+      <audio ref={ref} onEnded={next} crossOrigin="anonymous"
         onError={() => { console.log('Audio error, trying next'); next(); }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 16 }}>🎵</span>
@@ -1015,13 +1015,13 @@ function MusicPlayer() {
           {playing ? '⏸' : '▶'}
         </button>
         <button onClick={next} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'#fff', borderRadius:8, width:28, height:28, cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center' }}>⏭</button>
-        <input type="range" min={0} max={1} step={0.05} value={volume}
-          onChange={e => setVolume(parseFloat(e.target.value))}
+        <input type="range" min={0} max={1} step={0.05} value={vol}
+          onChange={e => setVol(parseFloat(e.target.value))}
           style={{ flex:1, accentColor:'#FFD700', height:4 }} />
       </div>
       <div style={{ display:'flex', gap:4, justifyContent:'center' }}>
         {TRACKS.map((_, i) => (
-          <div key={i} onClick={() => setIdx(i)} style={{ width:6, height:6, borderRadius:'50%', background: i===trackIdx?'#FFD700':'rgba(255,255,255,.2)', cursor:'pointer', transition:'background .2s' }} />
+          <div key={i} onClick={() => setIdx(i)} style={{ width:6, height:6, borderRadius:'50%', background: i===idx?'#FFD700':'rgba(255,255,255,.2)', cursor:'pointer', transition:'background .2s' }} />
         ))}
       </div>
     </div>
