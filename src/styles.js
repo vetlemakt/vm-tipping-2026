@@ -14,18 +14,18 @@ export const C = {
 
   // ── BANNER ─────────────────────────────────────────────────
   banner: {
-    background: '#01164b',
-    height: 90,
+    background: '#01174C',
+    height: 110,
     display: 'flex',
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'center',
     flexShrink: 0,
     position: 'relative',
-    overflow: 'visible',
+    overflow: 'hidden',
     zIndex: 10,
   },
   bannerMobile: {
-    height: 80,
+    height: 70,
   },
 
   // Logo: overflows below banner
@@ -41,21 +41,21 @@ export const C = {
     zIndex: 20,
   },
   bannerLogoImg: {
-    height: 133,
-    width: 133,
+    height: 110,
+    width: 110,
     objectFit: 'contain',
     marginTop: 0,
     marginLeft: 0,
     display: 'block',
-    filter: 'drop-shadow(0 8px 24px rgba(0,0,0,.5))',
+    filter: 'drop-shadow(0 4px 16px rgba(0,0,0,.6))',
   },
   bannerLogoMobile: {
     width: 70,
     minWidth: 70,
   },
   bannerLogoImgMobile: {
-    height: 110,
-    width: 110,
+    height: 65,
+    width: 65,
     marginTop: 0,
     marginLeft: 0,
   },
