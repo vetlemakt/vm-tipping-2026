@@ -193,7 +193,7 @@ export const C = {
   secH: {
     fontFamily: "'Kanit', sans-serif",
     fontSize: 11,
-    color: 'rgba(255,255,255,.4)',
+    color: 'rgba(255,255,255,.65)',
     textTransform: 'uppercase',
     letterSpacing: 3,
     display: 'block',
@@ -202,7 +202,7 @@ export const C = {
   },
   mono12: {
     fontSize: 12,
-    color: 'rgba(255,255,255,.4)',
+    color: 'rgba(255,255,255,.65)',
     fontFamily: "'Fira Code', monospace",
   },
 
@@ -237,7 +237,7 @@ export const C = {
   },
   statLabel: {
     fontSize: 10,
-    color: 'rgba(255,255,255,.45)',
+    color: 'rgba(255,255,255,.75)',
     textTransform: 'uppercase',
     letterSpacing: 2,
     marginTop: 5,
@@ -271,7 +271,7 @@ export const C = {
     lineHeight: 1,
     textShadow: '0 0 12px rgba(255,215,0,.3)',
   },
-  lbPtsL: { fontSize: 9, color: 'rgba(255,255,255,.3)', fontFamily: "'Fira Code',monospace", textTransform: 'uppercase', letterSpacing: 2, textAlign: 'right' },
+  lbPtsL: { fontSize: 9, color: 'rgba(255,255,255,.6)', fontFamily: "'Fira Code',monospace", textTransform: 'uppercase', letterSpacing: 2, textAlign: 'right' },
   youTag: { fontSize: 9, color: '#FFD700', fontFamily: "'Fira Code',monospace", background: 'rgba(255,215,0,.12)', borderRadius: 3, padding: '1px 5px', marginLeft: 4 },
 
   // ── Chat ───────────────────────────────────────────────────
@@ -293,7 +293,7 @@ export const C = {
     color: '#e8edf8',
   },
   chatUser: { fontSize: 11, color: '#FFD700', fontFamily: "'Fira Code',monospace", marginBottom: 1 },
-  chatTime: { fontSize: 9, color: 'rgba(255,255,255,.25)', fontFamily: "'Fira Code',monospace" },
+  chatTime: { fontSize: 9, color: 'rgba(255,255,255,.55)', fontFamily: "'Fira Code',monospace" },
   chatInputRow: {
     display: 'flex',
     gap: 8,
@@ -323,7 +323,7 @@ export const C = {
     borderRadius: 8,
     textShadow: '0 0 10px rgba(0,229,255,.4)',
   },
-  matchScorers: { fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 2 },
+  matchScorers: { fontSize: 12, color: 'rgba(255,255,255,.6)', marginTop: 2 },
   matchSummaryBtn: {
     marginTop: 7, fontSize: 12, color: '#FFD700',
     background: 'transparent', border: '1px solid rgba(255,215,0,.2)',
@@ -474,7 +474,7 @@ export const C = {
     background: 'rgba(255,255,255,.04)', flexWrap: 'wrap',
     border: '1px solid rgba(255,255,255,.05)',
   },
-  mDate: { fontSize: 10, color: 'rgba(255,255,255,.25)', fontFamily: "'Fira Code',monospace", minWidth: 40 },
+  mDate: { fontSize: 10, color: 'rgba(255,255,255,.55)', fontFamily: "'Fira Code',monospace", minWidth: 40 },
   mTeam: { fontSize: 13, flex: 1, minWidth: 80, fontWeight: 500, color: '#e8edf8' },
   sInp: {
     width: 46, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)',
@@ -529,14 +529,14 @@ export const C = {
   },
   scoreNum: { fontFamily: "'Kanit',sans-serif", fontSize: 44, fontWeight: 800, letterSpacing: .5, lineHeight: 1 },
   scoreL: {
-    fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 6,
+    fontSize: 10, color: 'rgba(255,255,255,.65)', marginTop: 6,
     fontFamily: "'Fira Code',monospace", textTransform: 'uppercase', letterSpacing: 2,
   },
 
   // ── Admin ──────────────────────────────────────────────────
   phBtn: {
     display: 'block', width: '100%', background: 'rgba(255,255,255,.04)',
-    border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.55)', borderRadius: 8,
+    border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.75)', borderRadius: 8,
     padding: '9px 14px', marginBottom: 4, cursor: 'pointer',
     textAlign: 'left', fontSize: 13, fontFamily: 'inherit', transition: 'all .15s',
   },
@@ -549,7 +549,7 @@ export const C = {
   // ── Footer ─────────────────────────────────────────────────
   footer: {
     textAlign: 'center', padding: '16px',
-    color: 'rgba(255,255,255,.15)', fontSize: 11,
+    color: 'rgba(255,255,255,.4)', fontSize: 11,
     borderTop: '1px solid rgba(255,255,255,.05)',
     fontFamily: "'Fira Code',monospace", letterSpacing: 1,
   },

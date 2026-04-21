@@ -75,9 +75,9 @@ export function subscribeChatMessages(callback) {
   });
 }
 
-export async function sendChatMessage(user, text) {
+export async function sendChatMessage(user, text, image='') {
   await addDoc(collection(db, 'chat'), {
-    user, text, ts: serverTimestamp()
+    user, text, image: image||'', ts: serverTimestamp()
   });
 }
 

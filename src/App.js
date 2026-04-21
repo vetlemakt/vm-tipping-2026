@@ -109,6 +109,35 @@ function AuthScreen({ onLogin }) {
   );
 }
 
+// ── Window Toast ────────────────────────────────────────────────────
+function WindowToast({ phase, isAdmin }) {
+  const [visible, setVisible] = useState(true);
+  const ws = winStatus(phase);
+  if (isAdmin || !visible) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 999, display: 'flex', alignItems: 'center', gap: 10,
+      background: ws.open ? 'rgba(0,180,80,.92)' : 'rgba(200,40,40,.92)',
+      backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+      color: '#fff', borderRadius: 30, padding: '8px 18px 8px 14px',
+      boxShadow: ws.open ? '0 4px 24px rgba(0,200,80,.4)' : '0 4px 24px rgba(200,40,40,.4)',
+      fontSize: 13, fontWeight: 600, letterSpacing: .5, whiteSpace: 'nowrap',
+      animation: 'fadeUp .4s ease both',
+      border: `1px solid ${ws.open ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.15)'}`,
+    }}>
+      <span style={{ fontSize: 16 }}>{ws.open ? '🟢' : '🔴'}</span>
+      {ws.label}
+      <button onClick={() => setVisible(false)} style={{
+        background: 'rgba(255,255,255,.2)', border: 'none', color: '#fff',
+        borderRadius: '50%', width: 18, height: 18, cursor: 'pointer',
+        fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginLeft: 4, flexShrink: 0, fontFamily: 'inherit',
+      }}>×</button>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  BANNER (topp-navigasjon)
 // ══════════════════════════════════════════════════════════════════════
@@ -160,17 +189,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
         </div>
       </div>
 
-      {/* Window status stripe */}
-      {!user.isAdmin && (
-        <div style={{
-          ...C.windowBanner,
-          background: ws.open ? 'rgba(46,170,74,.12)' : 'rgba(230,50,50,.1)',
-          color: ws.open ? GRN : '#ff7777',
-          borderBottom: `1px solid ${ws.open ? 'rgba(46,170,74,.2)' : 'rgba(230,50,50,.2)'}`,
-        }}>
-          {ws.label}
-        </div>
-      )}
+
     </div>
   );
 }
@@ -203,7 +222,7 @@ function Dashboard({ me }) {
 
   const sendMsg = async () => {
     const t = input.trim(); if (!t) return;
-    setInput(''); await sendChatMessage(me.displayName, t);
+    setInput(''); await sendChatMessage(me.displayName, t, '');
   };
 
   const saveSummary = async (matchId) => {
@@ -226,24 +245,38 @@ function Dashboard({ me }) {
     return r && r.home !== undefined && r.away !== undefined;
   }).slice(-8).reverse();
 
-  const gridStyle = isMobile ? C.dashGrid1 : C.dashGrid2;
-
   return (
     <div>
       {/* Stats widgets */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:16 }}>
-        {[
+      {(() => {
+        const finishedCount = GROUP_MATCHES.filter(m => results[m.id]?.home !== undefined).length;
+        const totalGoals = GROUP_MATCHES.reduce((s,m) => {
+          const r = results[m.id];
+          return r?.home !== undefined ? s + (r.home||0) + (r.away||0) : s;
+        }, 0);
+        const stats = isMobile ? [
+          { num: myRank ? `#${myRank}` : '–', label: 'Plassering' },
+          { num: myPts, label: 'Poeng' },
+          { num: users.length, label: 'Deltakere' },
+        ] : [
           { num: myRank ? `#${myRank}` : '–', label: 'Din plassering' },
           { num: myPts, label: 'Dine poeng' },
           { num: users.length, label: 'Deltakere' },
-        ].map(({ num, label }) => (
-          <div key={label} style={C.statWidget}>
-            <div style={C.statNum}>{num}</div>
-            <div style={C.statLabel}>{label}</div>
+          { num: finishedCount, label: 'Spilte kamper' },
+          { num: totalGoals, label: 'Antall mål' },
+        ];
+        return (
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : 'repeat(5,1fr)', gap:12, marginBottom:16 }}>
+            {stats.map(({ num, label }) => (
+              <div key={label} style={C.statWidget}>
+                <div style={C.statNum}>{num}</div>
+                <div style={C.statLabel}>{label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div style={gridStyle}>
+        );
+      })()}
+      <div style={isMobile ? {display:'flex',flexDirection:'column',gap:16} : {display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,alignItems:'start'}}>
       {/* Poengtabell */}
       <div style={C.card}>
         <div style={C.cardHeader}>
@@ -277,27 +310,54 @@ function Dashboard({ me }) {
             const mine = m.user === me.displayName;
             return (
               <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
-                {!mine && <span style={C.chatUser}>{m.user}</span>}
-                <span style={{ ...C.chatBubble, background: mine ? '#1e2d50' : '#141928', border: `1px solid ${mine ? '#2a3d70' : '#2a3050'}` }}>
-                  {m.text}
+                <span style={{ ...C.chatBubble, background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)', border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}` }}>
+                  {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:200,borderRadius:8,display:'block'}} /> : m.text}
                 </span>
-                <span style={{ ...C.chatTime, textAlign: mine ? 'right' : 'left' }}>{fmt(m.ts)}</span>
+                <div style={{display:'flex',gap:8,alignItems:'center',justifyContent: mine?'flex-end':'flex-start'}}>
+                  <span style={{...C.chatUser,color: mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
+                  <span style={C.chatTime}>{fmt(m.ts)}</span>
+                </div>
               </div>
             );
           })}
           <div ref={chatBot} />
         </div>
         <div style={C.chatInputRow}>
+          <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}} title="Last opp bilde">
+            🖼️
+            <input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={e=>{
+              const file=e.target.files[0]; if(!file)return;
+              const reader=new FileReader();
+              reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
+              reader.readAsDataURL(file);
+              e.target.value='';
+            }}/>
+          </label>
           <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
-            placeholder="Skriv melding…" />
+            placeholder="Skriv melding… (lim inn bilde med Ctrl+V)" 
+            onPaste={e=>{
+              const items=e.clipboardData?.items;
+              if(!items)return;
+              for(let item of items){
+                if(item.type.startsWith('image/')){
+                  e.preventDefault();
+                  const file=item.getAsFile();
+                  const reader=new FileReader();
+                  reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
+                  reader.readAsDataURL(file);
+                  return;
+                }
+              }
+            }}
+          />
           <button style={{ ...C.btnCyan, padding: '8px 16px', fontSize: 12 }} onClick={sendMsg}>Send</button>
         </div>
       </div>
 
       {/* Kamper */}
-      <div style={{ ...C.card, gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+      <div style={C.card}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
           <span style={{ fontSize: 12, color: '#6070a0', fontFamily: "'Fira Code',monospace" }}>Klikk for å skrive oppsummering</span>
@@ -768,6 +828,7 @@ export default function App() {
   return (
     <div style={C.app}>
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={() => setUser(null)} />
+      <WindowToast phase={phase} isAdmin={user.isAdmin} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
         {tab === 'leaderboard' && <Leaderboard me={user} />}
