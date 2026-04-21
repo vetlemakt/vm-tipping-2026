@@ -160,10 +160,10 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
     <div>
       <div style={{ ...C.banner, ...(isMobile ? C.bannerMobile : {}) }}>
         {/* Logo – klikk for dashboard */}
-        <div style={{ ...C.bannerLogo, ...(isMobile ? C.bannerLogoMobile : {}), position:'relative', zIndex:20, cursor:'pointer' }}
+        <div style={{ width: isMobile?70:110, minWidth: isMobile?70:110, position:'relative', zIndex:20, cursor:'pointer', flexShrink:0 }}
           onClick={() => setTab('dashboard')}>
           <img src="/vm-logo.png" alt="Gå til dashboard"
-            style={{ ...(isMobile ? C.bannerLogoImgMobile : C.bannerLogoImg), mixBlendMode:'multiply' }} />
+            style={{ position:'absolute', top:0, left:0, height: isMobile?65:133, width: isMobile?65:133, objectFit:'contain', filter:'drop-shadow(0 8px 24px rgba(0,0,0,.5))', mixBlendMode:'multiply' }} />
         </div>
 
         {/* Nav area */}
@@ -969,11 +969,11 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  useEffect(() => { document.getElementById('app-top')?.scrollIntoView({block:'start'}); window.scrollTo(0,0); }, [tab]);
+  useEffect(() => { window.scrollTo(0,0); }, [tab]);
 
   if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
   return (
-    <div style={C.app} id="app-top">
+    <div style={C.app}>
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={() => setUser(null)} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
