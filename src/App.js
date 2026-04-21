@@ -143,7 +143,6 @@ function WindowToast({ phase, isAdmin }) {
 // ══════════════════════════════════════════════════════════════════════
 function Banner({ user, tab, setTab, phase, onLogout }) {
   const isMobile = useIsMobile();
-  const ws = winStatus(phase);
 
   const NAV_U = [
     { id: 'leaderboard', icon: '🏆', label: 'Tabell' },
