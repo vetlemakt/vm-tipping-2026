@@ -5,7 +5,9 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage,
   subscribePhase, subscribeResults,
+  db,
 } from './firebase';
+import { doc, getDoc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
 import { calcScore } from './scoring';
 import {
   INVITE_CODE, ADMIN_CODE, FD_API_KEY,
@@ -14,10 +16,19 @@ import {
 } from './constants';
 import { C } from './styles';
 
-// ── Helpers ──────────────────────────────────────────────────────────
+const G = '#39ff7e';
 const Flag = ({ team }) => <span title={team}>{FLAGS[team] || '🏳️'}</span>;
-
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
+
+const useIsMobile = () => {
+  const [mobile, setMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const h = () => setMobile(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return mobile;
+};
 
 async function fetchLive() {
   if (FD_API_KEY === 'YOUR_KEY_HERE') return { demo: true };
@@ -29,12 +40,28 @@ async function fetchLive() {
   } catch { return null; }
 }
 
+// ── Match Summary helpers ───────────────────────────────────────────
+async function getMatchSummary(matchId) {
+  const snap = await getDoc(doc(db, 'summaries', matchId));
+  return snap.exists() ? snap.data() : null;
+}
+async function setMatchSummary(matchId, text, author) {
+  await setDoc(doc(db, 'summaries', matchId), { text, author, ts: Date.now() });
+}
+function subscribeMatchSummaries(callback) {
+  return onSnapshot(collection(db, 'summaries'), snap => {
+    const data = {};
+    snap.docs.forEach(d => { data[d.id] = d.data(); });
+    callback(data);
+  });
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  AUTH
 // ══════════════════════════════════════════════════════════════════════
 function AuthScreen({ onLogin }) {
   const [mode, setMode] = useState('login');
-  const [f, setF] = useState({ username:'', password:'', inviteCode:'', displayName:'' });
+  const [f, setF] = useState({ username: '', password: '', inviteCode: '', displayName: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const upd = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -44,7 +71,7 @@ function AuthScreen({ onLogin }) {
     try {
       if (mode === 'login') {
         if (f.username === 'admin' && f.password === ADMIN_CODE) {
-          onLogin({ username:'admin', displayName:'Admin ⚙️', isAdmin:true }); return;
+          onLogin({ username: 'admin', displayName: 'Admin', isAdmin: true }); return;
         }
         const u = await getUser(f.username);
         if (!u) { setError('Brukeren finnes ikke.'); setLoading(false); return; }
@@ -53,27 +80,25 @@ function AuthScreen({ onLogin }) {
       } else {
         if (f.inviteCode.trim().toUpperCase() !== INVITE_CODE) { setError('Feil invitasjonskode.'); setLoading(false); return; }
         if (!f.username || !f.displayName || !f.password) { setError('Fyll ut alle felt.'); setLoading(false); return; }
-        const existing = await getUser(f.username);
-        if (existing) { setError('Brukernavnet er tatt.'); setLoading(false); return; }
-        const nu = { password:f.password, displayName:f.displayName, tips:{}, specialTips:{}, groupOrders:{} };
+        if (await getUser(f.username)) { setError('Brukernavnet er tatt.'); setLoading(false); return; }
+        const nu = { password: f.password, displayName: f.displayName, tips: {}, specialTips: {}, groupOrders: {} };
         await createUser(f.username, nu);
         onLogin({ ...nu, username: f.username });
       }
-    } catch (e) {
-      setError('Noe gikk galt. Prøv igjen.'); setLoading(false);
-    }
+    } catch { setError('Noe gikk galt. Prøv igjen.'); setLoading(false); }
   };
 
   return (
     <div style={C.authWrap}>
       <div style={C.authGlow} />
       <div className="fu" style={C.authBox}>
-        <div style={C.authBall}>⚽</div>
-        <h1 style={C.authTitle}>VM-TIPPING 2026</h1>
+        <span style={C.authBall}>⚽</span>
+        <h1 style={C.authTitle}>VM-<span style={C.authAccent}>TIPPING</span><br />2026</h1>
         <p style={C.authSub}>FIFA World Cup · USA · Canada · Mexico</p>
         <div style={C.tabs}>
-          {['login','register'].map(m => (
-            <button key={m} style={{...C.tab,...(mode===m?C.tabOn:{})}} onClick={() => { setMode(m); setError(''); }}>
+          {['login', 'register'].map(m => (
+            <button key={m} style={{ ...C.tab, ...(mode === m ? C.tabOn : {}) }}
+              onClick={() => { setMode(m); setError(''); }}>
               {m === 'login' ? 'Logg inn' : 'Registrer'}
             </button>
           ))}
@@ -86,11 +111,11 @@ function AuthScreen({ onLogin }) {
         <input style={C.inp} name="password" placeholder="Passord" type="password" value={f.password} onChange={upd}
           onKeyDown={e => e.key === 'Enter' && submit()} />
         {error && <p style={C.err}>{error}</p>}
-        <button style={C.btnGold} onClick={submit} disabled={loading}>
+        <button style={{ ...C.btnGreen, width: '100%', display: 'block' }} onClick={submit} disabled={loading}>
           {loading ? <span style={C.spinner}>⟳</span> : mode === 'login' ? 'Logg inn →' : 'Opprett konto →'}
         </button>
-        <p style={{color:'#334155',fontSize:12,marginTop:14,textAlign:'center',fontFamily:"'JetBrains Mono',monospace"}}>
-          Invitasjonskode fås av turneringsadmin
+        <p style={{ color: '#1e1e38', fontSize: 11, marginTop: 14, textAlign: 'center', fontFamily: "'Fira Code',monospace" }}>
+          Invitasjonskode fås av admin · kode: VM2026
         </p>
       </div>
     </div>
@@ -98,46 +123,208 @@ function AuthScreen({ onLogin }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  LEADERBOARD
+//  DASHBOARD (forside med bokser)
+// ══════════════════════════════════════════════════════════════════════
+function Dashboard({ me, phase }) {
+  const isMobile = useIsMobile();
+  const [users, setUsers] = useState([]);
+  const [results, setResultsState] = useState({});
+  const [msgs, setMsgs] = useState([]);
+  const [input, setInput] = useState('');
+  const [summaries, setSummaries] = useState({});
+  const [editingSummary, setEditingSummary] = useState(null);
+  const [summaryText, setSummaryText] = useState('');
+  const [liveData, setLiveData] = useState(null);
+  const chatBot = useRef(null);
+
+  useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
+  useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
+  useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
+  useEffect(() => { chatBot.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
+  useEffect(() => {
+    getAllUsers().then(us => {
+      const scored = us.filter(u => u.id !== 'admin')
+        .map(u => ({ ...u, ...calcScore(u, results) }))
+        .sort((a, b) => b.total - a.total);
+      setUsers(scored);
+    });
+  }, [results]);
+  useEffect(() => {
+    fetchLive().then(d => { if (d && !d.demo) setLiveData(d); });
+  }, []);
+
+  const sendMsg = async () => {
+    const t = input.trim(); if (!t) return;
+    setInput('');
+    await sendChatMessage(me.displayName, t);
+  };
+
+  const saveSummary = async (matchId) => {
+    if (!summaryText.trim()) return;
+    await setMatchSummary(matchId, summaryText.trim(), me.displayName);
+    setEditingSummary(null); setSummaryText('');
+  };
+
+  const fmt = ts => {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  // Recent finished matches from admin-entered results
+  const finishedMatches = GROUP_MATCHES.filter(m => {
+    const r = results[m.id];
+    return r && r.home !== undefined && r.away !== undefined;
+  }).slice(-8).reverse();
+
+  const gridStyle = isMobile
+    ? { display: 'flex', flexDirection: 'column', gap: 16 }
+    : { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 };
+
+  return (
+    <div style={gridStyle} className="fu">
+
+      {/* ── Poengtabell ── */}
+      <div style={C.card}>
+        <div style={C.cardHeader}>
+          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Poengtabell</span>
+          <span style={{ ...C.badge, background: 'rgba(57,255,126,.08)', color: G, border: '1px solid rgba(57,255,126,.2)' }}>LIVE</span>
+        </div>
+        <div style={C.cardBody}>
+          {users.length === 0 && <p style={{ color: '#252540', textAlign: 'center', padding: 20 }}>Ingen deltakere ennå.</p>}
+          {users.slice(0, 8).map((r, i) => (
+            <div key={r.id} className="fi" style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), animationDelay: `${i * 0.05}s` }}>
+              <span style={C.lbRank}>{medals[i] || <span style={{ color: '#252540', fontSize: 13 }}>{i + 1}</span>}</span>
+              <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={C.lbPts}>{r.total}</div>
+                <div style={C.lbPtsL}>poeng</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Chat ── */}
+      <div style={C.card}>
+        <div style={C.cardHeader}>
+          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
+          <span style={{ fontSize: 11, color: '#252540', fontFamily: "'Fira Code',monospace" }}>{msgs.length} mld</span>
+        </div>
+        <div style={C.chatBox}>
+          {msgs.length === 0 && <p style={{ color: '#1e1e38', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
+          {msgs.map((m, i) => {
+            const mine = m.user === me.displayName;
+            return (
+              <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
+                {!mine && <span style={C.chatUser}>{m.user}</span>}
+                <span style={{ ...C.chatBubble, background: mine ? '#1a1a38' : '#0f0f20', border: `1px solid ${mine ? '#2a2a50' : '#141428'}` }}>
+                  {m.text}
+                </span>
+                <span style={{ ...C.chatTime, textAlign: mine ? 'right' : 'left' }}>{fmt(m.ts)}</span>
+              </div>
+            );
+          })}
+          <div ref={chatBot} />
+        </div>
+        <div style={C.chatInputRow}>
+          <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
+            value={input} onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendMsg()}
+            placeholder="Skriv melding…" />
+          <button style={{ ...C.btnGreen, padding: '8px 16px', fontSize: 12 }} onClick={sendMsg}>Send</button>
+        </div>
+      </div>
+
+      {/* ── Kamper og oppsummeringer ── */}
+      <div style={{ ...C.card, gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+        <div style={C.cardHeader}>
+          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
+          <span style={{ fontSize: 11, color: '#252540', fontFamily: "'Fira Code',monospace" }}>Klikk for oppsummering</span>
+        </div>
+        {finishedMatches.length === 0 && (
+          <p style={{ color: '#252540', textAlign: 'center', padding: 24, fontSize: 13 }}>
+            Ingen kampresultater ennå – admin legger inn etter kampene.
+          </p>
+        )}
+        <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: 'column', gridTemplateColumns: isMobile ? undefined : '1fr 1fr', gap: 0 }}>
+          {finishedMatches.map(m => {
+            const r = results[m.id];
+            const sum = summaries[m.id];
+            const isEditing = editingSummary === m.id;
+            const canWrite = !sum;
+            return (
+              <div key={m.id} style={C.matchCard}>
+                <div style={C.matchTeams}>
+                  <span style={C.matchTeam}><Flag team={m.home} /> {m.home}</span>
+                  <span style={C.matchScore}>{r.home} – {r.away}</span>
+                  <span style={{ ...C.matchTeam, textAlign: 'right' }}>{m.away} <Flag team={m.away} /></span>
+                </div>
+                <div style={C.matchScorers}>Gruppe {m.group} · {m.date?.slice(5)}</div>
+                {sum ? (
+                  <div>
+                    <div style={C.matchSummaryText}>{sum.text}</div>
+                    <div style={C.matchSummaryAuthor}>✍️ {sum.author}</div>
+                  </div>
+                ) : isEditing ? (
+                  <div style={{ marginTop: 8 }}>
+                    <textarea style={{ ...C.ta, fontSize: 12, marginBottom: 6 }}
+                      rows={3} value={summaryText}
+                      onChange={e => setSummaryText(e.target.value)}
+                      placeholder="Skriv en kort oppsummering av kampen…" />
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button style={{ ...C.btnGreen, padding: '6px 14px', fontSize: 11 }} onClick={() => saveSummary(m.id)}>Lagre</button>
+                      <button style={{ ...C.btnSecondary, padding: '6px 14px', fontSize: 11 }} onClick={() => setEditingSummary(null)}>Avbryt</button>
+                    </div>
+                  </div>
+                ) : canWrite ? (
+                  <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>
+                    ✍️ Skriv oppsummering
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  LEADERBOARD (full side)
 // ══════════════════════════════════════════════════════════════════════
 function Leaderboard({ me }) {
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [results, setResultsState] = useState({});
-
+  useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
-    const unsub = subscribeResults(r => setResultsState(r));
-    return unsub;
-  }, []);
-
-  useEffect(() => {
-    getAllUsers().then(users => {
-      const scored = users
-        .filter(u => u.id !== 'admin')
+    getAllUsers().then(us => {
+      setRows(us.filter(u => u.id !== 'admin')
         .map(u => ({ ...u, ...calcScore(u, results) }))
-        .sort((a, b) => b.total - a.total);
-      setRows(scored);
-      setLoading(false);
+        .sort((a, b) => b.total - a.total));
     });
   }, [results]);
-
-  const medals = ['🥇','🥈','🥉'];
-
+  const medals = ['🥇', '🥈', '🥉'];
   return (
     <div className="fu" style={C.card}>
-      <h2 style={C.cardH}>🏆 Poengtabell</h2>
-      {loading && <p className="pulse" style={{color:'#334155',textAlign:'center',padding:32}}>Laster…</p>}
-      {!loading && rows.length === 0 && <p style={{color:'#334155',textAlign:'center',padding:40}}>Ingen deltakere ennå.</p>}
-      {rows.map((r, i) => (
-        <div key={r.id} style={{...C.lbRow,...(r.id===me.username?C.lbMe:{})}}>
-          <span style={C.lbRank}>{medals[i] || <span style={{color:'#334155',fontFamily:"'JetBrains Mono',monospace"}}>{i+1}</span>}</span>
-          <span style={C.lbName}>{r.displayName}{r.id===me.username&&<span style={C.youTag}> ← deg</span>}</span>
-          <div style={{textAlign:'right'}}>
-            <div style={C.lbPts}>{r.total}</div>
-            <div style={C.lbPtsL}>poeng</div>
+      <div style={C.cardHeader}>
+        <span style={C.cardTitle}><span style={C.cardTitleDot} /> Full poengtabell</span>
+      </div>
+      <div style={C.cardBody}>
+        {rows.map((r, i) => (
+          <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}) }}>
+            <span style={C.lbRank}>{medals[i] || <span style={{ color: '#252540', fontSize: 13 }}>{i + 1}</span>}</span>
+            <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
+            <div style={{ textAlign: 'right' }}>
+              <div style={C.lbPts}>{r.total}</div>
+              <div style={C.lbPtsL}>poeng</div>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -157,7 +344,7 @@ function TipsForm({ me, phase }) {
 
   useEffect(() => {
     getUser(me.username).then(u => {
-      if (u) { setTips(u.tips||{}); setGrpO(u.groupOrders||{}); setSpec(u.specialTips||{}); }
+      if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); }
       setLoading(false);
     });
   }, [me.username]);
@@ -166,9 +353,9 @@ function TipsForm({ me, phase }) {
   const grpOk = phase === 'pre';
   const koOk = OPEN_PHASES.has(phase);
 
-  const setTip = (id, field, val) => { setTips(p => ({...p,[id]:{...p[id],[field]:val}})); setDirty(true); };
-  const setOrd = (g, i, val) => { setGrpO(p => { const a=p[g]?[...p[g]]:['','','','']; a[i]=val; return {...p,[g]:a}; }); setDirty(true); };
-  const setSp  = (k, v) => { setSpec(p => ({...p,[k]:v})); setDirty(true); };
+  const setTip = (id, field, val) => { setTips(p => ({ ...p, [id]: { ...p[id], [field]: val } })); setDirty(true); };
+  const setOrd = (g, i, val) => { setGrpO(p => { const a = p[g] ? [...p[g]] : ['', '', '', '']; a[i] = val; return { ...p, [g]: a }; }); setDirty(true); };
+  const setSp = (k, v) => { setSpec(p => ({ ...p, [k]: v })); setDirty(true); };
 
   const save = async () => {
     await updateUser(me.username, { tips, groupOrders: grpO, specialTips: spec });
@@ -176,104 +363,104 @@ function TipsForm({ me, phase }) {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const gms = GROUP_MATCHES.filter(m => m.group === ag);
-
-  if (loading) return <div className="fu" style={C.card}><p className="pulse" style={{color:'#334155',textAlign:'center',padding:40}}>Laster tips…</p></div>;
+  if (loading) return <div style={C.card}><p className="pulse" style={{ color: '#252540', textAlign: 'center', padding: 40 }}>Laster…</p></div>;
 
   return (
     <div className="fu" style={C.card}>
-      <div style={C.row}>
-        <h2 style={C.cardH}>✏️ Mine tips</h2>
-        <span style={{...C.badge,background:ws.color}}>{ws.label}</span>
+      <div style={C.cardHeader}>
+        <span style={C.cardTitle}><span style={C.cardTitleDot} /> Mine tips</span>
+        <span style={{ ...C.badge, background: ws.open ? 'rgba(57,255,126,.08)' : 'rgba(255,68,68,.08)', color: ws.open ? G : '#ff4444', border: `1px solid ${ws.open ? 'rgba(57,255,126,.2)' : 'rgba(255,68,68,.2)'}` }}>{ws.label}</span>
       </div>
-
-      {/* Special tips */}
-      <div style={C.specBox}>
-        <div style={C.row}>
-          <span style={C.secH}>🌟 Spesialtips</span>
-          <span style={C.mono12}>Låses 2t før gruppespillet starter</span>
-        </div>
-        {SPEC_FIELDS.map(({key,label,pts}) => (
-          <div key={key} style={C.specRow}>
-            <span style={C.specLabel}>{label}</span>
-            <span style={C.ptsBadge}>{pts}p</span>
-            <select style={{...C.sel,opacity:grpOk?1:.45}} disabled={!grpOk}
-              value={spec[key]||''} onChange={e=>setSp(key,e.target.value)}>
-              <option value=''>– Velg –</option>
-              {ALL_TEAMS.map(t=><option key={t} value={t}>{FLAGS[t]||''} {t}</option>)}
-            </select>
-            {spec[key]&&<Flag team={spec[key]}/>}
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div style={C.tabs}>
-        {['group','knockout'].map(t=>(
-          <button key={t} style={{...C.tab,...(tab===t?C.tabOn:{})}} onClick={()=>setTab(t)}>
-            {t==='group'?'📋 Gruppespill':'🏟️ Sluttspill'}
-          </button>
-        ))}
-      </div>
-
-      {tab==='group'&&<>
-        <div style={C.gTabs}>
-          {Object.keys(GROUPS).map(g=>(
-            <button key={g} style={{...C.gTab,...(ag===g?C.gTabOn:{})}} onClick={()=>setAg(g)}>Gr.{g}</button>
+      <div style={C.cardBody}>
+        <div style={C.specBox}>
+          <span style={C.secH}>🌟 Spesialtips – låses før gruppespillet</span>
+          {SPEC_FIELDS.map(({ key, label, pts }) => (
+            <div key={key} style={C.specRow}>
+              <span style={C.specLabel}>{label}</span>
+              <span style={C.ptsBadge}>{pts}p</span>
+              <select style={{ ...C.sel, opacity: grpOk ? 1 : .4 }} disabled={!grpOk}
+                value={spec[key] || ''} onChange={e => setSp(key, e.target.value)}>
+                <option value=''>– Velg –</option>
+                {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
+              </select>
+              {spec[key] && <Flag team={spec[key]} />}
+            </div>
           ))}
         </div>
-        <div style={C.matchList}>
-          {gms.map(m=>{const t=tips[m.id]||{};return(
-            <div key={m.id} style={C.mRow}>
-              <span style={C.mDate}>{m.date.slice(5)}</span>
-              <span style={C.mTeam}><Flag team={m.home}/> {m.home}</span>
-              <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
-                value={t.home??''} placeholder='–' onChange={e=>setTip(m.id,'home',e.target.value)}/>
-              <span style={C.dash}>–</span>
-              <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
-                value={t.away??''} placeholder='–' onChange={e=>setTip(m.id,'away',e.target.value)}/>
-              <span style={{...C.mTeam,textAlign:'right'}}>{m.away} <Flag team={m.away}/></span>
-            </div>
-          );})}
+
+        <div style={C.tabs}>
+          {['group', 'knockout'].map(t => (
+            <button key={t} style={{ ...C.tab, ...(tab === t ? C.tabOn : {}) }} onClick={() => setTab(t)}>
+              {t === 'group' ? '📋 Gruppespill' : '🏟️ Sluttspill'}
+            </button>
+          ))}
         </div>
-        <p style={{...C.secH,marginTop:20}}>Grupperangering – 5p per riktig plass</p>
-        {[0,1,2,3].map(pos=>(
-          <div key={pos} style={C.plRow}>
-            <span style={C.plPos}>{pos+1}.</span>
-            <select style={{...C.sel,opacity:grpOk?1:.45}} disabled={!grpOk}
-              value={grpO[ag]?.[pos]||''} onChange={e=>setOrd(ag,pos,e.target.value)}>
-              <option value=''>– Velg lag –</option>
-              {GROUPS[ag].map(t=><option key={t} value={t}>{FLAGS[t]||''} {t}</option>)}
-            </select>
-          </div>
-        ))}
-      </>}
 
-      {tab==='knockout'&&<>
-        {!koOk&&<div style={C.lockBanner}>🔒 Sluttspill-vinduet er stengt. Åpner etter gjeldende runde er ferdig.</div>}
-        {KNOCKOUT_ROUNDS.map(({phase:kp,label})=>(
-          <div key={kp} style={{marginBottom:20}}>
-            <p style={C.roundL}>{label}</p>
-            {KNOCKOUT_MATCHES.filter(m=>m.phase===kp).map((m,i)=>{const t=tips[m.id]||{};return(
-              <div key={m.id} style={C.mRow}>
-                <span style={C.mDate}>{m.date.slice(5)} K{i+1}</span>
-                <span style={{...C.mTeam,color:'#475569'}}>Hjemmelag</span>
-                <input style={{...C.sInp,opacity:koOk?1:.35}} type="number" min={0} max={20} disabled={!koOk}
-                  value={t.home??''} placeholder='–' onChange={e=>setTip(m.id,'home',e.target.value)}/>
-                <span style={C.dash}>–</span>
-                <input style={{...C.sInp,opacity:koOk?1:.35}} type="number" min={0} max={20} disabled={!koOk}
-                  value={t.away??''} placeholder='–' onChange={e=>setTip(m.id,'away',e.target.value)}/>
-                <span style={{...C.mTeam,color:'#475569',textAlign:'right'}}>Bortelag</span>
-              </div>
-            );})}
+        {tab === 'group' && <>
+          <div style={C.gTabs}>
+            {Object.keys(GROUPS).map(g => (
+              <button key={g} style={{ ...C.gTab, ...(ag === g ? C.gTabOn : {}) }} onClick={() => setAg(g)}>Gr.{g}</button>
+            ))}
           </div>
-        ))}
-      </>}
+          <div style={C.matchList}>
+            {GROUP_MATCHES.filter(m => m.group === ag).map(m => {
+              const t = tips[m.id] || {};
+              return (
+                <div key={m.id} style={C.mRow}>
+                  <span style={C.mDate}>{m.date.slice(5)}</span>
+                  <span style={C.mTeam}><Flag team={m.home} /> {m.home}</span>
+                  <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
+                    value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
+                  <span style={C.dash}>–</span>
+                  <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
+                    value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
+                  <span style={{ ...C.mTeam, textAlign: 'right' }}>{m.away} <Flag team={m.away} /></span>
+                </div>
+              );
+            })}
+          </div>
+          <span style={{ ...C.secH, marginTop: 16 }}>Grupperangering – 5p per riktig plass</span>
+          {[0, 1, 2, 3].map(pos => (
+            <div key={pos} style={C.plRow}>
+              <span style={C.plPos}>{pos + 1}.</span>
+              <select style={{ ...C.sel, opacity: grpOk ? 1 : .4 }} disabled={!grpOk}
+                value={grpO[ag]?.[pos] || ''} onChange={e => setOrd(ag, pos, e.target.value)}>
+                <option value=''>– Velg –</option>
+                {GROUPS[ag].map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
+              </select>
+            </div>
+          ))}
+        </>}
 
-      <button style={{...C.btnGold,marginTop:20,opacity:dirty?1:.55}} onClick={save}>
-        {saved?'✅ Lagret!':'💾 Lagre alle tips'}
-      </button>
-      {dirty&&<p style={{color:'#f59e0b',fontSize:12,textAlign:'center',marginTop:6,fontFamily:"'JetBrains Mono',monospace"}}>⚠ Ulagrede endringer</p>}
+        {tab === 'knockout' && <>
+          {!koOk && <div style={C.lockBanner}>🔒 Sluttspill-vinduet er stengt. Åpner etter gjeldende runde.</div>}
+          {KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
+            <div key={kp} style={{ marginBottom: 18 }}>
+              <span style={C.roundL}>{label}</span>
+              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map((m, i) => {
+                const t = tips[m.id] || {};
+                return (
+                  <div key={m.id} style={C.mRow}>
+                    <span style={C.mDate}>K{i + 1}</span>
+                    <span style={{ ...C.mTeam, color: '#333355' }}>Hjemme</span>
+                    <input style={{ ...C.sInp, opacity: koOk ? 1 : .3 }} type="number" min={0} max={20} disabled={!koOk}
+                      value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
+                    <span style={C.dash}>–</span>
+                    <input style={{ ...C.sInp, opacity: koOk ? 1 : .3 }} type="number" min={0} max={20} disabled={!koOk}
+                      value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
+                    <span style={{ ...C.mTeam, color: '#333355', textAlign: 'right' }}>Borte</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </>}
+
+        <button style={{ ...C.btnGreen, width: '100%', marginTop: 16, opacity: dirty ? 1 : .5 }} onClick={save}>
+          {saved ? '✅ Lagret!' : '💾 Lagre alle tips'}
+        </button>
+        {dirty && <p style={{ color: '#f59e0b', fontSize: 11, textAlign: 'center', marginTop: 6, fontFamily: "'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
+      </div>
     </div>
   );
 }
@@ -285,245 +472,127 @@ function MyScore({ me }) {
   const [user, setUser] = useState(null);
   const [results, setResultsState] = useState({});
   const [cards, setCards] = useState({});
-
   useEffect(() => { getUser(me.username).then(setUser); }, [me.username]);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { getCardStats().then(setCards); }, []);
 
-  if (!user) return <div style={C.card}><p className="pulse" style={{color:'#334155',textAlign:'center',padding:40}}>Laster…</p></div>;
+  if (!user) return <div style={C.card}><p className="pulse" style={{ color: '#252540', textAlign: 'center', padding: 40 }}>Laster…</p></div>;
 
-  const {total,bd} = calcScore(user, results);
-  const mPts = Object.values(bd.matches).reduce((s,v)=>s+v,0);
-  const gPts = Object.values(bd.groups).reduce((s,v)=>s+v,0);
-  const sPts = Object.values(bd.special).reduce((s,v)=>s+v,0);
-  const sp = user.specialTips||{};
-
-  const sortedCards = Object.entries(cards).filter(([k])=>!k.startsWith('_')).sort((a,b)=>b[1]-a[1]).slice(0,10);
-
-  return (
-    <div className="fu" style={C.card}>
-      <h2 style={C.cardH}>📊 Min poengstatus</h2>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:24}}>
-        {[{v:total,l:'Totale poeng',c:'#c9a227'},{v:mPts,l:'Kamppoeng',c:'#60a5fa'},
-          {v:gPts,l:'Gruppepoeng',c:'#34d399'},{v:sPts,l:'Spesialpoeng',c:'#f472b6'}
-        ].map(({v,l,c})=>(
-          <div key={l} style={C.scoreBox}>
-            <div style={{...C.scoreNum,color:c}}>{v}</div>
-            <div style={C.scoreL}>{l}</div>
-          </div>
-        ))}
-      </div>
-
-      <p style={C.secH}>Mine spesialtips</p>
-      <div style={C.specBox}>
-        {SPEC_FIELDS.map(({key,label,pts})=>{
-          const myT=sp[key], correct=results[key], won=correct&&myT===correct;
-          return(
-            <div key={key} style={C.specRow}>
-              <span style={C.specLabel}>{label}</span>
-              <span style={{color:won?'#34d399':myT?'#e2e8f0':'#334155'}}>
-                {myT?<><Flag team={myT}/> {myT}</>:'–'}
-              </span>
-              {won&&<span style={C.wonBadge}>+{pts}p ✓</span>}
-              {correct&&myT!==correct&&<span style={{color:'#f87171',fontSize:12}}>Rett: {correct}</span>}
-            </div>
-          );
-        })}
-      </div>
-
-      <p style={{...C.secH,marginTop:20}}>Kortstatistikk (topp 10)</p>
-      {sortedCards.length===0
-        ? <p style={{color:'#334155',fontSize:13}}>Ingen kortdata ennå.</p>
-        : <div style={{display:'flex',flexDirection:'column',gap:5}}>
-            {sortedCards.map(([team,pts],i)=>(
-              <div key={team} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',background:'#040911',borderRadius:6}}>
-                <span style={{width:22,color:'#c9a227',fontFamily:"'JetBrains Mono',monospace",fontSize:12}}>{i+1}</span>
-                <Flag team={team}/><span style={{flex:1,fontSize:14}}> {team}</span>
-                <span style={{color:'#fbbf24',fontFamily:"'JetBrains Mono',monospace",fontSize:13}}>{pts} kp</span>
-              </div>
-            ))}
-            <p style={{color:'#334155',fontSize:11,marginTop:4,fontFamily:"'JetBrains Mono',monospace"}}>🟨 gult=1kp · 🟥 rødt=3kp</p>
-          </div>
-      }
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════
-//  LIVE RESULTS
-// ══════════════════════════════════════════════════════════════════════
-function LiveResults() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [lastUpd, setLastUpd] = useState(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const res = await fetchLive();
-    if (!res) { setError('neterr'); setLoading(false); return; }
-    if (res.demo) { setError('demo'); setLoading(false); return; }
-    setData(res); setLastUpd(new Date()); setError(''); setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); const iv = setInterval(load, 120000); return () => clearInterval(iv); }, [load]);
+  const { total, bd } = calcScore(user, results);
+  const mPts = Object.values(bd.matches).reduce((s, v) => s + v, 0);
+  const gPts = Object.values(bd.groups).reduce((s, v) => s + v, 0);
+  const sPts = Object.values(bd.special).reduce((s, v) => s + v, 0);
+  const sp = user.specialTips || {};
+  const sortedCards = Object.entries(cards).filter(([k]) => !k.startsWith('_')).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
   return (
     <div className="fu" style={C.card}>
-      <div style={C.row}>
-        <h2 style={C.cardH}>📡 Live-resultater</h2>
-        {lastUpd&&<span style={C.mono12}>{lastUpd.toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'})}</span>}
-        <button style={C.btnSm} onClick={load}>↻ Oppdater</button>
-      </div>
-      {loading&&<p className="pulse" style={{color:'#334155',textAlign:'center',padding:32}}>Henter resultater…</p>}
-      {error==='demo'&&(
-        <div style={C.infoBox}>
-          <p style={{fontWeight:700,color:'#c9a227',marginBottom:8}}>API-nøkkel ikke konfigurert</p>
-          <p style={{fontSize:14,color:'#94a3b8',lineHeight:1.7}}>
-            For live-resultater under VM 2026:<br/>
-            1. Registrer deg gratis på <a href="https://www.football-data.org" target="_blank" rel="noreferrer" style={{color:'#c9a227'}}>football-data.org</a><br/>
-            2. Kopier din API-nøkkel<br/>
-            3. Bytt ut <code style={{background:'#040911',padding:'1px 6px',borderRadius:4,color:'#60a5fa'}}>YOUR_KEY_HERE</code> i <code style={{color:'#60a5fa'}}>src/constants.js</code><br/>
-            4. Push til GitHub – Vercel oppdaterer automatisk
-          </p>
-        </div>
-      )}
-      {error==='neterr'&&<div style={{...C.infoBox,borderColor:'#450a0a'}}><p style={{color:'#f87171'}}>Kunne ikke hente data fra API.</p></div>}
-      {!loading&&!error&&data&&(
-        <div>
-          <p style={{color:'#334155',fontSize:13,marginBottom:12,fontFamily:"'JetBrains Mono',monospace"}}>{data.matches?.length||0} avspilte kamper</p>
-          {(data.matches||[]).slice(0,30).map(m=>(
-            <div key={m.id} style={C.mRow}>
-              <span style={C.mDate}>{m.utcDate?.slice(5,10)}</span>
-              <span style={{...C.mTeam,fontSize:13}}>{m.homeTeam?.name}</span>
-              <span style={{background:'#040911',border:'1px solid #1e3a6e',borderRadius:6,padding:'4px 12px',color:'#c9a227',fontFamily:"'JetBrains Mono',monospace",fontWeight:700}}>
-                {m.score?.fullTime?.home??'–'} – {m.score?.fullTime?.away??'–'}
-              </span>
-              <span style={{...C.mTeam,textAlign:'right',fontSize:13}}>{m.awayTeam?.name}</span>
+      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Min poengstatus</span></div>
+      <div style={C.cardBody}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 20 }}>
+          {[{ v: total, l: 'Totale poeng', c: G }, { v: mPts, l: 'Kamppoeng', c: '#60a5fa' },
+          { v: gPts, l: 'Gruppepoeng', c: '#a78bfa' }, { v: sPts, l: 'Spesialpoeng', c: '#f472b6' }
+          ].map(({ v, l, c }) => (
+            <div key={l} style={C.scoreBox}>
+              <div style={{ ...C.scoreNum, color: c }}>{v}</div>
+              <div style={C.scoreL}>{l}</div>
             </div>
           ))}
         </div>
-      )}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════
-//  CHAT  (Firebase Realtime)
-// ══════════════════════════════════════════════════════════════════════
-function Chat({ me }) {
-  const [msgs, setMsgs] = useState([]);
-  const [input, setInput] = useState('');
-  const bot = useRef(null);
-
-  useEffect(() => {
-    const unsub = subscribeChatMessages(setMsgs);
-    return unsub;
-  }, []);
-
-  useEffect(() => { bot.current?.scrollIntoView({ behavior:'smooth' }); }, [msgs]);
-
-  const send = async () => {
-    const t = input.trim(); if (!t) return;
-    setInput('');
-    await sendChatMessage(me.displayName, t);
-  };
-
-  const fmt = ts => {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'});
-  };
-
-  return (
-    <div className="fu" style={C.card}>
-      <h2 style={C.cardH}>💬 Chat</h2>
-      <div style={C.chatBox}>
-        {msgs.length===0&&<p style={{color:'#334155',textAlign:'center',marginTop:60}}>Ingen meldinger ennå – si hei! 👋</p>}
-        {msgs.map(m=>{
-          const mine = m.user===me.displayName;
-          return(
-            <div key={m.id} style={{display:'flex',flexDirection:'column',gap:3,alignSelf:mine?'flex-end':'flex-start',maxWidth:'74%'}}>
-              {!mine&&<span style={{fontSize:11,color:'#c9a227',fontFamily:"'JetBrains Mono',monospace"}}>{m.user}</span>}
-              <span style={{background:mine?'#162f5e':'#0a1628',border:`1px solid ${mine?'#2d5a9e':'#162035'}`,borderRadius:12,padding:'9px 14px',fontSize:15,lineHeight:1.4}}>
-                {m.text}
-              </span>
-              <span style={{fontSize:10,color:'#334155',fontFamily:"'JetBrains Mono',monospace",textAlign:mine?'right':'left'}}>{fmt(m.ts)}</span>
-            </div>
-          );
-        })}
-        <div ref={bot}/>
-      </div>
-      <div style={{display:'flex',gap:8,alignItems:'center'}}>
-        <input style={{...C.inp,marginBottom:0,flex:1}} value={input} onChange={e=>setInput(e.target.value)}
-          onKeyDown={e=>e.key==='Enter'&&send()} placeholder="Skriv en melding…"/>
-        <button style={{...C.btnGold,width:'auto',padding:'11px 22px'}} onClick={send}>Send</button>
+        <span style={C.secH}>Mine spesialtips</span>
+        <div style={C.specBox}>
+          {SPEC_FIELDS.map(({ key, label, pts }) => {
+            const myT = sp[key], correct = results[key], won = correct && myT === correct;
+            return (
+              <div key={key} style={C.specRow}>
+                <span style={C.specLabel}>{label}</span>
+                <span style={{ color: won ? G : myT ? '#e2e2f0' : '#252540' }}>
+                  {myT ? <><Flag team={myT} /> {myT}</> : '–'}
+                </span>
+                {won && <span style={C.wonBadge}>+{pts}p ✓</span>}
+                {correct && myT !== correct && <span style={{ color: '#ff4466', fontSize: 11 }}>Rett: {correct}</span>}
+              </div>
+            );
+          })}
+        </div>
+        <span style={{ ...C.secH, marginTop: 16 }}>Kortstatistikk</span>
+        {sortedCards.length === 0
+          ? <p style={{ color: '#252540', fontSize: 13 }}>Ingen kortdata ennå.</p>
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {sortedCards.map(([team, pts], i) => (
+              <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#07070f', borderRadius: 6 }}>
+                <span style={{ width: 20, color: '#252540', fontFamily: "'Fira Code',monospace", fontSize: 11 }}>{i + 1}</span>
+                <Flag team={team} /><span style={{ flex: 1, fontSize: 13 }}> {team}</span>
+                <span style={{ color: G, fontFamily: "'Fira Code',monospace", fontSize: 12 }}>{pts}kp</span>
+              </div>
+            ))}
+          </div>}
       </div>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  VIDEO CHAT (WebRTC)
+//  VIDEO CHAT
 // ══════════════════════════════════════════════════════════════════════
 function VideoChat({ me }) {
-  const locRef=useRef(null), remRef=useRef(null), pcRef=useRef(null);
-  const [status,setStatus]=useState('idle');
-  const [offer,setOffer]=useState('');
-  const [answer,setAnswer]=useState('');
-  const [inOffer,setInOffer]=useState('');
-  const [inAnswer,setInAnswer]=useState('');
+  const locRef = useRef(null), remRef = useRef(null), pcRef = useRef(null);
+  const [status, setStatus] = useState('idle');
+  const [offer, setOffer] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [inOffer, setInOffer] = useState('');
+  const [inAnswer, setInAnswer] = useState('');
 
-  const getMedia=async()=>{const s=await navigator.mediaDevices.getUserMedia({video:true,audio:true});locRef.current.srcObject=s;return s;};
-  const mkPC=s=>{
-    const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-    s.getTracks().forEach(t=>pc.addTrack(t,s));
-    pc.ontrack=e=>{remRef.current.srcObject=e.streams[0];};
-    pcRef.current=pc;return pc;
+  const getMedia = async () => { const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); locRef.current.srcObject = s; return s; };
+  const mkPC = s => {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    s.getTracks().forEach(t => pc.addTrack(t, s));
+    pc.ontrack = e => { remRef.current.srcObject = e.streams[0]; };
+    pcRef.current = pc; return pc;
   };
-  const startCall=async()=>{try{setStatus('calling');const s=await getMedia(),pc=mkPC(s);pc.onicecandidate=e=>{if(!e.candidate)setOffer(JSON.stringify(pc.localDescription));};await pc.setLocalDescription(await pc.createOffer());}catch{setStatus('error');}};
-  const acceptCall=async()=>{try{setStatus('answering');const s=await getMedia(),pc=mkPC(s);await pc.setRemoteDescription(JSON.parse(inOffer));pc.onicecandidate=e=>{if(!e.candidate)setAnswer(JSON.stringify(pc.localDescription));};await pc.setLocalDescription(await pc.createAnswer());}catch{setStatus('error');}};
-  const finishCall=async()=>{try{await pcRef.current.setRemoteDescription(JSON.parse(inAnswer));setStatus('connected');}catch{setStatus('error');}};
-  const hangUp=()=>{pcRef.current?.close();if(locRef.current?.srcObject)locRef.current.srcObject.getTracks().forEach(t=>t.stop());setStatus('idle');setOffer('');setAnswer('');setInOffer('');setInAnswer('');};
+  const startCall = async () => { try { setStatus('calling'); const s = await getMedia(), pc = mkPC(s); pc.onicecandidate = e => { if (!e.candidate) setOffer(JSON.stringify(pc.localDescription)); }; await pc.setLocalDescription(await pc.createOffer()); } catch { setStatus('error'); } };
+  const acceptCall = async () => { try { setStatus('answering'); const s = await getMedia(), pc = mkPC(s); await pc.setRemoteDescription(JSON.parse(inOffer)); pc.onicecandidate = e => { if (!e.candidate) setAnswer(JSON.stringify(pc.localDescription)); }; await pc.setLocalDescription(await pc.createAnswer()); } catch { setStatus('error'); } };
+  const finishCall = async () => { try { await pcRef.current.setRemoteDescription(JSON.parse(inAnswer)); setStatus('connected'); } catch { setStatus('error'); } };
+  const hangUp = () => { pcRef.current?.close(); if (locRef.current?.srcObject) locRef.current.srcObject.getTracks().forEach(t => t.stop()); setStatus('idle'); setOffer(''); setAnswer(''); setInOffer(''); setInAnswer(''); };
 
   return (
     <div className="fu" style={C.card}>
-      <h2 style={C.cardH}>📹 Videochat</h2>
-      <p style={{color:'#475569',fontSize:13,marginBottom:16,fontFamily:"'JetBrains Mono',monospace"}}>Peer-to-peer via WebRTC · Ingen server nødvendig</p>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
-        {[{ref:locRef,label:`Du – ${me.displayName}`,muted:true},{ref:remRef,label:'Motpart',muted:false}].map(({ref,label,muted})=>(
-          <div key={label} style={{position:'relative',background:'#040911',borderRadius:10,overflow:'hidden',border:'1px solid #14254a',aspectRatio:'4/3'}}>
-            <video ref={ref} autoPlay playsInline muted={muted} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-            <div style={{position:'absolute',bottom:8,left:8,fontSize:11,background:'rgba(0,0,0,.75)',color:'#c9a227',padding:'2px 8px',borderRadius:4,fontFamily:"'JetBrains Mono',monospace"}}>{label}</div>
-          </div>
-        ))}
+      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Videochat</span>
+        {status === 'connected' && <span style={{ ...C.badge, background: 'rgba(57,255,126,.08)', color: G }}>🟢 Tilkoblet</span>}
       </div>
-      {status==='connected'&&<div style={{...C.badge,background:'#052e16',marginBottom:12}}>🟢 Tilkoblet!</div>}
-      {status==='error'&&<div style={{...C.badge,background:'#450a0a',color:'#fca5a5',marginBottom:12}}>❌ Sjekk kamerarettigheter</div>}
-      {status==='idle'&&(
-        <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          <button style={C.btnGold} onClick={startCall}>📞 Start samtale</button>
-          <div style={{textAlign:'center',color:'#334155',fontSize:13}}>— eller svar på innkommende —</div>
-          <textarea style={C.ta} rows={3} value={inOffer} onChange={e=>setInOffer(e.target.value)} placeholder="Lim inn tilbudskode fra den som ringer…"/>
-          <button style={{...C.btnGold,background:'linear-gradient(135deg,#1e3a6e,#0f2040)',color:'#c9a227'}} onClick={acceptCall} disabled={!inOffer}>📲 Svar</button>
+      <div style={C.cardBody}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          {[{ ref: locRef, label: `Du – ${me.displayName}`, muted: true }, { ref: remRef, label: 'Motpart', muted: false }].map(({ ref, label, muted }) => (
+            <div key={label} style={{ position: 'relative', background: '#07070f', borderRadius: 10, overflow: 'hidden', border: '1px solid #141428', aspectRatio: '4/3' }}>
+              <video ref={ref} autoPlay playsInline muted={muted} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 10, background: 'rgba(0,0,0,.8)', color: G, padding: '2px 8px', borderRadius: 4, fontFamily: "'Fira Code',monospace" }}>{label}</div>
+            </div>
+          ))}
         </div>
-      )}
-      {status==='calling'&&offer&&(
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          <p style={{color:'#94a3b8',fontSize:13}}>Del tilbudskode med motparten:</p>
-          <textarea style={C.ta} rows={4} readOnly value={offer} onClick={e=>e.target.select()}/>
-          <p style={{color:'#94a3b8',fontSize:13}}>Lim inn svarkoden:</p>
-          <textarea style={C.ta} rows={3} value={inAnswer} onChange={e=>setInAnswer(e.target.value)} placeholder="Svarkode…"/>
-          <button style={C.btnGold} onClick={finishCall} disabled={!inAnswer}>✅ Koble til</button>
-        </div>
-      )}
-      {status==='answering'&&answer&&(
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          <p style={{color:'#94a3b8',fontSize:13}}>Del svarkoden med den som ringte:</p>
-          <textarea style={C.ta} rows={4} readOnly value={answer} onClick={e=>e.target.select()}/>
-        </div>
-      )}
-      {status!=='idle'&&<button style={{...C.btnGold,background:'#450a0a',color:'#fca5a5',marginTop:12}} onClick={hangUp}>📵 Avslutt</button>}
+        {status === 'idle' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button style={{ ...C.btnGreen, width: '100%' }} onClick={startCall}>📞 Start samtale</button>
+            <div style={{ textAlign: 'center', color: '#252540', fontSize: 12 }}>— eller svar på innkommende —</div>
+            <textarea style={C.ta} rows={3} value={inOffer} onChange={e => setInOffer(e.target.value)} placeholder="Lim inn tilbudskode…" />
+            <button style={{ ...C.btnSecondary, width: '100%' }} onClick={acceptCall} disabled={!inOffer}>📲 Svar</button>
+          </div>
+        )}
+        {status === 'calling' && offer && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={C.mono12}>Del denne koden med motparten:</p>
+            <textarea style={C.ta} rows={4} readOnly value={offer} onClick={e => e.target.select()} />
+            <textarea style={C.ta} rows={3} value={inAnswer} onChange={e => setInAnswer(e.target.value)} placeholder="Svarkode fra motparten…" />
+            <button style={{ ...C.btnGreen, width: '100%' }} onClick={finishCall} disabled={!inAnswer}>✅ Koble til</button>
+          </div>
+        )}
+        {status === 'answering' && answer && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={C.mono12}>Del svarkoden med den som ringte:</p>
+            <textarea style={C.ta} rows={4} readOnly value={answer} onClick={e => e.target.select()} />
+          </div>
+        )}
+        {status !== 'idle' && <button style={{ ...C.btnSecondary, width: '100%', marginTop: 10, color: '#ff4466', borderColor: 'rgba(255,68,102,.2)' }} onClick={hangUp}>📵 Avslutt</button>}
+      </div>
     </div>
   );
 }
@@ -543,125 +612,113 @@ function AdminPanel() {
   useEffect(() => { getCardStats().then(setCardsState); }, []);
 
   const updPhase = async p => { setPhaseState(p); await setPhase(p); };
-
   const setResult = async (id, field, val) => {
-    const upd = { ...results, [id]: { ...(results[id]||{}), [field]: parseInt(val)||0 } };
+    const upd = { ...results, [id]: { ...(results[id] || {}), [field]: parseInt(val) || 0 } };
     setResultsState(upd); await setResults(upd);
   };
   const setGrpResult = async (g, i, val) => {
     const key = `grp_${g}`;
-    const arr = results[key] ? [...results[key]] : ['','','',''];
-    arr[i] = val;
+    const arr = results[key] ? [...results[key]] : ['', '', '', '']; arr[i] = val;
     const upd = { ...results, [key]: arr };
     setResultsState(upd); await setResults(upd);
   };
-  const setSpec = async (key, val) => {
-    const upd = { ...results, [key]: val };
-    setResultsState(upd); await setResults(upd);
-  };
+  const setSpec = async (key, val) => { const upd = { ...results, [key]: val }; setResultsState(upd); await setResults(upd); };
   const updCard = async (team, type, val) => {
-    const y = type==='y' ? parseInt(val)||0 : (cards[`_y_${team}`]||0);
-    const r = type==='r' ? parseInt(val)||0 : (cards[`_r_${team}`]||0);
-    const upd = { ...cards, [`_y_${team}`]:y, [`_r_${team}`]:r, [team]: y+r*3 };
+    const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0);
+    const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0);
+    const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 };
     setCardsState(upd); await setCardStats(upd);
   };
 
-  const gms = GROUP_MATCHES.filter(m => m.group === ag);
-
   return (
     <div className="fu" style={C.card}>
-      <h2 style={C.cardH}>⚙️ Adminpanel</h2>
-      <div style={C.tabs}>
-        {[['phase','Fase'],['results','Gruppe'],['knockout','Sluttspill'],['special','Spesial'],['cards','Kort']].map(([t,l])=>(
-          <button key={t} style={{...C.tab,...(aTab===t?C.tabOn:{})}} onClick={()=>setATab(t)}>{l}</button>
-        ))}
-      </div>
-
-      {aTab==='phase'&&(
-        <div style={{display:'flex',flexDirection:'column',gap:5}}>
-          <p style={{...C.mono12,marginBottom:8}}>Gjeldende: <strong style={{color:'#c9a227'}}>{phase}</strong></p>
-          {PHASE_OPTIONS.map(p=>(
-            <button key={p.value} onClick={()=>updPhase(p.value)} style={{...C.phBtn,...(phase===p.value?C.phBtnOn:{})}}>
-              {p.label}
-            </button>
+      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Admin</span></div>
+      <div style={C.cardBody}>
+        <div style={C.tabs}>
+          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort']].map(([t, l]) => (
+            <button key={t} style={{ ...C.tab, ...(aTab === t ? C.tabOn : {}) }} onClick={() => setATab(t)}>{l}</button>
           ))}
         </div>
-      )}
 
-      {aTab==='results'&&<>
-        <div style={C.gTabs}>{Object.keys(GROUPS).map(g=><button key={g} style={{...C.gTab,...(ag===g?C.gTabOn:{})}} onClick={()=>setAg(g)}>Gr.{g}</button>)}</div>
-        <p style={{...C.secH,marginBottom:10}}>Kampresultater – Gruppe {ag}</p>
-        {gms.map(m=>(
-          <div key={m.id} style={C.mRow}>
-            <span style={C.mTeam}><Flag team={m.home}/> {m.home}</span>
-            <input style={C.sInp} type="number" min={0} value={results[m.id]?.home??''} placeholder='–' onChange={e=>setResult(m.id,'home',e.target.value)}/>
-            <span style={C.dash}>–</span>
-            <input style={C.sInp} type="number" min={0} value={results[m.id]?.away??''} placeholder='–' onChange={e=>setResult(m.id,'away',e.target.value)}/>
-            <span style={{...C.mTeam,textAlign:'right'}}>{m.away} <Flag team={m.away}/></span>
+        {aTab === 'phase' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ ...C.mono12, marginBottom: 8 }}>Gjeldende: <strong style={{ color: G }}>{phase}</strong></span>
+            {PHASE_OPTIONS.map(p => (
+              <button key={p.value} onClick={() => updPhase(p.value)} style={{ ...C.phBtn, ...(phase === p.value ? C.phBtnOn : {}) }}>{p.label}</button>
+            ))}
           </div>
-        ))}
-        <p style={{...C.secH,marginTop:16}}>Grupperangering</p>
-        {[0,1,2,3].map(pos=>(
-          <div key={pos} style={C.plRow}>
-            <span style={C.plPos}>{pos+1}.</span>
-            <select style={C.sel} value={results[`grp_${ag}`]?.[pos]||''} onChange={e=>setGrpResult(ag,pos,e.target.value)}>
-              <option value=''>– Velg –</option>
-              {GROUPS[ag].map(t=><option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-        ))}
-      </>}
+        )}
 
-      {aTab==='knockout'&&<>
-        {KNOCKOUT_ROUNDS.map(({phase:kp,label})=>(
-          <div key={kp} style={{marginBottom:20}}>
-            <p style={C.roundL}>{label}</p>
-            {KNOCKOUT_MATCHES.filter(m=>m.phase===kp).map((m,i)=>(
+        {aTab === 'results' && <>
+          <div style={C.gTabs}>{Object.keys(GROUPS).map(g => <button key={g} style={{ ...C.gTab, ...(ag === g ? C.gTabOn : {}) }} onClick={() => setAg(g)}>Gr.{g}</button>)}</div>
+          {GROUP_MATCHES.filter(m => m.group === ag).map(m => (
+            <div key={m.id} style={C.mRow}>
+              <span style={C.mTeam}><Flag team={m.home} /> {m.home}</span>
+              <input style={C.sInp} type="number" min={0} value={results[m.id]?.home ?? ''} placeholder='–' onChange={e => setResult(m.id, 'home', e.target.value)} />
+              <span style={C.dash}>–</span>
+              <input style={C.sInp} type="number" min={0} value={results[m.id]?.away ?? ''} placeholder='–' onChange={e => setResult(m.id, 'away', e.target.value)} />
+              <span style={{ ...C.mTeam, textAlign: 'right' }}>{m.away} <Flag team={m.away} /></span>
+            </div>
+          ))}
+          <span style={{ ...C.secH, marginTop: 14 }}>Grupperangering</span>
+          {[0, 1, 2, 3].map(pos => (
+            <div key={pos} style={C.plRow}>
+              <span style={C.plPos}>{pos + 1}.</span>
+              <select style={C.sel} value={results[`grp_${ag}`]?.[pos] || ''} onChange={e => setGrpResult(ag, pos, e.target.value)}>
+                <option value=''>– Velg –</option>
+                {GROUPS[ag].map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          ))}
+        </>}
+
+        {aTab === 'knockout' && KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
+          <div key={kp} style={{ marginBottom: 16 }}>
+            <span style={C.roundL}>{label}</span>
+            {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map((m, i) => (
               <div key={m.id} style={C.mRow}>
-                <span style={{...C.mDate,minWidth:48}}>K{i+1}</span>
-                <input style={C.sInp} type="number" min={0} value={results[m.id]?.home??''} placeholder='–' onChange={e=>setResult(m.id,'home',e.target.value)}/>
+                <span style={{ ...C.mDate, minWidth: 40 }}>K{i + 1}</span>
+                <input style={C.sInp} type="number" min={0} value={results[m.id]?.home ?? ''} placeholder='–' onChange={e => setResult(m.id, 'home', e.target.value)} />
                 <span style={C.dash}>–</span>
-                <input style={C.sInp} type="number" min={0} value={results[m.id]?.away??''} placeholder='–' onChange={e=>setResult(m.id,'away',e.target.value)}/>
+                <input style={C.sInp} type="number" min={0} value={results[m.id]?.away ?? ''} placeholder='–' onChange={e => setResult(m.id, 'away', e.target.value)} />
               </div>
             ))}
           </div>
         ))}
-      </>}
 
-      {aTab==='special'&&(
-        <div style={C.specBox}>
-          {[{key:'champion',label:'🥇 Verdensmester'},{key:'runner_up',label:'🥈 Sølvvinner'},
-            {key:'third',label:'🥉 Bronsevinner'},{key:'topscorer',label:'⚽ Toppscorer – lag'},
-            {key:'most_carded',label:'🟨 Mest kort – lag'}
-          ].map(({key,label})=>(
-            <div key={key} style={C.specRow}>
-              <span style={C.specLabel}>{label}</span>
-              <select style={C.sel} value={results[key]||''} onChange={e=>setSpec(key,e.target.value)}>
-                <option value=''>– Ikke satt –</option>
-                {ALL_TEAMS.map(t=><option key={t} value={t}>{t}</option>)}
-              </select>
-              {results[key]&&<Flag team={results[key]}/>}
-            </div>
-          ))}
-        </div>
-      )}
+        {aTab === 'special' && (
+          <div style={C.specBox}>
+            {[{ key: 'champion', label: '🥇 Verdensmester' }, { key: 'runner_up', label: '🥈 Sølvvinner' },
+            { key: 'third', label: '🥉 Bronsevinner' }, { key: 'topscorer', label: '⚽ Toppscorer – lag' },
+            { key: 'most_carded', label: '🟨 Mest kort – lag' }].map(({ key, label }) => (
+              <div key={key} style={C.specRow}>
+                <span style={C.specLabel}>{label}</span>
+                <select style={C.sel} value={results[key] || ''} onChange={e => setSpec(key, e.target.value)}>
+                  <option value=''>– Ikke satt –</option>
+                  {ALL_TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                {results[key] && <Flag team={results[key]} />}
+              </div>
+            ))}
+          </div>
+        )}
 
-      {aTab==='cards'&&<>
-        <p style={{...C.mono12,marginBottom:12}}>🟨 Gult = 1 kortpoeng · 🟥 Rødt = 3 kortpoeng</p>
-        <div style={{display:'flex',flexDirection:'column',gap:5,maxHeight:500,overflowY:'auto'}}>
-          {ALL_TEAMS.map(team=>(
-            <div key={team} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',background:'#040911',borderRadius:6}}>
-              <Flag team={team}/>
-              <span style={{flex:1,fontSize:13}}> {team}</span>
-              <label style={{color:'#fbbf24',fontSize:11}}>🟨</label>
-              <input style={{...C.sInp,width:44}} type="number" min={0} value={cards[`_y_${team}`]||''} placeholder='0' onChange={e=>updCard(team,'y',e.target.value)}/>
-              <label style={{color:'#f87171',fontSize:11}}>🟥</label>
-              <input style={{...C.sInp,width:44}} type="number" min={0} value={cards[`_r_${team}`]||''} placeholder='0' onChange={e=>updCard(team,'r',e.target.value)}/>
-              <span style={{color:'#c9a227',fontSize:12,minWidth:44,textAlign:'right',fontFamily:"'JetBrains Mono',monospace"}}>{cards[team]||0}kp</span>
-            </div>
-          ))}
-        </div>
-      </>}
+        {aTab === 'cards' && <>
+          <span style={C.mono12}>🟨 Gult = 1kp · 🟥 Rødt = 3kp</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 10, maxHeight: 500, overflowY: 'auto' }}>
+            {ALL_TEAMS.map(team => (
+              <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: '#07070f', borderRadius: 6 }}>
+                <Flag team={team} /><span style={{ flex: 1, fontSize: 13 }}> {team}</span>
+                <label style={{ color: '#fbbf24', fontSize: 10 }}>🟨</label>
+                <input style={{ ...C.sInp, width: 40 }} type="number" min={0} value={cards[`_y_${team}`] || ''} placeholder='0' onChange={e => updCard(team, 'y', e.target.value)} />
+                <label style={{ color: '#f87171', fontSize: 10 }}>🟥</label>
+                <input style={{ ...C.sInp, width: 40 }} type="number" min={0} value={cards[`_r_${team}`] || ''} placeholder='0' onChange={e => updCard(team, 'r', e.target.value)} />
+                <span style={{ color: G, fontSize: 11, minWidth: 36, textAlign: 'right', fontFamily: "'Fira Code',monospace" }}>{cards[team] || 0}kp</span>
+              </div>
+            ))}
+          </div>
+        </>}
+      </div>
     </div>
   );
 }
@@ -671,8 +728,10 @@ function AdminPanel() {
 // ══════════════════════════════════════════════════════════════════════
 export default function App() {
   const [user, setUser] = useState(null);
-  const [tab, setTab] = useState('leaderboard');
+  const [tab, setTab] = useState('dashboard');
   const [phase, setPhaseState] = useState('pre');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!user) return;
@@ -680,68 +739,97 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('leaderboard'); }} />;
+  if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
 
   const ws = winStatus(phase);
 
   const NAV_U = [
-    {id:'leaderboard',icon:'🏆',label:'Tabell'},
-    {id:'tips',       icon:'✏️',label:'Tips'},
-    {id:'myscore',    icon:'📊',label:'Poeng'},
-    {id:'live',       icon:'📡',label:'Live'},
-    {id:'chat',       icon:'💬',label:'Chat'},
-    {id:'video',      icon:'📹',label:'Video'},
+    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
+    { id: 'leaderboard', icon: '🏆', label: 'Tabell' },
+    { id: 'tips', icon: '✏️', label: 'Tips' },
+    { id: 'myscore', icon: '📊', label: 'Poeng' },
+    { id: 'video', icon: '📹', label: 'Video' },
   ];
   const NAV_A = [
-    {id:'leaderboard',icon:'🏆',label:'Tabell'},
-    {id:'admin',      icon:'⚙️',label:'Admin'},
-    {id:'live',       icon:'📡',label:'Live'},
-    {id:'chat',       icon:'💬',label:'Chat'},
+    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
+    { id: 'admin', icon: '⚙️', label: 'Admin' },
   ];
   const nav = user.isAdmin ? NAV_A : NAV_U;
 
+  const Sidebar = ({ style }) => (
+    <div style={style}>
+      <div style={C.sidebarLogo}>
+        <div style={C.logoTitle}>VM-tipping</div>
+        <div style={C.logoSub}>FIFA World Cup 2026</div>
+      </div>
+      <div style={C.navSection}>
+        <span style={C.navLabel}>Navigasjon</span>
+        {nav.map(n => (
+          <button key={n.id}
+            style={{ ...C.navItem, ...(tab === n.id ? C.navItemOn : {}) }}
+            onClick={() => { setTab(n.id); setSidebarOpen(false); }}>
+            <span style={C.navIcon}>{n.icon}</span>
+            {n.label}
+          </button>
+        ))}
+      </div>
+      <div style={C.sidebarBottom}>
+        <div style={C.userRow}>
+          <div style={C.userAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
+          <span style={C.userName}>{user.displayName}</span>
+        </div>
+        <button style={C.btnLogout} onClick={() => setUser(null)}>Logg ut</button>
+      </div>
+    </div>
+  );
+
   return (
     <div style={C.app}>
-      <header style={C.hdr}>
-        <div style={C.hdrInner}>
-          <div style={C.logo}>
-            <span style={C.ball}>⚽</span>
-            <div>
-              <div style={C.ltitle}>VM-TIPPING 2026</div>
-              <div style={C.lsub}>FIFA World Cup · USA · Canada · Mexico</div>
-            </div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:10}}>
-            <span style={C.userChip}>👤 {user.displayName}</span>
-            <button style={C.btnOut} onClick={()=>setUser(null)}>Logg ut</button>
-          </div>
+      {/* Desktop sidebar */}
+      {!isMobile && <Sidebar style={C.sidebar} />}
+
+      {/* Mobile sidebar overlay */}
+      {isMobile && sidebarOpen && (
+        <>
+          <div style={{ ...C.sidebarOverlay, display: 'block' }} onClick={() => setSidebarOpen(false)} />
+          <Sidebar style={{ ...C.sidebarMobile, ...C.sidebarOpen }} />
+        </>
+      )}
+
+      {/* Content */}
+      <div style={C.content}>
+        {/* Topbar */}
+        <div style={C.topbar}>
+          {isMobile && (
+            <button style={{ ...C.hamburger, display: 'block' }} onClick={() => setSidebarOpen(true)}>☰</button>
+          )}
+          <span style={C.topbarTitle}>
+            {nav.find(n => n.id === tab)?.icon} {nav.find(n => n.id === tab)?.label || 'Dashboard'}
+          </span>
+          {isMobile && <span style={{ fontSize: 11, color: '#252540', fontFamily: "'Fira Code',monospace" }}>{user.displayName}</span>}
         </div>
-        {!user.isAdmin&&(
-          <div style={{...C.winBanner,background:ws.color}}>{ws.label}</div>
+
+        {/* Window banner */}
+        {!user.isAdmin && (
+          <div style={{ ...C.windowBanner, background: ws.open ? 'rgba(57,255,126,.05)' : 'rgba(255,68,68,.05)', color: ws.open ? G : '#ff4466' }}>
+            {ws.label}
+          </div>
         )}
-        <nav style={C.nav}>
-          {nav.map(n=>(
-            <button key={n.id} style={{...C.navBtn,...(tab===n.id?C.navOn:{})}} onClick={()=>setTab(n.id)}>
-              <span style={{fontSize:18}}>{n.icon}</span>
-              <span style={{fontSize:11}}>{n.label}</span>
-            </button>
-          ))}
-        </nav>
-      </header>
 
-      <main style={C.main}>
-        {tab==='leaderboard'&&<Leaderboard me={user}/>}
-        {tab==='tips'       &&!user.isAdmin&&<TipsForm me={user} phase={phase}/>}
-        {tab==='myscore'    &&!user.isAdmin&&<MyScore me={user}/>}
-        {tab==='live'       &&<LiveResults/>}
-        {tab==='chat'       &&<Chat me={user}/>}
-        {tab==='video'      &&!user.isAdmin&&<VideoChat me={user}/>}
-        {tab==='admin'      &&user.isAdmin&&<AdminPanel/>}
-      </main>
+        {/* Page content */}
+        <div style={C.main}>
+          {tab === 'dashboard' && <Dashboard me={user} phase={phase} />}
+          {tab === 'leaderboard' && <Leaderboard me={user} />}
+          {tab === 'tips' && !user.isAdmin && <TipsForm me={user} phase={phase} />}
+          {tab === 'myscore' && !user.isAdmin && <MyScore me={user} />}
+          {tab === 'video' && !user.isAdmin && <VideoChat me={user} />}
+          {tab === 'admin' && user.isAdmin && <AdminPanel />}
+        </div>
 
-      <footer style={C.footer}>
-        VM-tipping 2026 &nbsp;·&nbsp; Invitasjonskode: <code style={{color:'#c9a227'}}>{INVITE_CODE}</code> &nbsp;·&nbsp; Lykke til alle! 🌍
-      </footer>
+        <div style={{ textAlign: 'center', padding: '16px', color: '#141428', fontSize: 10, fontFamily: "'Fira Code',monospace", borderTop: '1px solid #0c0c18' }}>
+          VM-tipping 2026 · kode: {INVITE_CODE}
+        </div>
+      </div>
     </div>
   );
 }
