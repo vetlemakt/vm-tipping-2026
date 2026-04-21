@@ -992,9 +992,9 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
-
   useEffect(() => { window.scrollTo(0,0); }, []); // scroll to top on load
+
+  if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
   return (
     <div style={C.app}>
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={() => setUser(null)} />
