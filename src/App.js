@@ -7,7 +7,7 @@ import {
   subscribePhase, subscribeResults,
   db,
 } from './firebase';
-import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import {
   INVITE_CODE, ADMIN_CODE,
