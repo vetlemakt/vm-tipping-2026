@@ -969,11 +969,11 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  useEffect(() => { window.scrollTo({top:0, behavior:'instant'}); }, [tab]);
+  useEffect(() => { document.getElementById('app-top')?.scrollIntoView({block:'start'}); window.scrollTo(0,0); }, [tab]);
 
   if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
   return (
-    <div style={C.app}>
+    <div style={C.app} id="app-top">
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={() => setUser(null)} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
