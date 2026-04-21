@@ -145,13 +145,13 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
   const isMobile = useIsMobile();
 
   const NAV_U = [
-    { id: 'leaderboard', icon: '🏆', label: 'Tabell' },
-    { id: 'tips', icon: '✏️', label: 'Tips' },
-    { id: 'myscore', icon: '📊', label: 'Poeng' },
-    { id: 'video', icon: '📹', label: 'Video' },
+    { id: 'leaderboard', icon: null, img: '/tabell.png', label: 'Tabell' },
+    { id: 'tips',        icon: null, img: '/tips.png',   label: 'Tips' },
+    { id: 'myscore',     icon: null, img: '/poeng.png',  label: 'Poeng' },
+    { id: 'video',       icon: null, img: '/video.png',  label: 'Video' },
   ];
   const NAV_A = [
-    { id: 'admin', icon: '⚙️', label: 'Admin' },
+    { id: 'admin', icon: '⚙️', img: null, label: 'Admin' },
   ];
   const nav = user.isAdmin ? NAV_A : NAV_U;
 
@@ -162,7 +162,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
         <div style={{ ...C.bannerLogo, ...(isMobile ? C.bannerLogoMobile : {}), position:'relative', zIndex:20, cursor:'pointer' }}
           onClick={() => setTab('dashboard')}>
           <img src="/vm-logo.png" alt="Gå til dashboard"
-            style={isMobile ? C.bannerLogoImgMobile : C.bannerLogoImg} />
+            style={{ ...(isMobile ? C.bannerLogoImgMobile : C.bannerLogoImg), mixBlendMode:'multiply' }} />
         </div>
 
         {/* Nav area */}
@@ -173,7 +173,10 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
               <button key={n.id}
                 style={{ ...C.navBtn, ...(tab === n.id ? C.navOn : {}) }}
                 onClick={() => setTab(n.id)}>
-                <span style={{ fontSize: isMobile ? 14 : 18 }}>{n.icon}</span>
+                {n.img
+                  ? <img src={n.img} alt={n.label} style={{ width: isMobile?20:22, height: isMobile?20:22, objectFit:'contain', opacity: tab===n.id?1:.7 }} />
+                  : <span style={{ fontSize: isMobile ? 14 : 18 }}>{n.icon}</span>
+                }
                 {!isMobile && <span>{n.label}</span>}
               </button>
             ))}
@@ -468,7 +471,16 @@ function TipsForm({ me, phase }) {
   const koOk = OPEN_PHASES.has(phase);
 
   const setTip = (id, field, val) => { setTips(p => ({ ...p, [id]: { ...p[id], [field]: val } })); setDirty(true); };
-  const setOrd = (g, i, val) => { setGrpO(p => { const a = p[g] ? [...p[g]] : ['', '', '', '']; a[i] = val; return { ...p, [g]: a }; }); setDirty(true); };
+  const setOrd = (g, i, val) => {
+    setGrpO(p => {
+      const a = p[g] ? [...p[g]] : ['', '', '', ''];
+      // Remove val from other positions first
+      const cleaned = a.map((v, idx) => (idx !== i && v === val) ? '' : v);
+      cleaned[i] = val;
+      return { ...p, [g]: cleaned };
+    });
+    setDirty(true);
+  };
   const setSp = (k, v) => { setSpec(p => ({ ...p, [k]: v })); setDirty(true); };
 
   const save = async () => {
@@ -492,12 +504,24 @@ function TipsForm({ me, phase }) {
             <div key={key} style={C.specRow}>
               <span style={C.specLabel}>{label}</span>
               <span style={C.ptsBadge}>{pts}p</span>
-              <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
-                value={spec[key] || ''} onChange={e => setSp(key, e.target.value)}>
-                <option value=''>– Velg –</option>
-                {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
-              </select>
-              {spec[key] && <Flag team={spec[key]} />}
+              {key === 'topscorer' ? (
+                <input
+                  style={{ ...C.inp, marginBottom:0, flex:1, fontSize:13, padding:'6px 10px', opacity: grpOk?1:.5 }}
+                  disabled={!grpOk}
+                  value={spec[key] || ''}
+                  onChange={e => setSp(key, e.target.value)}
+                  placeholder="Skriv spillernavn (f.eks. Mbappé)"
+                />
+              ) : (
+                <>
+                  <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
+                    value={spec[key] || ''} onChange={e => setSp(key, e.target.value)}>
+                    <option value=''>– Velg –</option>
+                    {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
+                  </select>
+                  {spec[key] && <Flag team={spec[key]} />}
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -808,6 +832,78 @@ function AdminPanel() {
   );
 }
 
+
+// ── Music Player ─────────────────────────────────────────────────────
+const TRACKS = [
+  { title: "We Are The Champions", artist: "Audionautix", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/We%20Are%20The%20Champions.mp3" },
+  { title: "Stadium Rock", artist: "Free Music Archive", url: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Kai_Engel/Chapter_One/Kai_Engel_-_01_-_Interlude.mp3" },
+  { title: "Victory Fanfare", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a73467.mp3" },
+  { title: "Football Anthem", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_946f28f348.mp3" },
+  { title: "Stadium Crowd", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3" },
+];
+
+function MusicPlayer() {
+  const [trackIdx, setTrackIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.4);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.volume = volume;
+    if (playing) audioRef.current.play().catch(() => setPlaying(false));
+    else audioRef.current.pause();
+  }, [playing, volume]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.src = TRACKS[trackIdx].url;
+    if (playing) audioRef.current.play().catch(() => setPlaying(false));
+  }, [trackIdx]);
+
+  const next = () => setTrackIdx(i => (i + 1) % TRACKS.length);
+  const prev = () => setTrackIdx(i => (i - 1 + TRACKS.length) % TRACKS.length);
+
+  const track = TRACKS[trackIdx];
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 16, left: 16, zIndex: 500,
+      background: 'rgba(1,23,76,.92)', backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,215,0,.2)',
+      borderRadius: 16, padding: '10px 14px',
+      boxShadow: '0 8px 32px rgba(0,0,0,.4)',
+      display: 'flex', flexDirection: 'column', gap: 6,
+      minWidth: 220, maxWidth: 260,
+    }}>
+      <audio ref={audioRef} onEnded={next} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 16 }}>🎵</span>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#FFD700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{track.title}</div>
+          <div style={{ fontSize: 9, color: 'rgba(255,255,255,.5)', fontFamily: "'Fira Code',monospace" }}>{track.artist}</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={prev} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'#fff', borderRadius:8, width:28, height:28, cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center' }}>⏮</button>
+        <button onClick={() => setPlaying(p => !p)} style={{ background:'linear-gradient(135deg,#FFD700,#e6b800)', border:'none', color:'#01174C', borderRadius:10, width:36, height:36, cursor:'pointer', fontSize:16, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(255,215,0,.3)' }}>
+          {playing ? '⏸' : '▶'}
+        </button>
+        <button onClick={next} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'#fff', borderRadius:8, width:28, height:28, cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center' }}>⏭</button>
+        <input type="range" min={0} max={1} step={0.05} value={volume}
+          onChange={e => setVolume(parseFloat(e.target.value))}
+          style={{ flex:1, accentColor:'#FFD700', height:4 }} />
+      </div>
+      <div style={{ display:'flex', gap:4, justifyContent:'center' }}>
+        {TRACKS.map((_, i) => (
+          <div key={i} onClick={() => setTrackIdx(i)} style={{ width:6, height:6, borderRadius:'50%', background: i===trackIdx?'#FFD700':'rgba(255,255,255,.2)', cursor:'pointer', transition:'background .2s' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  ROOT APP
 // ══════════════════════════════════════════════════════════════════════
@@ -837,6 +933,7 @@ export default function App() {
         {tab === 'admin'       && user.isAdmin  && <AdminPanel />}
       </div>
       <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
+      <MusicPlayer />
     </div>
   );
 }

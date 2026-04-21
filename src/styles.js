@@ -106,7 +106,7 @@ export const C = {
     background: 'transparent',
     border: 'none',
     borderBottom: '3px solid transparent',
-    color: 'rgba(255,255,255,.5)',
+    color: 'rgba(255,255,255,.8)',
     padding: '8px 16px',
     cursor: 'pointer',
     fontFamily: "'Kanit', sans-serif",
