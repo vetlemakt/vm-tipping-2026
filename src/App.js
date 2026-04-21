@@ -118,13 +118,14 @@ function WindowToast({ phase, isAdmin }) {
     <div style={{
       position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
       zIndex: 999, display: 'flex', alignItems: 'center', gap: 10,
-      background: ws.open ? 'rgba(0,180,80,.92)' : 'rgba(200,40,40,.92)',
+      background: ws.open ? 'rgba(10,40,20,.88)' : 'rgba(60,10,10,.88)',
       backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-      color: '#fff', borderRadius: 30, padding: '8px 18px 8px 14px',
-      boxShadow: ws.open ? '0 4px 24px rgba(0,200,80,.4)' : '0 4px 24px rgba(200,40,40,.4)',
-      fontSize: 13, fontWeight: 600, letterSpacing: .5, whiteSpace: 'nowrap',
+      color: ws.open ? '#7fffaa' : '#ffaaaa',
+      borderRadius: 30, padding: '7px 16px 7px 12px',
+      boxShadow: ws.open ? '0 2px 16px rgba(0,120,50,.3)' : '0 2px 16px rgba(160,30,30,.3)',
+      fontSize: 12, fontWeight: 600, letterSpacing: .5, whiteSpace: 'nowrap',
       animation: 'fadeUp .4s ease both',
-      border: `1px solid ${ws.open ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.15)'}`,
+      border: `1px solid ${ws.open ? 'rgba(100,255,150,.2)' : 'rgba(255,100,100,.2)'}`,
     }}>
       <span style={{ fontSize: 16 }}>{ws.open ? '🟢' : '🔴'}</span>
       {ws.label}
@@ -835,11 +836,11 @@ function AdminPanel() {
 
 // ── Music Player ─────────────────────────────────────────────────────
 const TRACKS = [
-  { title: "We Are The Champions", artist: "Audionautix", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/We%20Are%20The%20Champions.mp3" },
-  { title: "Stadium Rock", artist: "Free Music Archive", url: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Kai_Engel/Chapter_One/Kai_Engel_-_01_-_Interlude.mp3" },
-  { title: "Victory Fanfare", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a73467.mp3" },
-  { title: "Football Anthem", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_946f28f348.mp3" },
-  { title: "Stadium Crowd", artist: "Pixabay", url: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3" },
+  { title: "Fanfare for the Common Man", artist: "Aaron Copland (Public Domain)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/8/8b/Fanfare_for_the_Common_Man.ogg/Fanfare_for_the_Common_Man.ogg.mp3" },
+  { title: "Pomp and Circumstance", artist: "Elgar (Public Domain)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/3/3d/Elgar-_Pomp_and_Circumstance_March_No_1.ogg/Elgar-_Pomp_and_Circumstance_March_No_1.ogg.mp3" },
+  { title: "Olympic Fanfare", artist: "John Williams (Archive)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e0/Olympic_Fanfare_and_Theme.ogg/Olympic_Fanfare_and_Theme.ogg.mp3" },
+  { title: "Also Sprach Zarathustra", artist: "Strauss (Public Domain)", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4c/Richard_Strauss_-_Also_sprach_Zarathustra.ogg/Richard_Strauss_-_Also_sprach_Zarathustra.ogg.mp3" },
+  { title: "Victory March", artist: "Kevin MacLeod (CC)", url: "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fanfare%20for%20Space.mp3" },
 ];
 
 function MusicPlayer() {
@@ -849,17 +850,27 @@ function MusicPlayer() {
   const audioRef = useRef(null);
 
   useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.volume = volume;
-    if (playing) audioRef.current.play().catch(() => setPlaying(false));
-    else audioRef.current.pause();
-  }, [playing, volume]);
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = volume;
+  }, [volume]);
 
   useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.src = TRACKS[trackIdx].url;
-    if (playing) audioRef.current.play().catch(() => setPlaying(false));
-  }, [trackIdx, playing]); // eslint-disable-line react-hooks/exhaustive-deps
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.play().catch(() => setPlaying(false));
+    } else {
+      audio.pause();
+    }
+  }, [playing]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.load();
+    if (playing) audio.play().catch(() => setPlaying(false));
+  }, [trackIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = () => setTrackIdx(i => (i + 1) % TRACKS.length);
   const prev = () => setTrackIdx(i => (i - 1 + TRACKS.length) % TRACKS.length);

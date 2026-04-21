@@ -14,7 +14,7 @@ export const C = {
 
   // ── BANNER ─────────────────────────────────────────────────
   banner: {
-    background: '#01174C',
+    background: '#01164b',
     height: 90,
     display: 'flex',
     flexDirection: 'row',
