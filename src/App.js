@@ -419,6 +419,8 @@ function Dashboard({ me }) {
 function Leaderboard({ me }) {
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
+  const [selected, setSelected] = useState(null);
+  const isMobile = useIsMobile();
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     getAllUsers().then(us => {
@@ -428,17 +430,70 @@ function Leaderboard({ me }) {
     });
   }, [results]);
   const medals = ['🥇', '🥈', '🥉'];
+  if (selected) {
+    const allUsers = {};
+    rows.forEach(r => { allUsers[r.id] = r; });
+    return (
+      <div style={C.card}>
+        <div style={C.cardHeader}>
+          <span style={C.cardTitle}><span style={C.cardTitleDot} /> {selected.displayName}s tips</span>
+          <button onClick={() => setSelected(null)} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
+        </div>
+        <div style={C.cardBody}>
+          <span style={C.secH}>Spesialtips</span>
+          <div style={C.specBox}>
+            {SPEC_FIELDS.map(({key,label,pts}) => {
+              const myT=(selected.specialTips||{})[key], correct=results[key], won=correct&&myT===correct;
+              return (
+                <div key={key} style={C.specRow}>
+                  <span style={C.specLabel}>{label}</span>
+                  <span style={{color:won?'#4ade80':myT?'#e8edf8':'rgba(255,255,255,.3)'}}>{myT||'–'}</span>
+                  {won&&<span style={C.wonBadge}>✓ +{pts}p</span>}
+                </div>
+              );
+            })}
+          </div>
+          <span style={{...C.secH,marginTop:16}}>Kamptips (gruppe {Object.keys(GROUPS)[0]})</span>
+          {GROUP_MATCHES.filter(m=>m.group==='A').map(m => {
+            const tip=(selected.tips||{})[m.id]; const act=results[m.id];
+            const pts=tip&&act?calcMatchPts(tip,act):null;
+            return (
+              <div key={m.id} style={{...C.mRow,marginBottom:3,justifyContent:'space-between'}}>
+                <span style={{fontSize:13,flex:1}}><Flag team={m.home}/> {m.home}</span>
+                <span style={{fontFamily:"'Fira Code',monospace",color:'#e8edf8',padding:'2px 10px',background:'rgba(255,255,255,.06)',borderRadius:6}}>
+                  {tip?`${tip.home}–${tip.away}`:'?'}
+                </span>
+                <span style={{fontSize:13,flex:1,textAlign:'right'}}>{m.away} <Flag team={m.away}/></span>
+                {pts!==null&&<span style={{fontSize:11,color:pts===4?'#FFD700':'rgba(255,255,255,.5)',minWidth:32,textAlign:'right'}}>{pts===4?'⚡':''}{pts}p</span>}
+              </div>
+            );
+          })}
+          <p style={{color:'rgba(255,255,255,.3)',fontSize:12,marginTop:12}}>Trykk tilbake for å se full tabell</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Full poengtabell</span></div>
       <div style={C.cardBody}>
         {rows.map((r, i) => (
-          <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}) }}>
-            <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
-            <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
-            <div style={{ textAlign: 'right' }}>
-              <div style={C.lbPts}>{r.total}</div>
-              <div style={C.lbPtsL}>poeng</div>
+          <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor:'pointer' }}
+            onClick={() => setSelected && setSelected(r)}>
+            <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
+            <span style={{ ...C.lbName, textDecoration:'underline', textDecorationColor:'rgba(255,215,0,.3)' }}>
+              {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
+            </span>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {(r.fulltreff||0) > 0 && (
+                <span style={{ fontSize:12, color:'#FFD700', whiteSpace:'nowrap' }}>
+                  {isMobile ? `⚡×${r.fulltreff}` : '⚡'.repeat(Math.min(r.fulltreff,8))}
+                </span>
+              )}
+              <div style={{ textAlign: 'right' }}>
+                <div style={C.lbPts}>{r.total}</div>
+                <div style={C.lbPtsL}>poeng</div>
+              </div>
             </div>
           </div>
         ))}
@@ -906,48 +961,33 @@ const TRACKS = [
 ];
 
 function MusicPlayer() {
-  const [trackIdx, setTrackIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.5);
-  const audioRef = useRef(null);
+  const [idx, setIdx]      = useState(0);
+  const [playing, setPlay] = useState(false);
+  const [vol, setVol]      = useState(0.5);
+  const [gone, setGone]    = useState(false);
+  const ref = useRef(null);
+
+  const next = () => setIdx(i => (i+1) % TRACKS.length);
+  const prev = () => setIdx(i => (i-1+TRACKS.length) % TRACKS.length);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.src = TRACKS[0].url;
-      audioRef.current.volume = 0.5;
-    }
-  }, []);
+    const a = ref.current; if(!a) return;
+    a.src = TRACKS[idx].url;
+    a.load();
+    if(playing) a.play().catch(()=>setPlay(false));
+  }, [idx]); // eslint-disable-line
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = volume;
-  }, [volume]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) {
-      audio.play().catch(err => {
-        console.warn('Playback failed:', err);
-        setPlaying(false);
-      });
-    } else {
-      audio.pause();
-    }
+    const a = ref.current; if(!a) return;
+    if(playing){ a.play().catch(()=>setPlay(false)); }
+    else { a.pause(); }
   }, [playing]);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.load();
-    if (playing) audio.play().catch(() => setPlaying(false));
-  }, [trackIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if(ref.current) ref.current.volume = vol; }, [vol]);
 
-  const next = () => setTrackIdx(i => (i + 1) % TRACKS.length);
-  const prev = () => setTrackIdx(i => (i - 1 + TRACKS.length) % TRACKS.length);
+  if(gone) return null;
 
-  const track = TRACKS[trackIdx];
+  const track = TRACKS[idx];
 
   return (
     <div style={{
@@ -971,7 +1011,7 @@ function MusicPlayer() {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <button onClick={prev} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'#fff', borderRadius:8, width:28, height:28, cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center' }}>⏮</button>
-        <button onClick={() => setPlaying(p => !p)} style={{ background:'linear-gradient(135deg,#FFD700,#e6b800)', border:'none', color:'#01174C', borderRadius:10, width:36, height:36, cursor:'pointer', fontSize:16, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(255,215,0,.3)' }}>
+        <button onClick={() => setPlay(p => !p)} style={{ background:'linear-gradient(135deg,#FFD700,#e6b800)', border:'none', color:'#01174C', borderRadius:10, width:36, height:36, cursor:'pointer', fontSize:16, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(255,215,0,.3)' }}>
           {playing ? '⏸' : '▶'}
         </button>
         <button onClick={next} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'#fff', borderRadius:8, width:28, height:28, cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center' }}>⏭</button>
@@ -981,7 +1021,7 @@ function MusicPlayer() {
       </div>
       <div style={{ display:'flex', gap:4, justifyContent:'center' }}>
         {TRACKS.map((_, i) => (
-          <div key={i} onClick={() => setTrackIdx(i)} style={{ width:6, height:6, borderRadius:'50%', background: i===trackIdx?'#FFD700':'rgba(255,255,255,.2)', cursor:'pointer', transition:'background .2s' }} />
+          <div key={i} onClick={() => setIdx(i)} style={{ width:6, height:6, borderRadius:'50%', background: i===trackIdx?'#FFD700':'rgba(255,255,255,.2)', cursor:'pointer', transition:'background .2s' }} />
         ))}
       </div>
     </div>

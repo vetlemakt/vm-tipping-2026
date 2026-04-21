@@ -17,6 +17,7 @@ export function calcMatchPts(tip, act) {
 
 export function calcScore(user, results) {
   let total = 0;
+  let fulltreff = 0;
   const bd = { matches: {}, groups: {}, special: {} };
 
   [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].forEach(m => {
@@ -25,6 +26,8 @@ export function calcScore(user, results) {
     if (tip && act) {
       const p = calcMatchPts(tip, act);
       if (p > 0) { bd.matches[m.id] = p; total += p; }
+      if (p === 4) fulltreff++;
+      if (p === 4) fulltreff++;
     }
   });
 
@@ -45,5 +48,5 @@ export function calcScore(user, results) {
     }
   });
 
-  return { total, bd };
+  return { total, fulltreff, bd };
 }
