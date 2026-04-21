@@ -467,7 +467,6 @@ function TipsForm({ me, phase }) {
     });
   }, [me.username]);
 
-  const ws = winStatus(phase);
   const grpOk = phase === 'pre';
   const koOk = OPEN_PHASES.has(phase);
 
