@@ -11,7 +11,7 @@ export const C = {
   // ── Sidebar ────────────────────────────────────────────────
   sidebar: {
     width: 220, minWidth: 220, background:'#0c0c18',
-    borderRight:'1px solid #141428', display:'flex',
+    borderRight:'1px solid #2a2a48', display:'flex',
     flexDirection:'column', position:'sticky', top:0,
     height:'100vh', overflowY:'auto', zIndex:50,
     transition:'transform .3s ease',
@@ -19,7 +19,7 @@ export const C = {
   sidebarMobile: {
     position:'fixed', inset:0, zIndex:200,
     width:260, background:'#0c0c18',
-    borderRight:'1px solid #141428',
+    borderRight:'1px solid #2a2a48',
     display:'flex', flexDirection:'column',
     transform:'translateX(-100%)',
     transition:'transform .3s ease',
@@ -31,7 +31,7 @@ export const C = {
     zIndex:199, display:'none',
   },
   sidebarLogo: {
-    padding:'24px 20px 16px', borderBottom:'1px solid #141428',
+    padding:'24px 20px 16px', borderBottom:'1px solid #2a2a48',
   },
   logoTitle: {
     fontFamily:"'Space Grotesk',sans-serif", fontSize:22,
@@ -64,7 +64,7 @@ export const C = {
 
   sidebarBottom: {
     marginTop:'auto', padding:'16px 12px',
-    borderTop:'1px solid #141428',
+    borderTop:'1px solid #2a2a48',
   },
   userRow: {
     display:'flex', alignItems:'center', gap:10,
@@ -88,7 +88,7 @@ export const C = {
   content: { flex:1, display:'flex', flexDirection:'column', minWidth:0 },
   topbar: {
     display:'flex', alignItems:'center', justifyContent:'space-between',
-    padding:'14px 20px', borderBottom:'1px solid #141428',
+    padding:'14px 20px', borderBottom:'1px solid #2a2a48',
     background:'#07070f', position:'sticky', top:0, zIndex:40,
   },
   topbarTitle: {
@@ -103,7 +103,7 @@ export const C = {
   windowBanner: {
     textAlign:'center', padding:'7px 16px', fontSize:11,
     fontFamily:"'Fira Code',monospace", letterSpacing:.5,
-    transition:'background .5s', borderBottom:'1px solid #141428',
+    transition:'background .5s', borderBottom:'1px solid #2a2a48',
   },
   main: { flex:1, padding:'20px', overflowY:'auto' },
 
@@ -119,12 +119,12 @@ export const C = {
 
   // ── Cards ──────────────────────────────────────────────────
   card: {
-    background:'#0c0c18', border:'1px solid #141428',
+    background:'#0c0c18', border:'1px solid #2a2a48',
     borderRadius:14, overflow:'hidden',
   },
   cardHeader: {
     display:'flex', alignItems:'center', justifyContent:'space-between',
-    padding:'14px 16px', borderBottom:'1px solid #0f0f20',
+    padding:'14px 16px', borderBottom:'1px solid #252540',
   },
   cardTitle: {
     fontFamily:"'Space Grotesk',sans-serif", fontSize:14,
@@ -172,7 +172,7 @@ export const C = {
 
   // ── Match results ──────────────────────────────────────────
   matchCard: {
-    padding:'10px 14px', borderBottom:'1px solid #0f0f20',
+    padding:'10px 14px', borderBottom:'1px solid #252540',
     cursor:'pointer', transition:'background .15s',
   },
   matchTeams: { display:'flex', alignItems:'center', gap:6, marginBottom:4 },
@@ -191,7 +191,7 @@ export const C = {
   matchSummaryText: {
     marginTop:6, fontSize:12, color:'#a0a0c0', lineHeight:1.5,
     padding:'8px', background:'#07070f', borderRadius:6,
-    border:'1px solid #141428',
+    border:'1px solid #2a2a48',
   },
   matchSummaryAuthor: { fontSize:10, color:'#39ff7e', fontFamily:"'Fira Code',monospace", marginTop:3 },
 
@@ -238,7 +238,7 @@ export const C = {
   },
   authBox: {
     position:'relative', zIndex:1,
-    background:'#0c0c18', border:'1px solid #141428',
+    background:'#0c0c18', border:'1px solid #2a2a48',
     borderRadius:20, padding:'44px 36px',
     width:'100%', maxWidth:420,
     boxShadow:`0 0 80px ${GP}.06)`,
@@ -258,7 +258,7 @@ export const C = {
     letterSpacing:3, textTransform:'uppercase',
     marginBottom:28, fontFamily:"'Fira Code',monospace",
   },
-  tabs: { display:'flex', borderBottom:'1px solid #141428', marginBottom:20 },
+  tabs: { display:'flex', borderBottom:'1px solid #2a2a48', marginBottom:20 },
   tab: {
     flex:1, background:'transparent', border:'none',
     borderBottom:'2px solid transparent', color:'#333355',
@@ -296,8 +296,8 @@ export const C = {
   plPos: { color:G, fontWeight:700, width:20, fontFamily:"'Fira Code',monospace", fontSize:13 },
 
   // ── Special ────────────────────────────────────────────────
-  specBox: { background:'#07070f', borderRadius:10, padding:14, marginBottom:16, border:'1px solid #141428' },
-  specRow: { display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom:'1px solid #0c0c18', flexWrap:'wrap' },
+  specBox: { background:'#07070f', borderRadius:10, padding:14, marginBottom:16, border:'1px solid #2a2a48' },
+  specRow: { display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom:'1px solid #1e1e38', flexWrap:'wrap' },
   specLabel: { fontSize:13, color:'#666688', minWidth:180, fontWeight:500 },
   ptsBadge: {
     fontFamily:"'Fira Code',monospace", fontSize:10, color:G,
@@ -306,14 +306,14 @@ export const C = {
   },
 
   // ── Score boxes ────────────────────────────────────────────
-  scoreBox: { background:'#07070f', borderRadius:12, padding:18, textAlign:'center', border:'1px solid #141428' },
+  scoreBox: { background:'#07070f', borderRadius:12, padding:18, textAlign:'center', border:'1px solid #2a2a48' },
   scoreNum: { fontFamily:"'Space Grotesk',sans-serif", fontSize:44, fontWeight:700, letterSpacing:.5, lineHeight:1 },
   scoreL: { fontSize:10, color:'#252540', marginTop:6, fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2 },
 
   // ── Admin ──────────────────────────────────────────────────
   phBtn: {
     display:'block', width:'100%', background:'transparent',
-    border:'1px solid #141428', color:'#333355', borderRadius:8,
+    border:'1px solid #2a2a48', color:'#333355', borderRadius:8,
     padding:'9px 14px', marginBottom:4, cursor:'pointer',
     textAlign:'left', fontSize:13, fontFamily:'inherit', transition:'all .15s',
   },
@@ -332,6 +332,6 @@ export const C = {
   badge: { fontSize:10, borderRadius:20, padding:'3px 10px', letterSpacing:1, textTransform:'uppercase', fontWeight:700, fontFamily:"'Fira Code',monospace", display:'inline-block' },
   wonBadge: { fontSize:10, background:`${GP}.08)`, color:G, border:`1px solid ${GP}.15)`, borderRadius:4, padding:'2px 7px', fontFamily:"'Fira Code',monospace" },
   lockBanner: { background:'rgba(255,68,136,.05)', border:'1px solid rgba(255,68,136,.12)', borderRadius:9, padding:'11px 14px', marginBottom:14, color:'#ff6699', fontSize:13 },
-  infoBox: { background:'#07070f', border:'1px solid #141428', borderRadius:11, padding:20, marginTop:8 },
+  infoBox: { background:'#07070f', border:'1px solid #2a2a48', borderRadius:11, padding:20, marginTop:8 },
   spinner: { display:'inline-block', animation:'spin 1s linear infinite' },
 };
