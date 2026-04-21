@@ -859,7 +859,7 @@ function MusicPlayer() {
     if (!audioRef.current) return;
     audioRef.current.src = TRACKS[trackIdx].url;
     if (playing) audioRef.current.play().catch(() => setPlaying(false));
-  }, [trackIdx]);
+  }, [trackIdx, playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = () => setTrackIdx(i => (i + 1) % TRACKS.length);
   const prev = () => setTrackIdx(i => (i - 1 + TRACKS.length) % TRACKS.length);
