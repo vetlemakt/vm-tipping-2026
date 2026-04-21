@@ -16,7 +16,8 @@ import {
 } from './constants';
 import { C } from './styles';
 
-const G = '#39ff7e';
+const YEL = '#FFD700';
+const GRN = '#2EAA4A';
 const Flag = ({ team }) => <span title={team}>{FLAGS[team] || '🏳️'}</span>;
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
 
@@ -30,17 +31,6 @@ const useIsMobile = () => {
   return mobile;
 };
 
-async function fetchLive() {
-  if (FD_API_KEY === 'YOUR_KEY_HERE') return { demo: true };
-  try {
-    const r = await fetch('https://api.football-data.org/v4/competitions/2000/matches?status=FINISHED',
-      { headers: { 'X-Auth-Token': FD_API_KEY } });
-    if (!r.ok) return null;
-    return r.json();
-  } catch { return null; }
-}
-
-// ── Match Summary helpers ───────────────────────────────────────────
 async function setMatchSummary(matchId, text, author) {
   await setDoc(doc(db, 'summaries', matchId), { text, author, ts: Date.now() });
 }
@@ -87,9 +77,10 @@ function AuthScreen({ onLogin }) {
   return (
     <div style={C.authWrap}>
       <div style={C.authGlow} />
-      <div className="fu" style={C.authBox}>
-        <span style={C.authBall}>⚽</span>
-        <h1 style={C.authTitle}>VM-<span style={C.authAccent}>TIPPING</span><br />2026</h1>
+      <div style={C.authBox}>
+        <div style={C.authLogoWrap}>
+          <img src="/vm-logo.png" alt="VM-tipping 2026" style={C.authLogoImg} />
+        </div>
         <p style={C.authSub}>FIFA World Cup · USA · Canada · Mexico</p>
         <div style={C.tabs}>
           {['login', 'register'].map(m => (
@@ -107,11 +98,11 @@ function AuthScreen({ onLogin }) {
         <input style={C.inp} name="password" placeholder="Passord" type="password" value={f.password} onChange={upd}
           onKeyDown={e => e.key === 'Enter' && submit()} />
         {error && <p style={C.err}>{error}</p>}
-        <button style={{ ...C.btnGreen, width: '100%', display: 'block' }} onClick={submit} disabled={loading}>
+        <button style={{ ...C.btnGold, width: '100%', display: 'block' }} onClick={submit} disabled={loading}>
           {loading ? <span style={C.spinner}>⟳</span> : mode === 'login' ? 'Logg inn →' : 'Opprett konto →'}
         </button>
-        <p style={{ color: '#1e1e38', fontSize: 11, marginTop: 14, textAlign: 'center', fontFamily: "'Fira Code',monospace" }}>
-          Invitasjonskode fås av admin · kode: VM2026
+        <p style={{ color: '#4a5a80', fontSize: 11, marginTop: 14, textAlign: 'center', fontFamily: "'Fira Code',monospace" }}>
+          Invitasjonskode fås av admin
         </p>
       </div>
     </div>
@@ -119,9 +110,78 @@ function AuthScreen({ onLogin }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  DASHBOARD (forside med bokser)
+//  BANNER (topp-navigasjon)
 // ══════════════════════════════════════════════════════════════════════
-function Dashboard({ me, phase }) {
+function Banner({ user, tab, setTab, phase, onLogout }) {
+  const isMobile = useIsMobile();
+  const ws = winStatus(phase);
+
+  const NAV_U = [
+    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
+    { id: 'leaderboard', icon: '🏆', label: 'Tabell' },
+    { id: 'tips', icon: '✏️', label: 'Tips' },
+    { id: 'myscore', icon: '📊', label: 'Poeng' },
+    { id: 'video', icon: '📹', label: 'Video' },
+  ];
+  const NAV_A = [
+    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
+    { id: 'admin', icon: '⚙️', label: 'Admin' },
+  ];
+  const nav = user.isAdmin ? NAV_A : NAV_U;
+
+  return (
+    <div>
+      <div style={{ ...C.banner, ...(isMobile ? C.bannerMobile : {}) }}>
+        {/* Logo */}
+        <div style={{ ...C.bannerLogo, ...(isMobile ? C.bannerLogoMobile : {}) }}>
+          <img src="/vm-logo.png" alt="VM-tipping 2026"
+            style={isMobile ? C.bannerLogoImgMobile : C.bannerLogoImg} />
+        </div>
+
+        {/* Nav area */}
+        <div style={C.bannerNav}>
+          {/* User + logout */}
+          <div style={C.bannerTopRow}>
+            <div style={C.bannerUser}>
+              <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
+              <span>{user.displayName}</span>
+            </div>
+            <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
+          </div>
+
+          {/* Nav tabs */}
+          <div style={C.bannerNavTabs}>
+            {nav.map(n => (
+              <button key={n.id}
+                style={{ ...C.navBtn, ...(tab === n.id ? C.navOn : {}) }}
+                onClick={() => setTab(n.id)}>
+                <span style={{ fontSize: 18 }}>{n.icon}</span>
+                <span>{n.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Window status stripe */}
+      {!user.isAdmin && (
+        <div style={{
+          ...C.windowBanner,
+          background: ws.open ? 'rgba(46,170,74,.12)' : 'rgba(230,50,50,.1)',
+          color: ws.open ? GRN : '#ff7777',
+          borderBottom: `1px solid ${ws.open ? 'rgba(46,170,74,.2)' : 'rgba(230,50,50,.2)'}`,
+        }}>
+          {ws.label}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════════════════════════
+function Dashboard({ me }) {
   const isMobile = useIsMobile();
   const [users, setUsers] = useState([]);
   const [results, setResultsState] = useState({});
@@ -130,7 +190,6 @@ function Dashboard({ me, phase }) {
   const [summaries, setSummaries] = useState({});
   const [editingSummary, setEditingSummary] = useState(null);
   const [summaryText, setSummaryText] = useState('');
-  
   const chatBot = useRef(null);
 
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
@@ -139,20 +198,15 @@ function Dashboard({ me, phase }) {
   useEffect(() => { chatBot.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
   useEffect(() => {
     getAllUsers().then(us => {
-      const scored = us.filter(u => u.id !== 'admin')
+      setUsers(us.filter(u => u.id !== 'admin')
         .map(u => ({ ...u, ...calcScore(u, results) }))
-        .sort((a, b) => b.total - a.total);
-      setUsers(scored);
+        .sort((a, b) => b.total - a.total));
     });
   }, [results]);
-  useEffect(() => {
-    fetchLive();
-  }, []);
 
   const sendMsg = async () => {
     const t = input.trim(); if (!t) return;
-    setInput('');
-    await sendChatMessage(me.displayName, t);
+    setInput(''); await sendChatMessage(me.displayName, t);
   };
 
   const saveSummary = async (matchId) => {
@@ -168,31 +222,26 @@ function Dashboard({ me, phase }) {
   };
 
   const medals = ['🥇', '🥈', '🥉'];
-
-  // Recent finished matches from admin-entered results
   const finishedMatches = GROUP_MATCHES.filter(m => {
     const r = results[m.id];
     return r && r.home !== undefined && r.away !== undefined;
   }).slice(-8).reverse();
 
-  const gridStyle = isMobile
-    ? { display: 'flex', flexDirection: 'column', gap: 16 }
-    : { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 };
+  const gridStyle = isMobile ? C.dashGrid1 : C.dashGrid2;
 
   return (
-    <div style={gridStyle} className="fu">
-
-      {/* ── Poengtabell ── */}
+    <div style={gridStyle}>
+      {/* Poengtabell */}
       <div style={C.card}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Poengtabell</span>
-          <span style={{ ...C.badge, background: 'rgba(57,255,126,.08)', color: G, border: '1px solid rgba(57,255,126,.2)' }}>LIVE</span>
+          <span style={{ ...C.badge, background: 'rgba(255,215,0,.1)', color: YEL, border: '1px solid rgba(255,215,0,.2)' }}>LIVE</span>
         </div>
         <div style={C.cardBody}>
-          {users.length === 0 && <p style={{ color: '#252540', textAlign: 'center', padding: 20 }}>Ingen deltakere ennå.</p>}
+          {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
           {users.slice(0, 8).map((r, i) => (
-            <div key={r.id} className="fi" style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), animationDelay: `${i * 0.05}s` }}>
-              <span style={C.lbRank}>{medals[i] || <span style={{ color: '#252540', fontSize: 13 }}>{i + 1}</span>}</span>
+            <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}) }}>
+              <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
               <div style={{ textAlign: 'right' }}>
                 <div style={C.lbPts}>{r.total}</div>
@@ -203,20 +252,20 @@ function Dashboard({ me, phase }) {
         </div>
       </div>
 
-      {/* ── Chat ── */}
+      {/* Chat */}
       <div style={C.card}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
-          <span style={{ fontSize: 11, color: '#252540', fontFamily: "'Fira Code',monospace" }}>{msgs.length} mld</span>
+          <span style={{ fontSize: 12, color: '#6070a0', fontFamily: "'Fira Code',monospace" }}>{msgs.length} mld</span>
         </div>
         <div style={C.chatBox}>
-          {msgs.length === 0 && <p style={{ color: '#1e1e38', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
+          {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => {
             const mine = m.user === me.displayName;
             return (
               <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
                 {!mine && <span style={C.chatUser}>{m.user}</span>}
-                <span style={{ ...C.chatBubble, background: mine ? '#1a1a38' : '#0f0f20', border: `1px solid ${mine ? '#2a2a50' : '#141428'}` }}>
+                <span style={{ ...C.chatBubble, background: mine ? '#1e2d50' : '#141928', border: `1px solid ${mine ? '#2a3d70' : '#2a3050'}` }}>
                   {m.text}
                 </span>
                 <span style={{ ...C.chatTime, textAlign: mine ? 'right' : 'left' }}>{fmt(m.ts)}</span>
@@ -230,27 +279,26 @@ function Dashboard({ me, phase }) {
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
             placeholder="Skriv melding…" />
-          <button style={{ ...C.btnGreen, padding: '8px 16px', fontSize: 12 }} onClick={sendMsg}>Send</button>
+          <button style={{ ...C.btnGold, padding: '8px 16px', fontSize: 12 }} onClick={sendMsg}>Send</button>
         </div>
       </div>
 
-      {/* ── Kamper og oppsummeringer ── */}
+      {/* Kamper */}
       <div style={{ ...C.card, gridColumn: isMobile ? 'auto' : '1 / -1' }}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
-          <span style={{ fontSize: 11, color: '#252540', fontFamily: "'Fira Code',monospace" }}>Klikk for oppsummering</span>
+          <span style={{ fontSize: 12, color: '#6070a0', fontFamily: "'Fira Code',monospace" }}>Klikk for å skrive oppsummering</span>
         </div>
         {finishedMatches.length === 0 && (
-          <p style={{ color: '#252540', textAlign: 'center', padding: 24, fontSize: 13 }}>
+          <p style={{ color: '#4a5a80', textAlign: 'center', padding: 24, fontSize: 13 }}>
             Ingen kampresultater ennå – admin legger inn etter kampene.
           </p>
         )}
-        <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: 'column', gridTemplateColumns: isMobile ? undefined : '1fr 1fr', gap: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
           {finishedMatches.map(m => {
             const r = results[m.id];
             const sum = summaries[m.id];
             const isEditing = editingSummary === m.id;
-            const canWrite = !sum;
             return (
               <div key={m.id} style={C.matchCard}>
                 <div style={C.matchTeams}>
@@ -266,20 +314,19 @@ function Dashboard({ me, phase }) {
                   </div>
                 ) : isEditing ? (
                   <div style={{ marginTop: 8 }}>
-                    <textarea style={{ ...C.ta, fontSize: 12, marginBottom: 6 }}
-                      rows={3} value={summaryText}
-                      onChange={e => setSummaryText(e.target.value)}
-                      placeholder="Skriv en kort oppsummering av kampen…" />
+                    <textarea style={{ ...C.ta, fontSize: 12, marginBottom: 6 }} rows={3}
+                      value={summaryText} onChange={e => setSummaryText(e.target.value)}
+                      placeholder="Skriv en kort oppsummering…" />
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button style={{ ...C.btnGreen, padding: '6px 14px', fontSize: 11 }} onClick={() => saveSummary(m.id)}>Lagre</button>
+                      <button style={{ ...C.btnGold, padding: '6px 14px', fontSize: 11 }} onClick={() => saveSummary(m.id)}>Lagre</button>
                       <button style={{ ...C.btnSecondary, padding: '6px 14px', fontSize: 11 }} onClick={() => setEditingSummary(null)}>Avbryt</button>
                     </div>
                   </div>
-                ) : canWrite ? (
+                ) : (
                   <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>
                     ✍️ Skriv oppsummering
                   </button>
-                ) : null}
+                )}
               </div>
             );
           })}
@@ -290,7 +337,7 @@ function Dashboard({ me, phase }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  LEADERBOARD (full side)
+//  LEADERBOARD
 // ══════════════════════════════════════════════════════════════════════
 function Leaderboard({ me }) {
   const [rows, setRows] = useState([]);
@@ -305,14 +352,12 @@ function Leaderboard({ me }) {
   }, [results]);
   const medals = ['🥇', '🥈', '🥉'];
   return (
-    <div className="fu" style={C.card}>
-      <div style={C.cardHeader}>
-        <span style={C.cardTitle}><span style={C.cardTitleDot} /> Full poengtabell</span>
-      </div>
+    <div style={C.card}>
+      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Full poengtabell</span></div>
       <div style={C.cardBody}>
         {rows.map((r, i) => (
           <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}) }}>
-            <span style={C.lbRank}>{medals[i] || <span style={{ color: '#252540', fontSize: 13 }}>{i + 1}</span>}</span>
+            <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
             <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
             <div style={{ textAlign: 'right' }}>
               <div style={C.lbPts}>{r.total}</div>
@@ -359,13 +404,13 @@ function TipsForm({ me, phase }) {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  if (loading) return <div style={C.card}><p className="pulse" style={{ color: '#252540', textAlign: 'center', padding: 40 }}>Laster…</p></div>;
+  if (loading) return <div style={C.card}><p style={{ color: '#6070a0', textAlign: 'center', padding: 40 }}>Laster…</p></div>;
 
   return (
-    <div className="fu" style={C.card}>
+    <div style={C.card}>
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot} /> Mine tips</span>
-        <span style={{ ...C.badge, background: ws.open ? 'rgba(57,255,126,.08)' : 'rgba(255,68,68,.08)', color: ws.open ? G : '#ff4444', border: `1px solid ${ws.open ? 'rgba(57,255,126,.2)' : 'rgba(255,68,68,.2)'}` }}>{ws.label}</span>
+        <span style={{ ...C.badge, background: ws.open ? 'rgba(46,170,74,.1)' : 'rgba(230,50,50,.1)', color: ws.open ? GRN : '#ff7777', border: `1px solid ${ws.open ? 'rgba(46,170,74,.2)' : 'rgba(230,50,50,.2)'}` }}>{ws.label}</span>
       </div>
       <div style={C.cardBody}>
         <div style={C.specBox}>
@@ -374,7 +419,7 @@ function TipsForm({ me, phase }) {
             <div key={key} style={C.specRow}>
               <span style={C.specLabel}>{label}</span>
               <span style={C.ptsBadge}>{pts}p</span>
-              <select style={{ ...C.sel, opacity: grpOk ? 1 : .4 }} disabled={!grpOk}
+              <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
                 value={spec[key] || ''} onChange={e => setSp(key, e.target.value)}>
                 <option value=''>– Velg –</option>
                 {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
@@ -383,7 +428,6 @@ function TipsForm({ me, phase }) {
             </div>
           ))}
         </div>
-
         <div style={C.tabs}>
           {['group', 'knockout'].map(t => (
             <button key={t} style={{ ...C.tab, ...(tab === t ? C.tabOn : {}) }} onClick={() => setTab(t)}>
@@ -391,7 +435,6 @@ function TipsForm({ me, phase }) {
             </button>
           ))}
         </div>
-
         {tab === 'group' && <>
           <div style={C.gTabs}>
             {Object.keys(GROUPS).map(g => (
@@ -419,17 +462,16 @@ function TipsForm({ me, phase }) {
           {[0, 1, 2, 3].map(pos => (
             <div key={pos} style={C.plRow}>
               <span style={C.plPos}>{pos + 1}.</span>
-              <select style={{ ...C.sel, opacity: grpOk ? 1 : .4 }} disabled={!grpOk}
+              <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
                 value={grpO[ag]?.[pos] || ''} onChange={e => setOrd(ag, pos, e.target.value)}>
-                <option value=''>– Velg –</option>
+                <option value=''>– Velg lag –</option>
                 {GROUPS[ag].map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
               </select>
             </div>
           ))}
         </>}
-
         {tab === 'knockout' && <>
-          {!koOk && <div style={C.lockBanner}>🔒 Sluttspill-vinduet er stengt. Åpner etter gjeldende runde.</div>}
+          {!koOk && <div style={C.lockBanner}>🔒 Sluttspill-vinduet er stengt.</div>}
           {KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom: 18 }}>
               <span style={C.roundL}>{label}</span>
@@ -438,21 +480,20 @@ function TipsForm({ me, phase }) {
                 return (
                   <div key={m.id} style={C.mRow}>
                     <span style={C.mDate}>K{i + 1}</span>
-                    <span style={{ ...C.mTeam, color: '#333355' }}>Hjemme</span>
+                    <span style={{ ...C.mTeam, color: '#6070a0' }}>Hjemme</span>
                     <input style={{ ...C.sInp, opacity: koOk ? 1 : .3 }} type="number" min={0} max={20} disabled={!koOk}
                       value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
                     <span style={C.dash}>–</span>
                     <input style={{ ...C.sInp, opacity: koOk ? 1 : .3 }} type="number" min={0} max={20} disabled={!koOk}
                       value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
-                    <span style={{ ...C.mTeam, color: '#333355', textAlign: 'right' }}>Borte</span>
+                    <span style={{ ...C.mTeam, color: '#6070a0', textAlign: 'right' }}>Borte</span>
                   </div>
                 );
               })}
             </div>
           ))}
         </>}
-
-        <button style={{ ...C.btnGreen, width: '100%', marginTop: 16, opacity: dirty ? 1 : .5 }} onClick={save}>
+        <button style={{ ...C.btnGold, width: '100%', marginTop: 16, opacity: dirty ? 1 : .5 }} onClick={save}>
           {saved ? '✅ Lagret!' : '💾 Lagre alle tips'}
         </button>
         {dirty && <p style={{ color: '#f59e0b', fontSize: 11, textAlign: 'center', marginTop: 6, fontFamily: "'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
@@ -472,7 +513,7 @@ function MyScore({ me }) {
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { getCardStats().then(setCards); }, []);
 
-  if (!user) return <div style={C.card}><p className="pulse" style={{ color: '#252540', textAlign: 'center', padding: 40 }}>Laster…</p></div>;
+  if (!user) return <div style={C.card}><p style={{ color: '#6070a0', textAlign: 'center', padding: 40 }}>Laster…</p></div>;
 
   const { total, bd } = calcScore(user, results);
   const mPts = Object.values(bd.matches).reduce((s, v) => s + v, 0);
@@ -482,12 +523,12 @@ function MyScore({ me }) {
   const sortedCards = Object.entries(cards).filter(([k]) => !k.startsWith('_')).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
   return (
-    <div className="fu" style={C.card}>
+    <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Min poengstatus</span></div>
       <div style={C.cardBody}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 20 }}>
-          {[{ v: total, l: 'Totale poeng', c: G }, { v: mPts, l: 'Kamppoeng', c: '#60a5fa' },
-          { v: gPts, l: 'Gruppepoeng', c: '#a78bfa' }, { v: sPts, l: 'Spesialpoeng', c: '#f472b6' }
+          {[{ v: total, l: 'Totale poeng', c: YEL }, { v: mPts, l: 'Kamppoeng', c: '#60a5fa' },
+          { v: gPts, l: 'Gruppepoeng', c: '#a78bfa' }, { v: sPts, l: 'Spesialpoeng', c: GRN }
           ].map(({ v, l, c }) => (
             <div key={l} style={C.scoreBox}>
               <div style={{ ...C.scoreNum, color: c }}>{v}</div>
@@ -502,24 +543,24 @@ function MyScore({ me }) {
             return (
               <div key={key} style={C.specRow}>
                 <span style={C.specLabel}>{label}</span>
-                <span style={{ color: won ? G : myT ? '#e2e2f0' : '#252540' }}>
+                <span style={{ color: won ? GRN : myT ? '#e8eaf0' : '#4a5a80' }}>
                   {myT ? <><Flag team={myT} /> {myT}</> : '–'}
                 </span>
                 {won && <span style={C.wonBadge}>+{pts}p ✓</span>}
-                {correct && myT !== correct && <span style={{ color: '#ff4466', fontSize: 11 }}>Rett: {correct}</span>}
+                {correct && myT !== correct && <span style={{ color: '#ff7777', fontSize: 11 }}>Rett: {correct}</span>}
               </div>
             );
           })}
         </div>
         <span style={{ ...C.secH, marginTop: 16 }}>Kortstatistikk</span>
         {sortedCards.length === 0
-          ? <p style={{ color: '#252540', fontSize: 13 }}>Ingen kortdata ennå.</p>
+          ? <p style={{ color: '#4a5a80', fontSize: 13 }}>Ingen kortdata ennå.</p>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sortedCards.map(([team, pts], i) => (
-              <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#07070f', borderRadius: 6 }}>
-                <span style={{ width: 20, color: '#252540', fontFamily: "'Fira Code',monospace", fontSize: 11 }}>{i + 1}</span>
-                <Flag team={team} /><span style={{ flex: 1, fontSize: 13 }}> {team}</span>
-                <span style={{ color: G, fontFamily: "'Fira Code',monospace", fontSize: 12 }}>{pts}kp</span>
+              <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#0b0f1a', borderRadius: 6 }}>
+                <span style={{ width: 20, color: '#4a5a80', fontFamily: "'Fira Code',monospace", fontSize: 11 }}>{i + 1}</span>
+                <Flag team={team} /><span style={{ flex: 1, fontSize: 13, color: '#e8eaf0' }}> {team}</span>
+                <span style={{ color: YEL, fontFamily: "'Fira Code',monospace", fontSize: 12 }}>{pts}kp</span>
               </div>
             ))}
           </div>}
@@ -540,35 +581,28 @@ function VideoChat({ me }) {
   const [inAnswer, setInAnswer] = useState('');
 
   const getMedia = async () => { const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); locRef.current.srcObject = s; return s; };
-  const mkPC = s => {
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-    s.getTracks().forEach(t => pc.addTrack(t, s));
-    pc.ontrack = e => { remRef.current.srcObject = e.streams[0]; };
-    pcRef.current = pc; return pc;
-  };
+  const mkPC = s => { const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }); s.getTracks().forEach(t => pc.addTrack(t, s)); pc.ontrack = e => { remRef.current.srcObject = e.streams[0]; }; pcRef.current = pc; return pc; };
   const startCall = async () => { try { setStatus('calling'); const s = await getMedia(), pc = mkPC(s); pc.onicecandidate = e => { if (!e.candidate) setOffer(JSON.stringify(pc.localDescription)); }; await pc.setLocalDescription(await pc.createOffer()); } catch { setStatus('error'); } };
   const acceptCall = async () => { try { setStatus('answering'); const s = await getMedia(), pc = mkPC(s); await pc.setRemoteDescription(JSON.parse(inOffer)); pc.onicecandidate = e => { if (!e.candidate) setAnswer(JSON.stringify(pc.localDescription)); }; await pc.setLocalDescription(await pc.createAnswer()); } catch { setStatus('error'); } };
   const finishCall = async () => { try { await pcRef.current.setRemoteDescription(JSON.parse(inAnswer)); setStatus('connected'); } catch { setStatus('error'); } };
   const hangUp = () => { pcRef.current?.close(); if (locRef.current?.srcObject) locRef.current.srcObject.getTracks().forEach(t => t.stop()); setStatus('idle'); setOffer(''); setAnswer(''); setInOffer(''); setInAnswer(''); };
 
   return (
-    <div className="fu" style={C.card}>
-      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Videochat</span>
-        {status === 'connected' && <span style={{ ...C.badge, background: 'rgba(57,255,126,.08)', color: G }}>🟢 Tilkoblet</span>}
-      </div>
+    <div style={C.card}>
+      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Videochat</span></div>
       <div style={C.cardBody}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
           {[{ ref: locRef, label: `Du – ${me.displayName}`, muted: true }, { ref: remRef, label: 'Motpart', muted: false }].map(({ ref, label, muted }) => (
-            <div key={label} style={{ position: 'relative', background: '#07070f', borderRadius: 10, overflow: 'hidden', border: '1px solid #141428', aspectRatio: '4/3' }}>
+            <div key={label} style={{ position: 'relative', background: '#0b0f1a', borderRadius: 10, overflow: 'hidden', border: '1px solid #2a3050', aspectRatio: '4/3' }}>
               <video ref={ref} autoPlay playsInline muted={muted} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 10, background: 'rgba(0,0,0,.8)', color: G, padding: '2px 8px', borderRadius: 4, fontFamily: "'Fira Code',monospace" }}>{label}</div>
+              <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 10, background: 'rgba(0,0,0,.8)', color: YEL, padding: '2px 8px', borderRadius: 4, fontFamily: "'Fira Code',monospace" }}>{label}</div>
             </div>
           ))}
         </div>
         {status === 'idle' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button style={{ ...C.btnGreen, width: '100%' }} onClick={startCall}>📞 Start samtale</button>
-            <div style={{ textAlign: 'center', color: '#252540', fontSize: 12 }}>— eller svar på innkommende —</div>
+            <button style={{ ...C.btnGold, width: '100%' }} onClick={startCall}>📞 Start samtale</button>
+            <div style={{ textAlign: 'center', color: '#4a5a80', fontSize: 12 }}>— eller svar på innkommende —</div>
             <textarea style={C.ta} rows={3} value={inOffer} onChange={e => setInOffer(e.target.value)} placeholder="Lim inn tilbudskode…" />
             <button style={{ ...C.btnSecondary, width: '100%' }} onClick={acceptCall} disabled={!inOffer}>📲 Svar</button>
           </div>
@@ -578,7 +612,7 @@ function VideoChat({ me }) {
             <p style={C.mono12}>Del denne koden med motparten:</p>
             <textarea style={C.ta} rows={4} readOnly value={offer} onClick={e => e.target.select()} />
             <textarea style={C.ta} rows={3} value={inAnswer} onChange={e => setInAnswer(e.target.value)} placeholder="Svarkode fra motparten…" />
-            <button style={{ ...C.btnGreen, width: '100%' }} onClick={finishCall} disabled={!inAnswer}>✅ Koble til</button>
+            <button style={{ ...C.btnGold, width: '100%' }} onClick={finishCall} disabled={!inAnswer}>✅ Koble til</button>
           </div>
         )}
         {status === 'answering' && answer && (
@@ -587,7 +621,7 @@ function VideoChat({ me }) {
             <textarea style={C.ta} rows={4} readOnly value={answer} onClick={e => e.target.select()} />
           </div>
         )}
-        {status !== 'idle' && <button style={{ ...C.btnSecondary, width: '100%', marginTop: 10, color: '#ff4466', borderColor: 'rgba(255,68,102,.2)' }} onClick={hangUp}>📵 Avslutt</button>}
+        {status !== 'idle' && <button style={{ ...C.btnSecondary, width: '100%', marginTop: 10, color: '#ff7777' }} onClick={hangUp}>📵 Avslutt</button>}
       </div>
     </div>
   );
@@ -608,26 +642,13 @@ function AdminPanel() {
   useEffect(() => { getCardStats().then(setCardsState); }, []);
 
   const updPhase = async p => { setPhaseState(p); await setPhase(p); };
-  const setResult = async (id, field, val) => {
-    const upd = { ...results, [id]: { ...(results[id] || {}), [field]: parseInt(val) || 0 } };
-    setResultsState(upd); await setResults(upd);
-  };
-  const setGrpResult = async (g, i, val) => {
-    const key = `grp_${g}`;
-    const arr = results[key] ? [...results[key]] : ['', '', '', '']; arr[i] = val;
-    const upd = { ...results, [key]: arr };
-    setResultsState(upd); await setResults(upd);
-  };
+  const setResult = async (id, field, val) => { const upd = { ...results, [id]: { ...(results[id] || {}), [field]: parseInt(val) || 0 } }; setResultsState(upd); await setResults(upd); };
+  const setGrpResult = async (g, i, val) => { const key = `grp_${g}`; const arr = results[key] ? [...results[key]] : ['', '', '', '']; arr[i] = val; const upd = { ...results, [key]: arr }; setResultsState(upd); await setResults(upd); };
   const setSpec = async (key, val) => { const upd = { ...results, [key]: val }; setResultsState(upd); await setResults(upd); };
-  const updCard = async (team, type, val) => {
-    const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0);
-    const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0);
-    const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 };
-    setCardsState(upd); await setCardStats(upd);
-  };
+  const updCard = async (team, type, val) => { const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0); const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0); const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 }; setCardsState(upd); await setCardStats(upd); };
 
   return (
-    <div className="fu" style={C.card}>
+    <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Admin</span></div>
       <div style={C.cardBody}>
         <div style={C.tabs}>
@@ -635,16 +656,14 @@ function AdminPanel() {
             <button key={t} style={{ ...C.tab, ...(aTab === t ? C.tabOn : {}) }} onClick={() => setATab(t)}>{l}</button>
           ))}
         </div>
-
         {aTab === 'phase' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ ...C.mono12, marginBottom: 8 }}>Gjeldende: <strong style={{ color: G }}>{phase}</strong></span>
+            <span style={{ ...C.mono12, marginBottom: 8 }}>Gjeldende: <strong style={{ color: YEL }}>{phase}</strong></span>
             {PHASE_OPTIONS.map(p => (
               <button key={p.value} onClick={() => updPhase(p.value)} style={{ ...C.phBtn, ...(phase === p.value ? C.phBtnOn : {}) }}>{p.label}</button>
             ))}
           </div>
         )}
-
         {aTab === 'results' && <>
           <div style={C.gTabs}>{Object.keys(GROUPS).map(g => <button key={g} style={{ ...C.gTab, ...(ag === g ? C.gTabOn : {}) }} onClick={() => setAg(g)}>Gr.{g}</button>)}</div>
           {GROUP_MATCHES.filter(m => m.group === ag).map(m => (
@@ -667,7 +686,6 @@ function AdminPanel() {
             </div>
           ))}
         </>}
-
         {aTab === 'knockout' && KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
           <div key={kp} style={{ marginBottom: 16 }}>
             <span style={C.roundL}>{label}</span>
@@ -681,7 +699,6 @@ function AdminPanel() {
             ))}
           </div>
         ))}
-
         {aTab === 'special' && (
           <div style={C.specBox}>
             {[{ key: 'champion', label: '🥇 Verdensmester' }, { key: 'runner_up', label: '🥈 Sølvvinner' },
@@ -698,18 +715,17 @@ function AdminPanel() {
             ))}
           </div>
         )}
-
         {aTab === 'cards' && <>
-          <span style={C.mono12}>🟨 Gult = 1kp · 🟥 Rødt = 3kp</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 10, maxHeight: 500, overflowY: 'auto' }}>
+          <span style={{ ...C.mono12, marginBottom: 10, display: 'block' }}>🟨 Gult = 1kp · 🟥 Rødt = 3kp</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 500, overflowY: 'auto' }}>
             {ALL_TEAMS.map(team => (
-              <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: '#07070f', borderRadius: 6 }}>
-                <Flag team={team} /><span style={{ flex: 1, fontSize: 13 }}> {team}</span>
+              <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: '#0b0f1a', borderRadius: 6 }}>
+                <Flag team={team} /><span style={{ flex: 1, fontSize: 13, color: '#e8eaf0' }}> {team}</span>
                 <label style={{ color: '#fbbf24', fontSize: 10 }}>🟨</label>
                 <input style={{ ...C.sInp, width: 40 }} type="number" min={0} value={cards[`_y_${team}`] || ''} placeholder='0' onChange={e => updCard(team, 'y', e.target.value)} />
                 <label style={{ color: '#f87171', fontSize: 10 }}>🟥</label>
                 <input style={{ ...C.sInp, width: 40 }} type="number" min={0} value={cards[`_r_${team}`] || ''} placeholder='0' onChange={e => updCard(team, 'r', e.target.value)} />
-                <span style={{ color: G, fontSize: 11, minWidth: 36, textAlign: 'right', fontFamily: "'Fira Code',monospace" }}>{cards[team] || 0}kp</span>
+                <span style={{ color: YEL, fontSize: 11, minWidth: 36, textAlign: 'right', fontFamily: "'Fira Code',monospace" }}>{cards[team] || 0}kp</span>
               </div>
             ))}
           </div>
@@ -726,8 +742,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('dashboard');
   const [phase, setPhaseState] = useState('pre');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!user) return;
@@ -737,95 +751,18 @@ export default function App() {
 
   if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
 
-  const ws = winStatus(phase);
-
-  const NAV_U = [
-    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
-    { id: 'leaderboard', icon: '🏆', label: 'Tabell' },
-    { id: 'tips', icon: '✏️', label: 'Tips' },
-    { id: 'myscore', icon: '📊', label: 'Poeng' },
-    { id: 'video', icon: '📹', label: 'Video' },
-  ];
-  const NAV_A = [
-    { id: 'dashboard', icon: '⚡', label: 'Dashboard' },
-    { id: 'admin', icon: '⚙️', label: 'Admin' },
-  ];
-  const nav = user.isAdmin ? NAV_A : NAV_U;
-
-  const Sidebar = ({ style }) => (
-    <div style={style}>
-      <div style={C.sidebarLogo}>
-        <div style={C.logoTitle}>VM-tipping</div>
-        <div style={C.logoSub}>FIFA World Cup 2026</div>
-      </div>
-      <div style={C.navSection}>
-        <span style={C.navLabel}>Navigasjon</span>
-        {nav.map(n => (
-          <button key={n.id}
-            style={{ ...C.navItem, ...(tab === n.id ? C.navItemOn : {}) }}
-            onClick={() => { setTab(n.id); setSidebarOpen(false); }}>
-            <span style={C.navIcon}>{n.icon}</span>
-            {n.label}
-          </button>
-        ))}
-      </div>
-      <div style={C.sidebarBottom}>
-        <div style={C.userRow}>
-          <div style={C.userAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
-          <span style={C.userName}>{user.displayName}</span>
-        </div>
-        <button style={C.btnLogout} onClick={() => setUser(null)}>Logg ut</button>
-      </div>
-    </div>
-  );
-
   return (
     <div style={C.app}>
-      {/* Desktop sidebar */}
-      {!isMobile && <Sidebar style={C.sidebar} />}
-
-      {/* Mobile sidebar overlay */}
-      {isMobile && sidebarOpen && (
-        <>
-          <div style={{ ...C.sidebarOverlay, display: 'block' }} onClick={() => setSidebarOpen(false)} />
-          <Sidebar style={{ ...C.sidebarMobile, ...C.sidebarOpen }} />
-        </>
-      )}
-
-      {/* Content */}
-      <div style={C.content}>
-        {/* Topbar */}
-        <div style={C.topbar}>
-          {isMobile && (
-            <button style={{ ...C.hamburger, display: 'block' }} onClick={() => setSidebarOpen(true)}>☰</button>
-          )}
-          <span style={C.topbarTitle}>
-            {nav.find(n => n.id === tab)?.icon} {nav.find(n => n.id === tab)?.label || 'Dashboard'}
-          </span>
-          {isMobile && <span style={{ fontSize: 11, color: '#252540', fontFamily: "'Fira Code',monospace" }}>{user.displayName}</span>}
-        </div>
-
-        {/* Window banner */}
-        {!user.isAdmin && (
-          <div style={{ ...C.windowBanner, background: ws.open ? 'rgba(57,255,126,.05)' : 'rgba(255,68,68,.05)', color: ws.open ? G : '#ff4466' }}>
-            {ws.label}
-          </div>
-        )}
-
-        {/* Page content */}
-        <div style={C.main}>
-          {tab === 'dashboard' && <Dashboard me={user} phase={phase} />}
-          {tab === 'leaderboard' && <Leaderboard me={user} />}
-          {tab === 'tips' && !user.isAdmin && <TipsForm me={user} phase={phase} />}
-          {tab === 'myscore' && !user.isAdmin && <MyScore me={user} />}
-          {tab === 'video' && !user.isAdmin && <VideoChat me={user} />}
-          {tab === 'admin' && user.isAdmin && <AdminPanel />}
-        </div>
-
-        <div style={{ textAlign: 'center', padding: '16px', color: '#141428', fontSize: 10, fontFamily: "'Fira Code',monospace", borderTop: '1px solid #0c0c18' }}>
-          VM-tipping 2026 · kode: {INVITE_CODE}
-        </div>
+      <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={() => setUser(null)} />
+      <div style={C.main}>
+        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
+        {tab === 'leaderboard' && <Leaderboard me={user} />}
+        {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} />}
+        {tab === 'myscore'     && !user.isAdmin && <MyScore me={user} />}
+        {tab === 'video'       && !user.isAdmin && <VideoChat me={user} />}
+        {tab === 'admin'       && user.isAdmin  && <AdminPanel />}
       </div>
+      <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
     </div>
   );
 }
