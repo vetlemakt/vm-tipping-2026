@@ -1115,7 +1115,7 @@ function PenaltyGame({ me }) {
     const rect=wrap.getBoundingClientRect();
     const rx=(e.clientX-rect.left)/rect.width;
     const ry=(e.clientY-rect.top)/rect.height;
-    const W=cRef.current.width, H=cRef.current.height;
+    const H=cRef.current.height; // eslint-disable-line
     const gw=0.72,gx=(1-gw)/2,gh=0.44;
     keeperRef.current = Math.random()*0.8+0.1;
     phaseRef.current='shooting';
