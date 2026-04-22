@@ -963,12 +963,12 @@ function YouTubePlayer() {
   if (!visible) return null;
   return (
     <div style={{
-      position: 'fixed', bottom: 40, right: 16, zIndex: 500,
+      position: 'fixed', bottom: 28, left: 12, zIndex: 500,
       background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,215,0,.25)', borderRadius: 14,
+      border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
       boxShadow: '0 8px 32px rgba(0,0,0,.5)',
       overflow: 'hidden',
-      width: minimized ? 220 : 320,
+      width: minimized ? 160 : 240,
       transition: 'width .3s ease',
     }}>
       <div style={{
@@ -995,8 +995,8 @@ function YouTubePlayer() {
       </div>
       {!minimized && (
         <iframe
-          width="320"
-          height="180"
+          width="240"
+          height="135"
           src="https://www.youtube.com/embed/videoseries?list=PL7KLwyJCC7QwT8BNvKF7mokkODa6aNfAH&autoplay=0&rel=0"
           title="VM-musikk"
           frameBorder="0"
