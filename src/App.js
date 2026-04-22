@@ -995,8 +995,8 @@ function YouTubePlayer() {
       </div>
       {!minimized && (
         <iframe
-          width="200"
-          height="100"
+          width="240"
+          height="135"
           src="https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&si=1cYxo5lnM00bBkPn&autoplay=0&rel=0"
           title="VM-musikk"
           frameBorder="0"
