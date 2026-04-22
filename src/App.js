@@ -7,7 +7,7 @@ import {
   subscribePhase, subscribeResults,
   db,
 } from './firebase';
-import { doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import {
   INVITE_CODE, ADMIN_CODE,
@@ -150,6 +150,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
     { id: 'tips',        icon: null, img: '/tips.png',   label: 'Tips' },
     { id: 'myscore',     icon: null, img: '/poeng.png',  label: 'Poeng' },
     { id: 'info',        icon: null, img: '/info.png',   label: 'Info' },
+    { id: 'panel',       icon: '🎙️', img: null,          label: 'Panelet' },
   ];
   const NAV_A = [
     { id: 'admin', icon: '⚙️', img: null, label: 'Admin' },
@@ -799,9 +800,46 @@ function AdminPanel() {
   const setSpec = async (key, val) => { const upd = { ...results, [key]: val }; setResultsState(upd); await setResults(upd); };
   const updCard = async (team, type, val) => { const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0); const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0); const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 }; setCardsState(upd); await setCardStats(upd); };
 
+  const downloadBackup = async () => {
+    try {
+      const users = await getAllUsers();
+      const results = await getResults();
+      const cards = await getCardStats();
+      const phase = await getPhase();
+      const backup = {
+        exportDate: new Date().toISOString(),
+        phase,
+        results,
+        cards,
+        users: users.filter(u => u.id !== 'admin').map(u => ({
+          username: u.id,
+          displayName: u.displayName,
+          tips: u.tips || {},
+          groupOrders: u.groupOrders || {},
+          specialTips: u.specialTips || {},
+        })),
+      };
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vm-tipping-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(e) {
+      alert('Feil ved backup: ' + e.message);
+    }
+  };
+
   return (
     <div style={C.card}>
-      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Admin</span></div>
+      <div style={C.cardHeader}>
+        <span style={C.cardTitle}><span style={C.cardTitleDot} /> Admin</span>
+        <button style={{ ...C.btnGold, width:'auto', padding:'7px 16px', fontSize:12 }} onClick={downloadBackup}>
+          💾 Last ned backup
+        </button>
+      </div>
       <div style={C.cardBody}>
         <div style={C.tabs}>
           {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort']].map(([t, l]) => (
@@ -997,7 +1035,7 @@ function YouTubePlayer() {
         <iframe
           width="240"
           height="135"
-          src="https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&si=1cYxo5lnM00bBkPn&autoplay=0&rel=0"
+          src="https://www.youtube.com/embed/videoseries?list=PL7KLwyJCC7QwT8BNvKF7mokkODa6aNfAH&autoplay=0&rel=0"
           title="VM-musikk"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1005,6 +1043,294 @@ function YouTubePlayer() {
           style={{ display: 'block' }}
         />
       )}
+    </div>
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+//  PANELET
+// ══════════════════════════════════════════════════════════════════════
+
+const PANEL_EXPERTS = [
+  {
+    id: 'ragnhild',
+    name: 'Ragnhild Kristiansen',
+    age: 60,
+    from: 'Mandal',
+    emoji: '👵',
+    color: '#8b5e3c',
+    tagline: 'Rødstrømpe med sans for det estetiske',
+    bio: 'Oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Har aldri sett en hel fotballkamp. Tipper basert på drakter, musikk og om landet virker skikkelig. Leser Fædrelandsvennen hver morgen.',
+    personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Du er en tidligere rødstrømpe oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Du har ingen peiling på fotball og tipper basert på hvilke land du liker – særlig drakter, musikk og om landet virker skikkelig og ordentlig. Du snakker varmt, litt moraliserende, og er alltid hyggelig men naiv om fotball. Du refererer gjerne til Fædrelandsvennen, kirken og sørlanske verdier. Svar alltid på norsk og hold deg i karakter.`,
+    tipStyle: 'conservative_aesthetic',
+  },
+  {
+    id: 'leifarne',
+    name: 'Leif-Arne Ditlefsen',
+    age: 47,
+    from: 'Henningsvær',
+    emoji: '🎣',
+    color: '#2a5a8a',
+    tagline: 'Fisker, Pokemon-samler, fotballekspert siden 1998',
+    bio: 'Fisker fra Henningsvær, bor hjemme hos mor. Eneste fotballminne er en Tromsø-kamp i 1998. Samler på Pokemon-kort. Stygg i kjeften, men hjertegod innerst inne.',
+    personality: `Du er Leif-Arne Ditlefsen, 47 år, fisker fra Henningsvær i Lofoten. Du bor hjemme hos mora di. Du er stygg i kjeften og bruker kraftuttrykk, men er egentlig grei nok. Du har null peiling på fotball – det eneste du husker er at du så en Tromsø-kamp i 1998, men husker ikke resultatet. Du er veldig opptatt av Pokemon-kort og fisking. Du tipper på magefølelse og instinkt. Svar på norsk med lofotdialekt-farget språk og vær gjerne litt grov i munnen, men ikke sjikanerende.`,
+    tipStyle: 'random_gut',
+  },
+  {
+    id: 'hendrik',
+    name: 'Hendrik van der Berg',
+    age: 58,
+    from: 'Opprinnelig Eindhoven, nå Drammen',
+    emoji: '🇳🇱',
+    color: '#e67e00',
+    tagline: 'Nederlandsk innvandrer med agorafobi og god musikksans',
+    bio: 'Kom til Norge i 1993. Har kraftig agorafobi og har ikke vært utenfor leiligheten på 11 år. Hører på DJ Bobo. Kjenner til Dennis Bergkamp, men tror Rintje Ritsma også spilte fotball.',
+    personality: `Du er Hendrik van der Berg, 58 år, nederlandsk innvandrer som kom til Norge i 1993 og nå bor i Drammen. Du har kraftig agorafobi og har ikke vært utenfor leiligheten på mange år. Du hører mye på DJ Bobo og synes han er genial. Du kjenner til Dennis Bergkamp og er stolt av ham. Du tror også at Rintje Ritsma (den nederlandske skøyteløperen) kanskje spilte fotball på siden. Du snakker norsk med litt nederlandsk aksent i skriften, blander inn nederlandske ord av og til. Du tipper fritt uten å favorisere Nederland spesielt.`,
+    tipStyle: 'mixed_dutch',
+  },
+  {
+    id: 'bjornar',
+    name: 'Bjørnar',
+    age: 52,
+    from: 'Trondheim',
+    emoji: '🤼',
+    color: '#6a3a9a',
+    tagline: 'Keeper. Scoret ti mål mot Rosenborg.',
+    bio: 'Liker wrestling, kortspill og tennis. Kan fotball fra 80-tallet utenat, ingenting etter 1992. Påstår å ha keepet for Strindheim mot Rosenborg – og scoret ti mål i den kampen.',
+    personality: `Du er Bjørnar, 52 år fra Trondheim. Du er lett tilbakestående, men fungerer godt i hverdagen. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du bringer opp ved enhver anledning at du keepet for Strindheim mot Rosenborg og scoret TI mål i den kampen. Det er din store stolthet. Du er blid og entusiastisk. Svar på norsk, vær litt naiv men velmenende.`,
+    tipStyle: 'retro_80s',
+  },
+  {
+    id: 'oddgunnar',
+    name: 'Odd-Gunnar Flåterud',
+    age: 63,
+    from: 'Oppdal',
+    emoji: '🚜',
+    color: '#4a7a2a',
+    tagline: 'Bonde. Mistenker Brasil for juks.',
+    bio: 'Bonde fra Oppdal, har aldri vært sør for Lillehammer frivillig. Spiser leverpostei til alle måltider. Tipper basert på landbrukspolitikk og snøforhold. Sier "nei, nei, nei" tre ganger før han sier noe.',
+    personality: `Du er Odd-Gunnar Flåterud, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig og synes fotball er en bygreie. Du spiser leverpostei til alle måltider. Du starter setninger med "nei, nei, nei" og er generelt skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og om de har snø om vinteren – det gir deg respekt for folk. Du er overbevist om at Brasil jukser. Du snakker i en slags trøndersk-farget bondsk stil.`,
+    tipStyle: 'agriculture_snow',
+  },
+];
+
+// Firebase helpers for panel
+async function getPanelChoices() {
+  const snap = await getDoc(doc(db, 'config', 'panelChoices'));
+  return snap.exists() ? snap.data() : {};
+}
+async function setPanelChoice(username, expertId) {
+  const snap = await getDoc(doc(db, 'config', 'panelChoices'));
+  const data = snap.exists() ? snap.data() : {};
+  data[username] = expertId;
+  await setDoc(doc(db, 'config', 'panelChoices'), data);
+}
+
+// Generate tips via Claude API for a panel expert
+async function generateExpertTips(expert, existingTips) {
+  const matchList = GROUP_MATCHES.slice(0, 10).map(m => `${m.home} vs ${m.away}`).join(', ');
+  const prompt = `Du er ${expert.name}. ${expert.personality}
+
+Du skal tippe resultater for VM 2026 kampene. Gi et realistisk resultat for disse kampene basert på din personlighet:
+${GROUP_MATCHES.map(m => `${m.id}: ${m.home} vs ${m.away}`).join('
+')}
+
+Svar KUN med JSON i dette formatet (ingen annen tekst):
+{"tips": {"A1": {"home": 2, "away": 1}, "A2": {"home": 0, "away": 0}, ...}}
+
+Husk å holde deg i karakter. ${expert.id === 'ragnhild' ? 'Tipper på land med fine drakter og god musikk.' : ''}
+${expert.id === 'leifarne' ? 'Tipper tilfeldig basert på magefølelse.' : ''}
+${expert.id === 'bjornar' ? 'Tipper basert på 80-talls fotballkunnskap.' : ''}
+${expert.id === 'oddgunnar' ? 'Tipper mot Brasil alltid, favoriserer land med snø.' : ''}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '{}';
+  try {
+    const clean = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean).tips || {};
+  } catch { return {}; }
+}
+
+// Expert chat via Claude API
+async function chatWithExpert(expert, message, history) {
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: message }
+  ];
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 400,
+      system: expert.personality + ' Svar kort og konsist, maks 3-4 setninger. Vær alltid i karakter.',
+      messages,
+    })
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || '...';
+}
+
+// ── Expert Profile Card ───────────────────────────────────────────────
+function ExpertCard({ expert, me, onChat, panelChoices }) {
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const choosers = Object.entries(panelChoices).filter(([, v]) => v === expert.id).map(([k]) => k);
+  const myChoice = panelChoices[me.username] === expert.id;
+
+  const fillMyTips = async () => {
+    setLoading(true);
+    try {
+      const u = await getUser(me.username);
+      const tips = await generateExpertTips(expert, u?.tips || {});
+      await updateUser(me.username, { tips: { ...(u?.tips || {}), ...tips } });
+      await setPanelChoice(me.username, expert.id);
+      setDone(true);
+    } catch(e) { alert('Feil: ' + e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ ...C.card, border: myChoice ? `2px solid ${expert.color}` : '1px solid #2a3050' }}>
+      <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Avatar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%', flexShrink: 0,
+            background: `${expert.color}22`, border: `2px solid ${expert.color}44`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 36,
+          }}>{expert.emoji}</div>
+          <div>
+            <div style={{ fontFamily: "'Kanit',sans-serif", fontSize: 18, fontWeight: 700, color: '#fff' }}>{expert.name}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)' }}>{expert.age} år · {expert.from}</div>
+            <div style={{ fontSize: 12, color: expert.color, fontStyle: 'italic', marginTop: 2 }}>{expert.tagline}</div>
+          </div>
+        </div>
+
+        {/* Bio */}
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', lineHeight: 1.6, margin: 0 }}>{expert.bio}</p>
+
+        {/* Who chose this expert */}
+        {choosers.length > 0 && (
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontFamily: "'Fira Code',monospace" }}>
+            Valgt av: {choosers.join(', ')}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button style={{ ...C.btnGold, flex: 1, padding: '9px 14px', fontSize: 12, opacity: loading ? .6 : 1 }}
+            onClick={fillMyTips} disabled={loading}>
+            {loading ? '⟳ Genererer...' : done ? '✅ Tips fylt ut!' : `La ${expert.name.split(' ')[0]} fylle ut mine tips`}
+          </button>
+          <button style={{ ...C.btnSecondary, padding: '9px 14px', fontSize: 12 }}
+            onClick={() => onChat(expert)}>
+            💬 Chat
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Expert Chat Modal ─────────────────────────────────────────────────
+function ExpertChatModal({ expert, me, onClose }) {
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: expert.id === 'ragnhild' ? 'Hei, kjære! Så hyggelig at du vil prate. Jeg sitter nettopp med Fædrelandsvennen og en kopp te.' :
+      expert.id === 'leifarne' ? 'Kem faen er du? Holder på å sortere Pokemon-kort, så vær rask.' :
+      expert.id === 'hendrik' ? 'Hallo! Ja, ik ben hier. Ikke rart den for å gå ut, men vi kan snakke her.' :
+      expert.id === 'bjornar' ? 'Hei hei! Visste du at jeg scoret ti mål mot Rosenborg? Spør meg om hva som helst!' :
+      'Nei, nei, nei. Hva vil du? Har mye å gjøre med besetningen.' }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const botRef = useRef(null);
+
+  useEffect(() => { botRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const send = async () => {
+    const t = input.trim(); if (!t || loading) return;
+    const newMsg = { role: 'user', content: t };
+    const updated = [...messages, newMsg];
+    setMessages(updated); setInput(''); setLoading(true);
+    const reply = await chatWithExpert(expert, t, updated);
+    setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: '#0d1230', border: `2px solid ${expert.color}`, borderRadius: 16, width: '100%', maxWidth: 480, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: `1px solid ${expert.color}33` }}>
+          <span style={{ fontSize: 28 }}>{expert.emoji}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, color: '#fff', fontSize: 15 }}>{expert.name}</div>
+            <div style={{ fontSize: 11, color: expert.color }}>{expert.tagline}</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 22, cursor: 'pointer' }}>×</button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {messages.map((m, i) => (
+            <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+              <div style={{ background: m.role === 'user' ? '#1e3a6e' : `${expert.color}22`, border: `1px solid ${m.role === 'user' ? '#2d5a9e' : expert.color + '44'}`, borderRadius: 10, padding: '8px 12px', fontSize: 14, color: '#e8edf8', lineHeight: 1.5 }}>
+                {m.content}
+              </div>
+            </div>
+          ))}
+          {loading && <div style={{ alignSelf: 'flex-start', color: expert.color, fontSize: 13 }}>skriver...</div>}
+          <div ref={botRef} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: `1px solid ${expert.color}33` }}>
+          <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
+            value={input} onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && send()}
+            placeholder={`Spør ${expert.name.split(' ')[0]}...`} />
+          <button style={{ ...C.btnGold, width: 'auto', padding: '8px 16px', fontSize: 12 }} onClick={send}>Send</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Panel Page ────────────────────────────────────────────────────────
+function PanelPage({ me }) {
+  const [chatExpert, setChatExpert] = useState(null);
+  const [panelChoices, setPanelChoices] = useState({});
+
+  useEffect(() => {
+    getPanelChoices().then(setPanelChoices);
+    const unsub = onSnapshot(doc(db, 'config', 'panelChoices'), snap => {
+      if (snap.exists()) setPanelChoices(snap.data());
+    });
+    return unsub;
+  }, []);
+
+  return (
+    <div className="fu">
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, fontWeight:700, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, margin:0 }}>🎙️ Panelet</h2>
+        <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginTop: 6 }}>
+          La en av ekspertene fylle ut dine tips – eller chat med dem direkte. Hver ekspert har sin helt unike tippestil.
+        </p>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {PANEL_EXPERTS.map(expert => (
+          <ExpertCard key={expert.id} expert={expert} me={me}
+            onChat={setChatExpert} panelChoices={panelChoices} />
+        ))}
+      </div>
+      {chatExpert && <ExpertChatModal expert={chatExpert} me={me} onClose={() => setChatExpert(null)} />}
     </div>
   );
 }
@@ -1036,6 +1362,7 @@ export default function App() {
         {tab === 'myscore'     && !user.isAdmin && <MyScore me={user} />}
         {tab === 'video'       && !user.isAdmin && <VideoChat me={user} />}
         {tab === 'info'        && !user.isAdmin && <InfoPage />}
+        {tab === 'panel'       && !user.isAdmin && <PanelPage me={user} />}
         {tab === 'admin'       && user.isAdmin  && <AdminPanel />}
       </div>
       <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
