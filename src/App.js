@@ -955,6 +955,60 @@ function InfoPage() {
 
 // ── Info Page ────────────────────────────────────────────────────────
 
+
+// ── YouTube Player ────────────────────────────────────────────────────
+function YouTubePlayer() {
+  const [visible, setVisible] = useState(true);
+  const [minimized, setMinimized] = useState(false);
+  if (!visible) return null;
+  return (
+    <div style={{
+      position: 'fixed', bottom: 40, right: 16, zIndex: 500,
+      background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,215,0,.25)', borderRadius: 14,
+      boxShadow: '0 8px 32px rgba(0,0,0,.5)',
+      overflow: 'hidden',
+      width: minimized ? 220 : 320,
+      transition: 'width .3s ease',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 12px',
+        background: 'rgba(255,215,0,.08)',
+        borderBottom: minimized ? 'none' : '1px solid rgba(255,215,0,.15)',
+      }}>
+        <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 1 }}>
+          🎵 VM-musikk
+        </span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => setMinimized(m => !m)} style={{
+            background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
+            borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{minimized ? '▲' : '▼'}</button>
+          <button onClick={() => setVisible(false)} style={{
+            background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
+            borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>×</button>
+        </div>
+      </div>
+      {!minimized && (
+        <iframe
+          width="320"
+          height="180"
+          src="https://www.youtube.com/embed/videoseries?list=PL7KLwyJCC7QwT8BNvKF7mokkODa6aNfAH&autoplay=0&rel=0"
+          title="VM-musikk"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{ display: 'block' }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  ROOT APP
 // ══════════════════════════════════════════════════════════════════════
@@ -986,6 +1040,7 @@ export default function App() {
       </div>
       <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
       <StatusBar phase={phase} isAdmin={user.isAdmin} />
+      <YouTubePlayer />
     </div>
   );
 }
