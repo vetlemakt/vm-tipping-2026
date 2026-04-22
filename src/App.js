@@ -1128,21 +1128,17 @@ async function setPanelChoice(username, expertId) {
 }
 
 // Generate tips via Claude API for a panel expert
-async function generateExpertTips(expert, existingTips) {
-  const matchList = GROUP_MATCHES.slice(0, 10).map(m => `${m.home} vs ${m.away}`).join(', ');
-  const prompt = `Du er ${expert.name}. ${expert.personality}
-
-Du skal tippe resultater for VM 2026 kampene. Gi et realistisk resultat for disse kampene basert på din personlighet:
-${GROUP_MATCHES.map(m => `${m.id}: ${m.home} vs ${m.away}`).join('
-')}
-
-Svar KUN med JSON i dette formatet (ingen annen tekst):
-{"tips": {"A1": {"home": 2, "away": 1}, "A2": {"home": 0, "away": 0}, ...}}
-
-Husk å holde deg i karakter. ${expert.id === 'ragnhild' ? 'Tipper på land med fine drakter og god musikk.' : ''}
-${expert.id === 'leifarne' ? 'Tipper tilfeldig basert på magefølelse.' : ''}
-${expert.id === 'bjornar' ? 'Tipper basert på 80-talls fotballkunnskap.' : ''}
-${expert.id === 'oddgunnar' ? 'Tipper mot Brasil alltid, favoriserer land med snø.' : ''}`;
+async function generateExpertTips(expert) {
+  const matchLines = GROUP_MATCHES.map(m => m.id + ': ' + m.home + ' vs ' + m.away).join('\n');
+  const styleNote = expert.id === 'ragnhild' ? 'Tipper på land med fine drakter og god musikk.' :
+    expert.id === 'leifarne' ? 'Tipper tilfeldig basert på magefølelse.' :
+    expert.id === 'bjornar' ? 'Tipper basert på 80-talls fotballkunnskap.' :
+    expert.id === 'oddgunnar' ? 'Tipper mot Brasil alltid, favoriserer land med snø.' : '';
+  const prompt = 'Du er ' + expert.name + '. ' + expert.personality +
+    '\n\nDu skal tippe resultater for VM 2026 kampene. Gi et realistisk resultat for disse kampene basert på din personlighet:\n' +
+    matchLines +
+    '\n\nSvar KUN med JSON i dette formatet (ingen annen tekst):\n{"tips": {"A1": {"home": 2, "away": 1}, "A2": {"home": 0, "away": 0}, ...}}\n' +
+    styleNote;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1161,7 +1157,6 @@ ${expert.id === 'oddgunnar' ? 'Tipper mot Brasil alltid, favoriserer land med sn
   } catch { return {}; }
 }
 
-// Expert chat via Claude API
 async function chatWithExpert(expert, message, history) {
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
