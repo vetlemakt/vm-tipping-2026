@@ -327,7 +327,7 @@ function Dashboard({ me }) {
   return (
     <>
     <div>
-      {/* Stats widgets */
+      {/* Stats widgets */}
       {(() => {
         const finishedCount = GROUP_MATCHES.filter(m => results[m.id]?.home !== undefined).length;
         const totalGoals = GROUP_MATCHES.reduce((s,m) => {
