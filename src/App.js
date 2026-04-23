@@ -1123,7 +1123,7 @@ function InfoPage() {
 // ── YouTube Player ────────────────────────────────────────────────────
 function YouTubePlayer() {
   const [visible, setVisible] = useState(true);
-  const [minimized, setMinimized] = useState(false);
+  const [minimized, setMinimized] = useState(true);
   if (!visible) return null;
   return (
     <div style={{
