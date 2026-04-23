@@ -144,7 +144,7 @@ export const C = {
   // ── Main ───────────────────────────────────────────────────
   main: {
     flex: 1,
-    padding: '24px 20px',
+    padding: '24px 20px 120px 20px',
     maxWidth: 1200,
     width: '100%',
     margin: '0 auto',
