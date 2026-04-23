@@ -144,13 +144,23 @@ function StatusBar({ phase, isAdmin }) {
 // ══════════════════════════════════════════════════════════════════════
 function Banner({ user, tab, setTab, phase, onLogout }) {
   const isMobile = useIsMobile();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const NAV_COLORS = {
+    leaderboard: '#FFD700',
+    tips:        '#ff6b6b',
+    myscore:     '#4ade80',
+    info:        '#60a5fa',
+    panel:       '#c084fc',
+    admin:       '#fb923c',
+  };
 
   const NAV_U = [
-    { id: 'leaderboard', icon: null, img: '/tabell.png', label: 'Tabell' },
-    { id: 'tips',        icon: null, img: '/tips.png',   label: 'Tips' },
-    { id: 'myscore',     icon: null, img: '/poeng.png',  label: 'Poeng' },
-    { id: 'info',        icon: null, img: '/info.png',   label: 'Info' },
-    { id: 'panel',       icon: '🎙️', img: null,          label: 'Panelet' },
+    { id: 'leaderboard', icon: null, img: '/tabell.png',  label: 'Tabell' },
+    { id: 'tips',        icon: null, img: '/tips.png',    label: 'Tips' },
+    { id: 'myscore',     icon: null, img: '/poeng.png',   label: 'Poeng' },
+    { id: 'panel',       icon: '🎙️', img: null,           label: 'Panelet' },
+    { id: 'info',        icon: null, img: '/info.png',    label: 'Info' },
   ];
   const NAV_A = [
     { id: 'admin', icon: '⚙️', img: null, label: 'Admin' },
@@ -159,44 +169,87 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
 
   return (
     <div>
-      <div style={{ ...C.banner, ...(isMobile ? C.bannerMobile : {}) }}>
-        {/* Logo – klikk for dashboard */}
-        <div style={{ width: isMobile?70:110, minWidth: isMobile?70:110, position:'relative', zIndex:20, cursor:'pointer', flexShrink:0 }}
-          onClick={() => setTab('dashboard')}>
+      <div style={{ ...C.banner, overflow: isMobile ? 'visible' : 'visible' }}>
+        {/* Logo */}
+        <div style={{ width: isMobile?90:110, minWidth: isMobile?90:110, position:'relative', zIndex:20, cursor:'pointer', flexShrink:0 }}
+          onClick={() => { setTab('dashboard'); setMenuOpen(false); }}>
           <img src="/vm-logo.png" alt="Gå til dashboard"
-            style={{ position:'absolute', top:0, left:0, height: isMobile?65:133, width: isMobile?65:133, objectFit:'contain', filter:'drop-shadow(0 8px 24px rgba(0,0,0,.5))', mixBlendMode:'multiply' }} />
+            style={{ position:'absolute', top:0, left:0, height: isMobile?120:133, width: isMobile?120:133, objectFit:'contain', filter:'drop-shadow(0 8px 24px rgba(0,0,0,.5))', mixBlendMode:'multiply' }} />
         </div>
 
         {/* Nav area */}
-        <div style={C.bannerNav}>
-          {/* Nav tabs + user on same row */}
-          <div style={{ display:'flex', alignItems:'flex-end', width:'100%', gap:4 }}>
-            {nav.map(n => (
-              <button key={n.id}
-                style={{ ...C.navBtn, ...(tab === n.id ? C.navOn : {}) }}
-                onClick={() => setTab(n.id)}>
-                {n.img
-                  ? <img src={n.img} alt={n.label} style={{ width: isMobile?20:22, height: isMobile?20:22, objectFit:'contain', opacity: tab===n.id?1:.7 }} />
-                  : <span style={{ fontSize: isMobile ? 14 : 18 }}>{n.icon}</span>
-                }
-                {!isMobile && <span>{n.label}</span>}
-              </button>
-            ))}
-            <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, paddingBottom:8 }}>
-              {!isMobile && <div style={C.bannerUser}>
+        <div style={{ ...C.bannerNav }}>
+          {isMobile ? (
+            /* Mobile: hamburger */
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', height:'100%', paddingBottom:8 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
-                <span>{user.displayName}</span>
-              </div>}
-              <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
+                <button onClick={() => setMenuOpen(m => !m)} style={{ background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.2)', color:'#fff', borderRadius:8, padding:'7px 12px', cursor:'pointer', fontSize:18, lineHeight:1, fontFamily:'inherit' }}>
+                  {menuOpen ? '✕' : '☰'}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Desktop: inline nav with colors */
+            <div style={{ display:'flex', alignItems:'flex-end', width:'100%', gap:4 }}>
+              {nav.map(n => {
+                const color = NAV_COLORS[n.id] || '#FFD700';
+                const isOn = tab === n.id;
+                return (
+                  <button key={n.id}
+                    style={{ ...C.navBtn, color: isOn ? color : 'rgba(255,255,255,.7)',
+                      borderBottomColor: isOn ? color : 'transparent',
+                      background: isOn ? `${color}15` : 'transparent',
+                      WebkitTextStroke: isOn ? '0px' : '0px',
+                      textShadow: `0 0 0 #fff, -1px -1px 0 rgba(255,255,255,.3), 1px -1px 0 rgba(255,255,255,.3), -1px 1px 0 rgba(255,255,255,.3), 1px 1px 0 rgba(255,255,255,.3)`,
+                    }}
+                    onClick={() => setTab(n.id)}>
+                    {n.img
+                      ? <img src={n.img} alt={n.label} style={{ width:20, height:20, objectFit:'contain', opacity: isOn?1:.7, filter: isOn ? `drop-shadow(0 0 4px ${color})` : 'none' }} />
+                      : <span style={{ fontSize:16, filter: isOn ? `drop-shadow(0 0 4px ${color})` : 'none' }}>{n.icon}</span>
+                    }
+                    <span style={{ color: isOn ? color : 'rgba(255,255,255,.8)', fontWeight: isOn?800:600 }}>{n.label}</span>
+                  </button>
+                );
+              })}
+              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, paddingBottom:8 }}>
+                <div style={C.bannerUser}>
+                  <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
+                  <span>{user.displayName}</span>
+                </div>
+                <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Mobile dropdown */}
+      {isMobile && menuOpen && (
+        <div style={{ position:'absolute', top: 80, right:0, left:0, background:'#01174C', zIndex:100, borderBottom:'2px solid rgba(255,215,0,.3)', boxShadow:'0 8px 24px rgba(0,0,0,.5)' }}>
+          {nav.map(n => {
+            const color = NAV_COLORS[n.id] || '#FFD700';
+            const isOn = tab === n.id;
+            return (
+              <button key={n.id} onClick={() => { setTab(n.id); setMenuOpen(false); }}
+                style={{ display:'flex', alignItems:'center', gap:12, width:'100%', background: isOn?`${color}18`:'transparent', border:'none', borderLeft: isOn?`4px solid ${color}`:'4px solid transparent', color: isOn?color:'rgba(255,255,255,.8)', padding:'14px 20px', cursor:'pointer', fontFamily:"'Kanit',sans-serif", fontSize:16, fontWeight:600, textAlign:'left' }}>
+                {n.img ? <img src={n.img} alt={n.label} style={{width:22,height:22,objectFit:'contain'}}/> : <span style={{fontSize:18}}>{n.icon}</span>}
+                {n.label}
+              </button>
+            );
+          })}
+          <div style={{ borderTop:'1px solid rgba(255,255,255,.1)', padding:'12px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <span style={{ color:'rgba(255,255,255,.6)', fontSize:14 }}>{user.displayName}</span>
+            <button style={C.btnLogout} onClick={() => { onLogout(); setMenuOpen(false); }}>Logg ut</button>
+          </div>
+        </div>
+      )}
 
+      {/* Status stripe */}
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
@@ -226,7 +279,22 @@ function Dashboard({ me }) {
 
   const sendMsg = async () => {
     const t = input.trim(); if (!t) return;
-    setInput(''); await sendChatMessage(me.displayName, t, '');
+    setInput('');
+    await sendChatMessage(me.displayName, t, '');
+    // Check for @mentions of panel experts
+    const mention = t.match(/@(ragnhild|hendrik|kim-levi|kimlevi|bengt|odd)/i);
+    if (mention) {
+      const name = mention[1].toLowerCase().replace('-','');
+      const expertMap = { ragnhild:'ragnhild', hendrik:'hendrik', kimlevi:'kimlevi', bengt:'bengt', odd:'odd' };
+      const expert = PANEL_EXPERTS.find(e => e.id === expertMap[name] || e.firstName.toLowerCase() === name);
+      if (expert) {
+        setTimeout(async () => {
+          const history = [{ role:'user', content: t }];
+          const reply = await chatWithExpert(expert, t, history);
+          await sendChatMessage(expert.name, reply, '');
+        }, 800);
+      }
+    }
   };
 
   const saveSummary = async (matchId) => {
@@ -1056,64 +1124,74 @@ const PANEL_EXPERTS = [
   {
     id: 'ragnhild',
     name: 'Ragnhild Kristiansen',
+    firstName: 'Ragnhild',
     age: 60,
     from: 'Mandal',
     emoji: '👵',
-    color: '#8b5e3c',
+    img: '/ragnhild.jpg',
+    color: '#c2855a',
     tagline: 'Rødstrømpe med sans for det estetiske',
-    bio: 'Oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Har aldri sett en hel fotballkamp. Tipper basert på drakter, musikk og om landet virker skikkelig. Leser Fædrelandsvennen hver morgen.',
-    personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Du er en tidligere rødstrømpe oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Du har ingen peiling på fotball og tipper basert på hvilke land du liker – særlig drakter, musikk og om landet virker skikkelig og ordentlig. Du snakker varmt, litt moraliserende, og er alltid hyggelig men naiv om fotball. Du refererer gjerne til Fædrelandsvennen, kirken og sørlanske verdier. Svar alltid på norsk og hold deg i karakter.`,
+    bio: 'Vokste opp i et strengt kristenkonservativt hjem i Mandal på 70-tallet, men brøt ut og meldte seg inn i rødstrømpebevegelsen i 1978 – noe som skapte bråk i søndagsskolen. Har siden forsont seg med bakgrunnen sin, og er i dag aktiv i både menigheten og i den lokale husflidsforeningen. Gift tre ganger. Hagen hennes er kåret til årets vakreste i Vest-Agder to ganger på rad. Har aldri sett en hel fotballkamp, men husker at hun syntes italienernes drakter var veldig flotte under VM i 1982. Tipper basert på estetikk, musikk og om landet generelt virker skikkelig.',
+    personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Du er en tidligere rødstrømpe oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Du har ingen peiling på fotball og tipper basert på hvilke land du liker – særlig drakter, musikk og om landet virker skikkelig og ordentlig. Du snakker varmt, litt moraliserende, og er alltid hyggelig men naiv om fotball. Du refererer gjerne til Fædrelandsvennen, kirken og sørlanske verdier. Svar alltid på norsk og hold deg i karakter. Svar kort, maks 3-4 setninger.`,
     tipStyle: 'conservative_aesthetic',
-  },
-  {
-    id: 'leifarne',
-    name: 'Leif-Arne Ditlefsen',
-    age: 47,
-    from: 'Henningsvær',
-    emoji: '🎣',
-    color: '#2a5a8a',
-    tagline: 'Fisker, Pokemon-samler, fotballekspert siden 1998',
-    bio: 'Fisker fra Henningsvær, bor hjemme hos mor. Eneste fotballminne er en Tromsø-kamp i 1998. Samler på Pokemon-kort. Stygg i kjeften, men hjertegod innerst inne.',
-    personality: `Du er Leif-Arne Ditlefsen, 47 år, fisker fra Henningsvær i Lofoten. Du bor hjemme hos mora di. Du er stygg i kjeften og bruker kraftuttrykk, men er egentlig grei nok. Du har null peiling på fotball – det eneste du husker er at du så en Tromsø-kamp i 1998, men husker ikke resultatet. Du er veldig opptatt av Pokemon-kort og fisking. Du tipper på magefølelse og instinkt. Svar på norsk med lofotdialekt-farget språk og vær gjerne litt grov i munnen, men ikke sjikanerende.`,
-    tipStyle: 'random_gut',
   },
   {
     id: 'hendrik',
     name: 'Hendrik van der Berg',
+    firstName: 'Hendrik',
     age: 58,
-    from: 'Opprinnelig Eindhoven, nå Drammen',
+    from: 'Eindhoven → Drammen',
     emoji: '🇳🇱',
+    img: '/hendrik.jpg',
     color: '#e67e00',
     tagline: 'Nederlandsk innvandrer med agorafobi og god musikksans',
-    bio: 'Kom til Norge i 1993. Har kraftig agorafobi og har ikke vært utenfor leiligheten på 11 år. Hører på DJ Bobo. Kjenner til Dennis Bergkamp, men tror Rintje Ritsma også spilte fotball.',
-    personality: `Du er Hendrik van der Berg, 58 år, nederlandsk innvandrer som kom til Norge i 1993 og nå bor i Drammen. Du har kraftig agorafobi og har ikke vært utenfor leiligheten på mange år. Du hører mye på DJ Bobo og synes han er genial. Du kjenner til Dennis Bergkamp og er stolt av ham. Du tror også at Rintje Ritsma (den nederlandske skøyteløperen) kanskje spilte fotball på siden. Du snakker norsk med litt nederlandsk aksent i skriften, blander inn nederlandske ord av og til. Du tipper fritt uten å favorisere Nederland spesielt.`,
-    tipStyle: 'mixed_dutch',
+    bio: 'Kom til Norge i 1993 etter å ha truffet en norsk dame på et DJ Bobo-konsert i Amsterdam. Forholdet tok slutt etter tre måneder, men Hendrik ble. Jobbet i mange år i et lager i Drammen, men har siden 2014 ikke vært utenfor leiligheten sin. Diagnostisert med kraftig agorafobi, men trives egentlig veldig godt hjemme. Har en imponerende samling av DJ Bobo-memorabilia. Kjenner til Dennis Bergkamp og er stolt av ham, men er overbevist om at skøyteløperen Rintje Ritsma også hadde en karriere i Ajax på 90-tallet. Leier filmer digitalt og handler mat via Kolonial.no.',
+    personality: `Du er Hendrik van der Berg, 58 år, nederlandsk innvandrer som kom til Norge i 1993 og nå bor i Drammen. Du har kraftig agorafobi og har ikke vært utenfor leiligheten på mange år. Du hører mye på DJ Bobo og synes han er genial. Du kjenner til Dennis Bergkamp og er stolt av ham. Du tror også at Rintje Ritsma spilte fotball i Ajax på siden av skøytekarrieren. Du blander inn nederlandske ord av og til (hoi, ja, goed, lekker). Du tipper fritt. Svar kort, maks 3-4 setninger på norsk med litt nederlandsk aksent.`,
+    tipStyle: 'mixed_free',
   },
   {
-    id: 'bjornar',
-    name: 'Bjørnar',
+    id: 'kimlevi',
+    name: 'Kim-Levi Ditlefsen',
+    firstName: 'Kim-Levi',
+    age: 47,
+    from: 'Henningsvær',
+    emoji: '🎣',
+    img: '/kim-levi.jpg',
+    color: '#2a7aaa',
+    tagline: 'Fisker, Pokemon-samler, fotballekspert siden 1998',
+    bio: 'Fisker fra Henningsvær i Lofoten. Bor fremdeles hjemme hos mora si i det gamle rorbuet, noe han ikke synes er noe problem overhodet. Er stygg i kjeften når han er på sjøen, men egentlig snill som en labb. Eneste fotballminne er en Tromsø IL-kamp i 1998, men husker ikke hvem de spilte mot eller hva resultatet ble – bare at han frøs. Samler på Pokémon-kort og har en Charizard 1. utgave som han mener er verdt minst 40.000 kr. Har nylig begynt å se på VM-Tipping som en mulighet til å "tjene litt kroner på bortimot ingenting". Tipper på magefølelse og Pokémon-logikk.',
+    personality: `Du er Kim-Levi Ditlefsen, 47 år, fisker fra Henningsvær i Lofoten som bor hjemme hos mora. Du er stygg i kjeften og bruker kraftuttrykk, men er egentlig grei nok. Du har null peiling på fotball – eneste minne er en Tromsø-kamp i 1998 du ikke husker noe fra. Du er veldig opptatt av Pokémon-kort og fisking. Du tipper på magefølelse. Svar på norsk med lofotdialekt-farget språk, vær gjerne litt grov men ikke sjikanerende. Maks 3-4 setninger.`,
+    tipStyle: 'random_gut',
+  },
+  {
+    id: 'bengt',
+    name: 'Bengt Sandvik',
+    firstName: 'Bengt',
     age: 52,
     from: 'Trondheim',
     emoji: '🤼',
-    color: '#6a3a9a',
-    tagline: 'Keeper. Scoret ti mål mot Rosenborg.',
-    bio: 'Liker wrestling, kortspill og tennis. Kan fotball fra 80-tallet utenat, ingenting etter 1992. Påstår å ha keepet for Strindheim mot Rosenborg – og scoret ti mål i den kampen.',
-    personality: `Du er Bjørnar, 52 år fra Trondheim. Du er lett tilbakestående, men fungerer godt i hverdagen. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du bringer opp ved enhver anledning at du keepet for Strindheim mot Rosenborg og scoret TI mål i den kampen. Det er din store stolthet. Du er blid og entusiastisk. Svar på norsk, vær litt naiv men velmenende.`,
+    img: '/bengt.jpg',
+    color: '#7a4aaa',
+    tagline: 'Wrestlingfan. Kan fotball fra 80-tallet utenat.',
+    bio: 'Trives best på Narvesen med en Kvikk Lunsj og en wrestling-DVD. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst. Men etter 1992 er det blankt. Er overbevist om at Brasil fremdeles spiller med gule drakter og at Franz Beckenbauer er en aktiv trener. Avtjente verneplikten sin og trives godt i uniform. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til militærmiddag.',
+    personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du er blid og entusiastisk. Du tror fremdeles ting er som på 80-tallet. Svar på norsk, vær litt naiv men velmenende. Maks 3-4 setninger.`,
     tipStyle: 'retro_80s',
   },
   {
-    id: 'oddgunnar',
-    name: 'Odd-Gunnar Flåterud',
+    id: 'odd',
+    name: 'Odd Snerten',
+    firstName: 'Odd',
     age: 63,
     from: 'Oppdal',
     emoji: '🚜',
+    img: '/odd.jpg',
     color: '#4a7a2a',
     tagline: 'Bonde. Mistenker Brasil for juks.',
-    bio: 'Bonde fra Oppdal, har aldri vært sør for Lillehammer frivillig. Spiser leverpostei til alle måltider. Tipper basert på landbrukspolitikk og snøforhold. Sier "nei, nei, nei" tre ganger før han sier noe.',
-    personality: `Du er Odd-Gunnar Flåterud, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig og synes fotball er en bygreie. Du spiser leverpostei til alle måltider. Du starter setninger med "nei, nei, nei" og er generelt skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og om de har snø om vinteren – det gir deg respekt for folk. Du er overbevist om at Brasil jukser. Du snakker i en slags trøndersk-farget bondsk stil.`,
+    bio: 'Bonde fra Oppdal i tredje generasjon. Har aldri vært sør for Lillehammer frivillig, og ser ikke noen grunn til å begynne. Spiser leverpostei til alle måltider – frokost, lunsj og middag – og mener det er alt en mann trenger. Sier "nei, nei, nei" tre ganger før han sier noe som helst, og er generelt skeptisk til det meste som kommer sørfra. Tipper fotball basert på om landet har god landbrukspolitikk og om de har snø om vinteren. Er dypt overbevist om at Brasil jukser på en eller annen måte, og at FIFA vet om det. Har aldri sett en fotballkamp, men hørte et referat på NRK radio en gang i 1987.',
+    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser. Du snakker i en bondsk trøndersk stil. Maks 3-4 setninger.`,
     tipStyle: 'agriculture_snow',
   },
-];
+];;
 
 // Firebase helpers for panel
 async function getPanelChoices() {
@@ -1177,9 +1255,11 @@ async function chatWithExpert(expert, message, history) {
 }
 
 // ── Expert Profile Card ───────────────────────────────────────────────
-function ExpertCard({ expert, me, onChat, panelChoices }) {
+function ExpertCard({ expert, me, panelChoices }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+  const [viewTips, setViewTips] = useState(false);
   const choosers = Object.entries(panelChoices).filter(([, v]) => v === expert.id).map(([k]) => k);
   const myChoice = panelChoices[me.username] === expert.id;
 
@@ -1187,7 +1267,7 @@ function ExpertCard({ expert, me, onChat, panelChoices }) {
     setLoading(true);
     try {
       const u = await getUser(me.username);
-      const tips = await generateExpertTips(expert, u?.tips || {});
+      const tips = await generateExpertTips(expert);
       await updateUser(me.username, { tips: { ...(u?.tips || {}), ...tips } });
       await setPanelChoice(me.username, expert.id);
       setDone(true);
@@ -1196,103 +1276,106 @@ function ExpertCard({ expert, me, onChat, panelChoices }) {
   };
 
   return (
-    <div style={{ ...C.card, border: myChoice ? `2px solid ${expert.color}` : '1px solid #2a3050' }}>
-      <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Avatar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: '50%', flexShrink: 0,
-            background: `${expert.color}22`, border: `2px solid ${expert.color}44`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 36,
-          }}>{expert.emoji}</div>
-          <div>
-            <div style={{ fontFamily: "'Kanit',sans-serif", fontSize: 18, fontWeight: 700, color: '#fff' }}>{expert.name}</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)' }}>{expert.age} år · {expert.from}</div>
-            <div style={{ fontSize: 12, color: expert.color, fontStyle: 'italic', marginTop: 2 }}>{expert.tagline}</div>
+    <>
+      {zoomed && (
+        <div onClick={() => setZoomed(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.85)', zIndex:800, display:'flex', alignItems:'center', justifyContent:'center', cursor:'zoom-out' }}>
+          <img src={expert.img} alt={expert.name} style={{ maxWidth:'90vw', maxHeight:'90vh', borderRadius:12, objectFit:'cover' }}
+            onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
+      <div style={{ ...C.card, border: myChoice ? `2px solid ${expert.color}` : '1px solid rgba(255,255,255,.08)' }}>
+        <div style={{ padding: '16px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          {/* Square image */}
+          <div onClick={() => setZoomed(true)} style={{ width:80, height:80, flexShrink:0, borderRadius:8, overflow:'hidden', cursor:'zoom-in', background:`${expert.color}22`, border:`2px solid ${expert.color}44`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <img src={expert.img} alt={expert.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}
+              onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML = '<span style="font-size:36px">' + expert.emoji + '</span>'; }} />
+          </div>
+          {/* Info */}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:"'Kanit',sans-serif", fontSize:17, fontWeight:700, color:'#fff' }}>{expert.name}</div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginBottom:2 }}>{expert.age} år · {expert.from}</div>
+            <div style={{ fontSize:12, color:expert.color, fontStyle:'italic', marginBottom:8 }}>{expert.tagline}</div>
+            <p style={{ fontSize:12, color:'rgba(255,255,255,.65)', lineHeight:1.6, margin:0 }}>{expert.bio}</p>
+            {choosers.length > 0 && (
+              <div style={{ fontSize:11, color:'rgba(255,255,255,.3)', fontFamily:"'Fira Code',monospace", marginTop:8 }}>
+                Valgt av: {choosers.join(', ')}
+              </div>
+            )}
+            <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap' }}>
+              <button style={{ background:`linear-gradient(135deg, ${expert.color}, ${expert.color}bb)`, color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Kanit',sans-serif", letterSpacing:.5, opacity:loading?.6:1, whiteSpace:'nowrap' }}
+                onClick={fillMyTips} disabled={loading}>
+                {loading ? '⟳' : done ? '✅' : `La ${expert.firstName} velge`}
+              </button>
+              <button style={{ ...C.btnSecondary, padding:'7px 12px', fontSize:12 }} onClick={() => setViewTips(v => !v)}>
+                {viewTips ? 'Skjul tips' : 'Se tips'}
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Bio */}
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', lineHeight: 1.6, margin: 0 }}>{expert.bio}</p>
-
-        {/* Who chose this expert */}
-        {choosers.length > 0 && (
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontFamily: "'Fira Code',monospace" }}>
-            Valgt av: {choosers.join(', ')}
-          </div>
-        )}
-
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button style={{ ...C.btnGold, flex: 1, padding: '9px 14px', fontSize: 12, opacity: loading ? .6 : 1 }}
-            onClick={fillMyTips} disabled={loading}>
-            {loading ? '⟳ Genererer...' : done ? '✅ Tips fylt ut!' : `La ${expert.name.split(' ')[0]} fylle ut mine tips`}
-          </button>
-          <button style={{ ...C.btnSecondary, padding: '9px 14px', fontSize: 12 }}
-            onClick={() => onChat(expert)}>
-            💬 Chat
-          </button>
-        </div>
+        {viewTips && <ExpertTipsView expert={expert} />}
       </div>
+    </>
+  );
+}
+
+// ── Expert Tips View ──────────────────────────────────────────────────
+function ExpertTipsView({ expert }) {
+  const [tips, setTips] = useState(null);
+  useEffect(() => {
+    getUser('panel_' + expert.id).then(u => setTips(u?.tips || {}));
+  }, [expert.id]);
+
+  if (!tips) return <div style={{ padding:'12px 18px', color:'rgba(255,255,255,.4)', fontSize:13 }}>Laster...</div>;
+  const played = Object.keys(tips).length;
+  if (played === 0) return <div style={{ padding:'12px 18px', color:'rgba(255,255,255,.4)', fontSize:13 }}>Ingen tips levert ennå.</div>;
+
+  return (
+    <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', padding:'12px 18px' }}>
+      <span style={C.secH}>Kamptips – gruppe {Object.keys(GROUPS)[0]}</span>
+      {GROUP_MATCHES.filter(m => m.group === 'A' && tips[m.id]).map(m => (
+        <div key={m.id} style={{ ...C.mRow, marginBottom:3, justifyContent:'space-between' }}>
+          <span style={{ fontSize:13, flex:1 }}><Flag team={m.home}/> {m.home}</span>
+          <span style={{ fontFamily:"'Fira Code',monospace", color:'#FFD700', padding:'2px 10px', background:'rgba(255,215,0,.08)', borderRadius:6 }}>
+            {tips[m.id] ? tips[m.id].home + '–' + tips[m.id].away : '?'}
+          </span>
+          <span style={{ fontSize:13, flex:1, textAlign:'right' }}>{m.away} <Flag team={m.away}/></span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ── Expert Chat Modal ─────────────────────────────────────────────────
-function ExpertChatModal({ expert, me, onClose }) {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: expert.id === 'ragnhild' ? 'Hei, kjære! Så hyggelig at du vil prate. Jeg sitter nettopp med Fædrelandsvennen og en kopp te.' :
-      expert.id === 'leifarne' ? 'Kem faen er du? Holder på å sortere Pokemon-kort, så vær rask.' :
-      expert.id === 'hendrik' ? 'Hallo! Ja, ik ben hier. Ikke rart den for å gå ut, men vi kan snakke her.' :
-      expert.id === 'bjornar' ? 'Hei hei! Visste du at jeg scoret ti mål mot Rosenborg? Spør meg om hva som helst!' :
-      'Nei, nei, nei. Hva vil du? Har mye å gjøre med besetningen.' }
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const botRef = useRef(null);
-
-  useEffect(() => { botRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-  const send = async () => {
-    const t = input.trim(); if (!t || loading) return;
-    const newMsg = { role: 'user', content: t };
-    const updated = [...messages, newMsg];
-    setMessages(updated); setInput(''); setLoading(true);
-    const reply = await chatWithExpert(expert, t, updated);
-    setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-    setLoading(false);
-  };
+// ── Panel Leaderboard ────────────────────────────────────────────────
+function PanelLeaderboard({ onSelect }) {
+  const [rows, setRows] = useState([]);
+  const [results, setResultsState] = useState({});
+  useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
+  useEffect(() => {
+    Promise.all(PANEL_EXPERTS.map(async e => {
+      const u = await getUser('panel_' + e.id);
+      const score = u ? calcScore(u, results) : { total: 0, fulltreff: 0 };
+      return { ...e, ...score };
+    })).then(r => setRows(r.sort((a,b) => b.total - a.total)));
+  }, [results]);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: '#0d1230', border: `2px solid ${expert.color}`, borderRadius: 16, width: '100%', maxWidth: 480, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: `1px solid ${expert.color}33` }}>
-          <span style={{ fontSize: 28 }}>{expert.emoji}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, color: '#fff', fontSize: 15 }}>{expert.name}</div>
-            <div style={{ fontSize: 11, color: expert.color }}>{expert.tagline}</div>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 22, cursor: 'pointer' }}>×</button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {messages.map((m, i) => (
-            <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-              <div style={{ background: m.role === 'user' ? '#1e3a6e' : `${expert.color}22`, border: `1px solid ${m.role === 'user' ? '#2d5a9e' : expert.color + '44'}`, borderRadius: 10, padding: '8px 12px', fontSize: 14, color: '#e8edf8', lineHeight: 1.5 }}>
-                {m.content}
-              </div>
+    <div style={C.card}>
+      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot}/>Panelet – poengtabell</span></div>
+      <div style={C.cardBody}>
+        {rows.map((r, i) => (
+          <div key={r.id} style={{ ...C.lbRow, cursor:'pointer' }} onClick={() => onSelect(r)}>
+            <span style={C.lbRank}>{['🥇','🥈','🥉'][i] || <span style={{color:'rgba(255,255,255,.4)',fontSize:13}}>{i+1}</span>}</span>
+            <div style={{width:32,height:32,borderRadius:4,overflow:'hidden',flexShrink:0,background:`${r.color}22`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <img src={r.img} alt={r.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentNode.innerHTML='<span>'+r.emoji+'</span>';}}/>
             </div>
-          ))}
-          {loading && <div style={{ alignSelf: 'flex-start', color: expert.color, fontSize: 13 }}>skriver...</div>}
-          <div ref={botRef} />
-        </div>
-        <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: `1px solid ${expert.color}33` }}>
-          <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
-            value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder={`Spør ${expert.name.split(' ')[0]}...`} />
-          <button style={{ ...C.btnGold, width: 'auto', padding: '8px 16px', fontSize: 12 }} onClick={send}>Send</button>
-        </div>
+            <span style={{...C.lbName,color:r.color}}>{r.name}</span>
+            {(r.fulltreff||0)>0 && <span style={{fontSize:11,color:'#FFD700'}}>⚡×{r.fulltreff}</span>}
+            <div style={{textAlign:'right'}}>
+              <div style={C.lbPts}>{r.total}</div>
+              <div style={C.lbPtsL}>poeng</div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1300,8 +1383,8 @@ function ExpertChatModal({ expert, me, onClose }) {
 
 // ── Panel Page ────────────────────────────────────────────────────────
 function PanelPage({ me }) {
-  const [chatExpert, setChatExpert] = useState(null);
   const [panelChoices, setPanelChoices] = useState({});
+  const [selectedExpert, setSelectedExpert] = useState(null);
 
   useEffect(() => {
     getPanelChoices().then(setPanelChoices);
@@ -1315,20 +1398,29 @@ function PanelPage({ me }) {
     <div className="fu">
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, fontWeight:700, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, margin:0 }}>🎙️ Panelet</h2>
-        <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginTop: 6 }}>
-          La en av ekspertene fylle ut dine tips – eller chat med dem direkte. Hver ekspert har sin helt unike tippestil.
+        <p style={{ color:'rgba(255,255,255,.5)', fontSize:13, marginTop:6 }}>
+          Fem eksperter med sine egne tips. Call på dem i chatten med @fornavn. Trykk på bildet for å zoome.
         </p>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PanelLeaderboard onSelect={setSelectedExpert} />
+      {selectedExpert && (
+        <div style={C.card}>
+          <div style={C.cardHeader}>
+            <span style={C.cardTitle}><span style={C.cardTitleDot}/>{selectedExpert.firstName}s tips</span>
+            <button onClick={() => setSelectedExpert(null)} style={{...C.btnSecondary,padding:'5px 14px',fontSize:12}}>× Lukk</button>
+          </div>
+          <div style={C.cardBody}><ExpertTipsView expert={selectedExpert}/></div>
+        </div>
+      )}
+      <div style={{ display:'flex', flexDirection:'column', gap:16, marginTop:16 }}>
         {PANEL_EXPERTS.map(expert => (
-          <ExpertCard key={expert.id} expert={expert} me={me}
-            onChat={setChatExpert} panelChoices={panelChoices} />
+          <ExpertCard key={expert.id} expert={expert} me={me} panelChoices={panelChoices} />
         ))}
       </div>
-      {chatExpert && <ExpertChatModal expert={chatExpert} me={me} onClose={() => setChatExpert(null)} />}
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════════════
 //  ROOT APP
