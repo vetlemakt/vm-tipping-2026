@@ -1273,9 +1273,16 @@ async function chatWithExpert(expert, message, history) {
         })
       });
       const data = await response.json();
+      console.log('API response:', JSON.stringify(data));
       const text = data.content?.[0]?.text;
       if (text && text.length > 3) return text;
-    } catch(e) { /* fall through to fallback */ }
+      if (data.error) return '(API-feil: ' + data.error.message + ')';
+    } catch(e) {
+      console.error('API error:', e);
+      return '(Nettverksfeil: ' + e.message + ')';
+    }
+  } else {
+    console.log('Ingen API-nøkkel funnet. REACT_APP_ANTHROPIC_KEY:', apiKey);
   }
   // Fallback: rotate through hardcoded responses
   const opts = fallbacks[expert.id] || ['Hei!'];
