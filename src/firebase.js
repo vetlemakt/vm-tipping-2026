@@ -95,14 +95,16 @@ export function subscribeResults(callback) {
   });
 }
 
-export async function updatePresence(username) {
-  await setDoc(doc(db, 'presence', username), { ts: Date.now() });
+export async function updatePresence(username, displayName) {
+  await setDoc(doc(db, 'presence', username), { ts: Date.now(), displayName: displayName || username });
 }
 
-export function subscribeOnlineCount(callback) {
+export function subscribeOnlineUsers(callback) {
   return onSnapshot(collection(db, 'presence'), snap => {
     const now = Date.now();
-    const active = snap.docs.filter(d => now - (d.data().ts || 0) < 60000);
-    callback(active.length);
+    const active = snap.docs
+      .filter(d => now - (d.data().ts || 0) < 60000)
+      .map(d => d.data().displayName || d.id);
+    callback(active);
   });
 }
