@@ -281,18 +281,21 @@ function Dashboard({ me }) {
     const t = input.trim(); if (!t) return;
     setInput('');
     await sendChatMessage(me.displayName, t, '');
-    // Check for @mentions of panel experts
-    const mention = t.match(/@(ragnhild|hendrik|kim-levi|kimlevi|bengt|odd)/i);
-    if (mention) {
-      const name = mention[1].toLowerCase().replace('-','');
-      const expertMap = { ragnhild:'ragnhild', hendrik:'hendrik', kimlevi:'kimlevi', bengt:'bengt', odd:'odd' };
-      const expert = PANEL_EXPERTS.find(e => e.id === expertMap[name] || e.firstName.toLowerCase() === name);
+    // Check for @mentions - match any first name of panel experts
+    const firstNames = PANEL_EXPERTS.map(e => e.firstName.toLowerCase());
+    const mentionMatch = t.match(/@([a-zæøå-]+)/i);
+    if (mentionMatch) {
+      const mentioned = mentionMatch[1].toLowerCase().replace('-','');
+      const expert = PANEL_EXPERTS.find(e =>
+        e.firstName.toLowerCase() === mentionMatch[1].toLowerCase() ||
+        e.firstName.toLowerCase().replace('-','') === mentioned ||
+        e.id === mentioned
+      );
       if (expert) {
         setTimeout(async () => {
-          const history = [{ role:'user', content: t }];
-          const reply = await chatWithExpert(expert, t, history);
+          const reply = await chatWithExpert(expert, t, []);
           await sendChatMessage(expert.name, reply, '');
-        }, 800);
+        }, 1000);
       }
     }
   };
@@ -1218,9 +1221,16 @@ async function generateExpertTips(expert) {
     '\n\nSvar KUN med JSON i dette formatet (ingen annen tekst):\n{"tips": {"A1": {"home": 2, "away": 1}, "A2": {"home": 0, "away": 0}, ...}}\n' +
     styleNote;
 
+  const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+  if (!apiKey) return {};
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
@@ -1236,22 +1246,41 @@ async function generateExpertTips(expert) {
 }
 
 async function chatWithExpert(expert, message, history) {
+  const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+  if (!apiKey) {
+    // Fallback: hardcoded responses based on personality
+    const fallbacks = {
+      ragnhild: 'Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.',
+      hendrik: 'Hoi! Ja, ik ben hier. Hva vil du vite? Dennis Bergkamp var jo fantastisk, ikke sant?',
+      kimlevi: 'Kem faen, hva vil du? Holder på med Pokémon-kortene mine, men spør du.',
+      bengt: 'Hei hei! Visste du at jeg scoret ti mål mot Rosenborg? Hva lurte du på?',
+      odd: 'Nei, nei, nei. Hva er det nå igjen? Brasil jukser uansett.',
+    };
+    return fallbacks[expert.id] || 'Hei!';
+  }
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: message }
   ];
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
-      system: expert.personality + ' Svar kort og konsist, maks 3-4 setninger. Vær alltid i karakter.',
-      messages,
-    })
-  });
-  const data = await response.json();
-  return data.content?.[0]?.text || '...';
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: expert.personality + ' Svar kort og konsist, maks 3-4 setninger. Vær alltid i karakter.',
+        messages,
+      })
+    });
+    const data = await response.json();
+    return data.content?.[0]?.text || '...';
+  } catch(e) { return 'Beklager, fikk ikke kontakt akkurat nå.'; }
 }
 
 // ── Expert Profile Card ───────────────────────────────────────────────
