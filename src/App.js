@@ -272,7 +272,8 @@ function Dashboard({ me }) {
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
-  useEffect(() => { chatBot.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
+  const chatBoxRef = useRef(null);
+  useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
     getAllUsers().then(us => {
       setUsers(us.filter(u => u.id !== 'admin')
@@ -388,7 +389,7 @@ function Dashboard({ me }) {
             <button onClick={() => setChatFullscreen(f => !f)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
-        <div style={C.chatBox}>
+        <div style={C.chatBox} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => {
             const mine = m.user === me.displayName;
@@ -404,7 +405,6 @@ function Dashboard({ me }) {
               </div>
             );
           })}
-          <div ref={chatBot} />
         </div>
         {chatFullscreen && (
           <div style={{ position:'fixed', inset:0, zIndex:999, background:'#0a0e1a', display:'flex', flexDirection:'column' }}>
