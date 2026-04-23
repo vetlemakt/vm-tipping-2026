@@ -5,6 +5,7 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage,
   subscribePhase, subscribeResults,
+  updatePresence, subscribeOnlineCount,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
@@ -263,10 +264,13 @@ function Dashboard({ me }) {
   const [summaries, setSummaries] = useState({});
   const [editingSummary, setEditingSummary] = useState(null);
   const [summaryText, setSummaryText] = useState('');
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [chatFullscreen, setChatFullscreen] = useState(false);
   const chatBot = useRef(null);
 
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
+  useEffect(() => { const u = subscribeOnlineCount(setOnlineCount); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { chatBot.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
   useEffect(() => {
@@ -376,7 +380,13 @@ function Dashboard({ me }) {
       <div style={C.card}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
-          <span style={{ fontSize: 12, color: '#6070a0', fontFamily: "'Fira Code',monospace" }}>{msgs.length} mld</span>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <span style={{ fontSize: 12, color: '#4ade80', fontFamily: "'Fira Code',monospace", display:'flex', alignItems:'center', gap:4 }}>
+              <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }}/>
+              {onlineCount} online
+            </span>
+            <button onClick={() => setChatFullscreen(f => !f)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
+          </div>
         </div>
         <div style={C.chatBox}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
@@ -396,6 +406,47 @@ function Dashboard({ me }) {
           })}
           <div ref={chatBot} />
         </div>
+        {chatFullscreen && (
+          <div style={{ position:'fixed', inset:0, zIndex:200, background:'#0a0e1a', display:'flex', flexDirection:'column' }}>
+            <div style={{ ...C.cardHeader, flexShrink:0 }}>
+              <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat – Fullskjerm</span>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:12, color:'#4ade80', display:'flex', alignItems:'center', gap:4 }}>
+                  <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block' }}/>
+                  {onlineCount} online
+                </span>
+                <button onClick={() => setChatFullscreen(false)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+              </div>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }}>
+              {msgs.map((m, i) => {
+                const mine = m.user === me.displayName;
+                return (
+                  <div key={m.id||i} style={{ ...C.chatMsg, alignSelf: mine?'flex-end':'flex-start' }}>
+                    <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}` }}>
+                      {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : m.text}
+                    </span>
+                    <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
+                      <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
+                      <span style={C.chatTime}>{fmt(m.ts)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={chatBot}/>
+            </div>
+            <div style={{ ...C.chatInputRow, flexShrink:0 }}>
+              <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}}>
+                🖼️<input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);reader.readAsDataURL(file);e.target.value='';}}/>
+              </label>
+              <input style={{...C.inp,marginBottom:0,flex:1,fontSize:13,padding:'8px 12px'}}
+                value={input} onChange={e=>setInput(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&sendMsg()}
+                placeholder="Skriv melding…"/>
+              <button style={{...C.btnCyan,padding:'8px 16px',fontSize:12}} onClick={sendMsg}>Send</button>
+            </div>
+          </div>
+        )}
         <div style={C.chatInputRow}>
           <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}} title="Last opp bilde">
             🖼️
@@ -1472,6 +1523,12 @@ export default function App() {
   }, [user]);
 
   useEffect(() => { window.scrollTo(0,0); }, [tab]);
+  useEffect(() => {
+    if (!user) return;
+    updatePresence(user.username);
+    const interval = setInterval(() => updatePresence(user.username), 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
   return (

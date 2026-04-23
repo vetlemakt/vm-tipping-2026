@@ -94,3 +94,15 @@ export function subscribeResults(callback) {
     callback(snap.exists() ? snap.data() : {});
   });
 }
+
+export async function updatePresence(username) {
+  await setDoc(doc(db, 'presence', username), { ts: Date.now() });
+}
+
+export function subscribeOnlineCount(callback) {
+  return onSnapshot(collection(db, 'presence'), snap => {
+    const now = Date.now();
+    const active = snap.docs.filter(d => now - (d.data().ts || 0) < 60000);
+    callback(active.length);
+  });
+}
