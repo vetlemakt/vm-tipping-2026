@@ -282,7 +282,6 @@ function Dashboard({ me }) {
     setInput('');
     await sendChatMessage(me.displayName, t, '');
     // Check for @mentions - match any first name of panel experts
-    const firstNames = PANEL_EXPERTS.map(e => e.firstName.toLowerCase());
     const mentionMatch = t.match(/@([a-zæøå-]+)/i);
     if (mentionMatch) {
       const mentioned = mentionMatch[1].toLowerCase().replace('-','');
