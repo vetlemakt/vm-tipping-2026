@@ -1246,40 +1246,40 @@ async function generateExpertTips(expert) {
 
 async function chatWithExpert(expert, message, history) {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-  if (!apiKey) {
-    // Fallback: hardcoded responses based on personality
-    const fallbacks = {
-      ragnhild: 'Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.',
-      hendrik: 'Hoi! Ja, ik ben hier. Hva vil du vite? Dennis Bergkamp var jo fantastisk, ikke sant?',
-      kimlevi: 'Kem faen, hva vil du? Holder på med Pokémon-kortene mine, men spør du.',
-      bengt: 'Hei hei! Visste du at jeg scoret ti mål mot Rosenborg? Hva lurte du på?',
-      odd: 'Nei, nei, nei. Hva er det nå igjen? Brasil jukser uansett.',
-    };
-    return fallbacks[expert.id] || 'Hei!';
+  const fallbacks = {
+    ragnhild: ['Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.', 'Ja, jeg synes Italia har de fineste draktene. Og de er jo katolikker, det er noe.', 'Nei, fotball er ikke min greie egentlig, men jeg prøver så godt jeg kan!'],
+    hendrik: ['Hoi! Dennis Bergkamp var jo fantastisk, ikke sant? Rintje Ritsma spilte jo også litt, tror jeg.', 'Ja, ja, ik ben hier. Jeg hører på DJ Bobo og tenker på fotball. Goed, goed.', 'Nederlandsk fotball er jo det beste. Eller, hva vet jeg egentlig? Jeg har ikke vært ute på lenge.'],
+    kimlevi: ['Kem faen vet, æ har jo bare sett én kamp. Charizard er uansett verdt mer enn dette.', 'Jævla spørsmål! Men æ tipper på magefølelsen, den er sjeldent feil på sjøen.', 'Mor sier jeg burde bry meg mer om fotball. Men Pokémon-kortene gir bedre avkastning.'],
+    bengt: ['Hei hei! Maradona hadde jo gjort det bra her, tror jeg! Hva mener du?', 'Nei, dette minner meg om da Zico spilte i -82. Fantastisk tider! Hva spurte du om igjen?', 'Jeg scoret ti mål mot Rosenborg som keeper, så jeg vet litt om fotball, jeg!'],
+    odd: ['Nei, nei, nei. Brasil jukser uansett, det vet alle. Leverposteien er klar.', 'Nei, nei, nei. Hvem som helst som har snø om vinteren er å stole på. Det er min filosofi.', 'Fotball er en bygreie. Men jeg følger med, jeg, fra Oppdal.'],
+  };
+  // Try API first
+  if (apiKey) {
+    try {
+      const messages = [{ role: 'user', content: message }];
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          system: expert.personality,
+          messages,
+        })
+      });
+      const data = await response.json();
+      const text = data.content?.[0]?.text;
+      if (text && text.length > 3) return text;
+    } catch(e) { /* fall through to fallback */ }
   }
-  const messages = [
-    ...history.map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: message }
-  ];
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        system: expert.personality + ' Svar kort og konsist, maks 3-4 setninger. Vær alltid i karakter.',
-        messages,
-      })
-    });
-    const data = await response.json();
-    return data.content?.[0]?.text || '...';
-  } catch(e) { return 'Beklager, fikk ikke kontakt akkurat nå.'; }
+  // Fallback: rotate through hardcoded responses
+  const opts = fallbacks[expert.id] || ['Hei!'];
+  return opts[Math.floor(Math.random() * opts.length)];
 }
 
 // ── Expert Profile Card ───────────────────────────────────────────────
