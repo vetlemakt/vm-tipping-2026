@@ -5,7 +5,7 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage,
   subscribePhase, subscribeResults,
-  updatePresence, subscribeOnlineCount,
+  updatePresence, subscribeOnlineUsers,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
@@ -264,13 +264,13 @@ function Dashboard({ me }) {
   const [summaries, setSummaries] = useState({});
   const [editingSummary, setEditingSummary] = useState(null);
   const [summaryText, setSummaryText] = useState('');
-  const [onlineCount, setOnlineCount] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const chatBot = useRef(null);
 
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
-  useEffect(() => { const u = subscribeOnlineCount(setOnlineCount); return u; }, []);
+  useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { chatBot.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
   useEffect(() => {
@@ -383,7 +383,7 @@ function Dashboard({ me }) {
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <span style={{ fontSize: 12, color: '#4ade80', fontFamily: "'Fira Code',monospace", display:'flex', alignItems:'center', gap:4 }}>
               <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }}/>
-              {onlineCount} online
+              {onlineUsers.length} online
             </span>
             <button onClick={() => setChatFullscreen(f => !f)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
@@ -407,14 +407,19 @@ function Dashboard({ me }) {
           <div ref={chatBot} />
         </div>
         {chatFullscreen && (
-          <div style={{ position:'fixed', inset:0, zIndex:200, background:'#0a0e1a', display:'flex', flexDirection:'column' }}>
+          <div style={{ position:'fixed', inset:0, zIndex:999, background:'#0a0e1a', display:'flex', flexDirection:'column' }}>
             <div style={{ ...C.cardHeader, flexShrink:0 }}>
               <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat – Fullskjerm</span>
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <span style={{ fontSize:12, color:'#4ade80', display:'flex', alignItems:'center', gap:4 }}>
-                  <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block' }}/>
-                  {onlineCount} online
-                </span>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }}/>
+                  <span style={{ fontSize:12, color:'#4ade80' }}>{onlineUsers.length} online</span>
+                  {onlineUsers.length > 0 && (
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,.4)', fontFamily:"'Fira Code',monospace" }}>
+                      ({onlineUsers.join(', ')})
+                    </span>
+                  )}
+                </div>
                 <button onClick={() => setChatFullscreen(false)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
               </div>
             </div>
@@ -1184,7 +1189,7 @@ const PANEL_EXPERTS = [
     img: '/ragnhild.jpg',
     color: '#c2855a',
     tagline: 'Rødstrømpe med sans for det estetiske',
-    bio: 'Vokste opp i et strengt kristenkonservativt hjem i Mandal på 70-tallet, men brøt ut og meldte seg inn i rødstrømpebevegelsen i 1978 – noe som skapte bråk i søndagsskolen. Har siden forsont seg med bakgrunnen sin, og er i dag aktiv i både menigheten og i den lokale husflidsforeningen. Gift tre ganger. Hagen hennes er kåret til årets vakreste i Vest-Agder to ganger på rad. Har aldri sett en hel fotballkamp, men husker at hun syntes italienernes drakter var veldig flotte under VM i 1982. Tipper basert på estetikk, musikk og om landet generelt virker skikkelig.',
+    bio: 'Vokste opp i et strengt kristenkonservativt hjem i Mandal på 70-tallet, men brøt ut og meldte seg inn i rødstrømpebevegelsen i 1978 – noe som skapte bråk i søndagsskolen. Har siden forsont seg med bakgrunnen sin, og er i dag aktiv i både menigheten og i den lokale husflidsforeningen. Gift tre ganger. Hagen hennes er kåret til årets vakreste i Vest-Agder to ganger på rad. Har aldri sett en hel fotballkamp, men husker at hun syntes italienernes drakter var veldig flotte under VM i 1982. Tipper basert på estetikk, musikk og om landet generelt virker "skikkelig".',
     personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Du er en tidligere rødstrømpe oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Du har ingen peiling på fotball og tipper basert på hvilke land du liker – særlig drakter, musikk og om landet virker skikkelig og ordentlig. Du snakker varmt, litt moraliserende, og er alltid hyggelig men naiv om fotball. Du refererer gjerne til Fædrelandsvennen, kirken og sørlanske verdier. Svar alltid på norsk og hold deg i karakter. Svar kort, maks 3-4 setninger.`,
     tipStyle: 'conservative_aesthetic',
   },
@@ -1198,7 +1203,7 @@ const PANEL_EXPERTS = [
     img: '/hendrik.jpg',
     color: '#e67e00',
     tagline: 'Nederlandsk innvandrer med agorafobi og god musikksans',
-    bio: 'Kom til Norge i 1993 etter å ha truffet en norsk dame på et DJ Bobo-konsert i Amsterdam. Forholdet tok slutt etter tre måneder, men Hendrik ble. Jobbet i mange år i et lager i Drammen, men har siden 2014 ikke vært utenfor leiligheten sin. Diagnostisert med kraftig agorafobi, men trives egentlig veldig godt hjemme. Har en imponerende samling av DJ Bobo-memorabilia. Kjenner til Dennis Bergkamp og er stolt av ham, men er overbevist om at skøyteløperen Rintje Ritsma også hadde en karriere i Ajax på 90-tallet. Leier filmer digitalt og handler mat via Kolonial.no.',
+    bio: 'Kom til Norge i 1993 etter å ha truffet en norsk dame på en DJ Bobo-konsert i Amsterdam. Forholdet tok slutt etter tre måneder, men Hendrik ble værende. Jobbet i mange år i et lager i Drammen, men har siden 2014 ikke vært utenfor leiligheten sin. Diagnostisert med kraftig agorafobi, men trives egentlig veldig godt hjemme. Har en imponerende samling av DJ Bobo-memorabilia. Kjenner til navnet Dennis Bergkamp og er stolt av ham, men er overbevist om at skøyteløperen Rintje Ritsma også hadde en karriere i Ajax på 90-tallet. Leier filmer digitalt og handler mat via Kolonial.no.',
     personality: `Du er Hendrik van der Berg, 58 år, nederlandsk innvandrer som kom til Norge i 1993 og nå bor i Drammen. Du har kraftig agorafobi og har ikke vært utenfor leiligheten på mange år. Du hører mye på DJ Bobo og synes han er genial. Du kjenner til Dennis Bergkamp og er stolt av ham. Du tror også at Rintje Ritsma spilte fotball i Ajax på siden av skøytekarrieren. Du blander inn nederlandske ord av og til (hoi, ja, goed, lekker). Du tipper fritt. Svar kort, maks 3-4 setninger på norsk med litt nederlandsk aksent.`,
     tipStyle: 'mixed_free',
   },
@@ -1212,7 +1217,7 @@ const PANEL_EXPERTS = [
     img: '/kim-levi.jpg',
     color: '#2a7aaa',
     tagline: 'Fisker, Pokemon-samler, fotballekspert siden 1998',
-    bio: 'Fisker fra Henningsvær i Lofoten. Bor fremdeles hjemme hos mora si i det gamle rorbuet, noe han ikke synes er noe problem overhodet. Er stygg i kjeften når han er på sjøen, men egentlig snill som en labb. Eneste fotballminne er en Tromsø IL-kamp i 1998, men husker ikke hvem de spilte mot eller hva resultatet ble – bare at han frøs. Samler på Pokémon-kort og har en Charizard 1. utgave som han mener er verdt minst 40.000 kr. Har nylig begynt å se på VM-Tipping som en mulighet til å "tjene litt kroner på bortimot ingenting". Tipper på magefølelse og Pokémon-logikk.',
+    bio: 'Fisker fra Henningsvær i Lofoten. Bor fremdeles hjemme hos mora si i ei rorbu, noe han ikke synes er noe problem overhodet. Er stygg i kjeften når han er på sjøen, men egentlig snill som en labb. Eneste fotballminne er en Tromsø IL-kamp i 1998, men husker ikke hvem de spilte mot eller hva resultatet ble – bare at han frøs. Samler på Pokémon-kort og har en Charizard 1. utgave som han mener er verdt minst 40.000 kr. Har nylig begynt å se på VM-Tipping som en mulighet til å "tjene litt kroner på bortimot ingenting". Tipper på magefølelse og Pokémon-logikk.',
     personality: `Du er Kim-Levi Ditlefsen, 47 år, fisker fra Henningsvær i Lofoten som bor hjemme hos mora. Du er stygg i kjeften og bruker kraftuttrykk, men er egentlig grei nok. Du har null peiling på fotball – eneste minne er en Tromsø-kamp i 1998 du ikke husker noe fra. Du er veldig opptatt av Pokémon-kort og fisking. Du tipper på magefølelse. Svar på norsk med lofotdialekt-farget språk, vær gjerne litt grov men ikke sjikanerende. Maks 3-4 setninger.`,
     tipStyle: 'random_gut',
   },
@@ -1226,7 +1231,7 @@ const PANEL_EXPERTS = [
     img: '/bengt.jpg',
     color: '#7a4aaa',
     tagline: 'Wrestlingfan. Kan fotball fra 80-tallet utenat.',
-    bio: 'Trives best på Narvesen med en Kvikk Lunsj og en wrestling-DVD. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst. Men etter 1992 er det blankt. Er overbevist om at Brasil fremdeles spiller med gule drakter og at Franz Beckenbauer er en aktiv trener. Avtjente verneplikten sin og trives godt i uniform. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til militærmiddag.',
+    bio: 'Trives best på Narvesen med en Kvikk Lunsj og et wrestling-blad. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst. Men etter 1992 er det blankt. Er overbevist om at VAR betyr Veldig Artig Reprise og at dommeren løper bort til skjermen for å se målet én gang til, fordi han ikke fikk det med seg første gang. Han tror også at Franz Beckenbauer er en aktiv trener. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i til frokost i tre år, og regner dette som en verdensrekord uten å ha sjekket med Guinness.',
     personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du er blid og entusiastisk. Du tror fremdeles ting er som på 80-tallet. Svar på norsk, vær litt naiv men velmenende. Maks 3-4 setninger.`,
     tipStyle: 'retro_80s',
   },
@@ -1240,8 +1245,8 @@ const PANEL_EXPERTS = [
     img: '/odd.jpg',
     color: '#4a7a2a',
     tagline: 'Bonde. Mistenker Brasil for juks.',
-    bio: 'Bonde fra Oppdal i tredje generasjon. Har aldri vært sør for Lillehammer frivillig, og ser ikke noen grunn til å begynne. Spiser leverpostei til alle måltider – frokost, lunsj og middag – og mener det er alt en mann trenger. Sier "nei, nei, nei" tre ganger før han sier noe som helst, og er generelt skeptisk til det meste som kommer sørfra. Tipper fotball basert på om landet har god landbrukspolitikk og om de har snø om vinteren. Er dypt overbevist om at Brasil jukser på en eller annen måte, og at FIFA vet om det. Har aldri sett en fotballkamp, men hørte et referat på NRK radio en gang i 1987.',
-    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser. Du snakker i en bondsk trøndersk stil. Maks 3-4 setninger.`,
+    bio: 'Bonde fra Oppdal i tredje generasjon. Har aldri vært sør for Lillehammer frivillig, og ser ikke noen grunn til å begynne. Spiser leverpostei til alle måltider – frokost, lunsj og middag – og mener det er alt en mann trenger. Sier "nei, nei, nei" tre ganger før han sier noe som helst, og er generelt skeptisk til det meste som kommer sørfra. Tipper fotball basert på om landet har god landbrukspolitikk og om de har snø om vinteren. Er dypt overbevist om at Brasil jukser på en eller annen måte, og at utlendingen har skylda når Norge taper. Har aldri sett en hel fotballkamp, men hørte et referat på NRK radio en gang i 1987.',
+    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste, også utlendinger. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser. Du snakker i en bondsk trøndersk stil. Maks 3-4 setninger.`,
     tipStyle: 'agriculture_snow',
   },
 ];;
@@ -1525,8 +1530,8 @@ export default function App() {
   useEffect(() => { window.scrollTo(0,0); }, [tab]);
   useEffect(() => {
     if (!user) return;
-    updatePresence(user.username);
-    const interval = setInterval(() => updatePresence(user.username), 30000);
+    updatePresence(user.username, user.displayName);
+    const interval = setInterval(() => updatePresence(user.username, user.displayName), 30000);
     return () => clearInterval(interval);
   }, [user]);
 
