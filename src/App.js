@@ -708,6 +708,8 @@ function TipsForm({ me, phase }) {
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [results, setResultsState] = useState({});
+  useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
 
   useEffect(() => {
     getUser(me.username).then(u => {
@@ -791,18 +793,39 @@ function TipsForm({ me, phase }) {
             {GROUP_MATCHES.filter(m => m.group === ag).map(m => {
               const t = tips[m.id] || {};
               return (
-                <div key={m.id} style={C.mRow}>
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',minWidth:52}}>
-                    <span style={C.mDate}>{fmtDate(m.date)}</span>
-                    {m.time && <span style={{...C.mDate,fontSize:9,opacity:.7}}>{m.time}</span>}
+                <div key={m.id} style={{...C.mRow, gap:6, flexWrap:'nowrap'}}>
+                  {/* Date+time box */}
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:52,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'4px 6px',flexShrink:0}}>
+                    <span style={{fontSize:10,color:'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
+                    {m.time && <span style={{fontSize:9,color:'rgba(255,255,255,.45)',fontFamily:"'Fira Code',monospace"}}>{m.time}</span>}
                   </div>
-                  <span style={C.mTeam}><Flag team={m.home} /> {m.home}</span>
+                  {/* Home team */}
+                  <span style={{...C.mTeam,display:'flex',alignItems:'center',gap:4}}><Flag team={m.home}/> {m.home}</span>
+                  {/* Score inputs */}
                   <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
                     value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
                   <span style={C.dash}>–</span>
                   <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
                     value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
-                  <span style={{ ...C.mTeam, textAlign: 'right' }}>{m.away} <Flag team={m.away} /></span>
+                  {/* Away team */}
+                  <span style={{...C.mTeam,textAlign:'right',display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end'}}>{m.away} <Flag team={m.away}/></span>
+                  {/* Actual result */}
+                  {(() => {
+                    const act = results[m.id];
+                    const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
+                    return act ? (
+                      <>
+                        <span style={{fontSize:11,color:'#00e5ff',fontFamily:"'Fira Code',monospace",background:'rgba(0,229,255,.08)',border:'1px solid rgba(0,229,255,.2)',borderRadius:6,padding:'3px 8px',flexShrink:0,whiteSpace:'nowrap'}}>
+                          {act.home}–{act.away}
+                        </span>
+                        {pts !== null && (
+                          <span style={{fontSize:11,fontFamily:"'Fira Code',monospace",background: pts===4?'rgba(255,215,0,.15)':'rgba(255,255,255,.06)',border:`1px solid ${pts===4?'rgba(255,215,0,.4)':'rgba(255,255,255,.1)'}`,borderRadius:6,padding:'3px 8px',color:pts===4?'#FFD700':'rgba(255,255,255,.6)',flexShrink:0,whiteSpace:'nowrap'}}>
+                            {pts===4?'⚡':''}{pts}p
+                          </span>
+                        )}
+                      </>
+                    ) : null;
+                  })()}
                 </div>
               );
             })}
