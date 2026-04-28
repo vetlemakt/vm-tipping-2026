@@ -160,7 +160,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
     { id: 'leaderboard', icon: null, img: '/tabell.png',  label: 'Tabell' },
     { id: 'tips',        icon: null, img: '/tips.png',    label: 'Tips' },
     { id: 'myscore',     icon: null, img: '/poeng.png',   label: 'Poeng' },
-    { id: 'panel',       icon: '🎙️', img: null,           label: 'Panelet' },
+    { id: 'panel',       icon: '🎙️', img: null,           label: 'Ekspertpanel' },
     { id: 'info',        icon: null, img: '/info.png',    label: 'Info' },
   ];
   const NAV_A = [
@@ -510,7 +510,7 @@ function Dashboard({ me }) {
                 <button onClick={() => setChatFullscreen(false)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
               </div>
             </div>
-            <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }}>
+            <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }} ref={el => { if(el) el.scrollTop = el.scrollHeight; }}>
               {msgs.map((m, i) => {
                 const mine = m.user === me.displayName;
                 return (
@@ -1191,8 +1191,8 @@ const PANEL_EXPERTS = [
     emoji: '👵',
     img: '/ragnhild.jpg',
     color: '#c2855a',
-    tagline: 'Rødstrømpe med sans for det estetiske',
-    bio: 'Vokste opp i et strengt kristenkonservativt hjem i Mandal på 70-tallet, men brøt ut og meldte seg inn i rødstrømpebevegelsen i 1978 – noe som skapte bråk i søndagsskolen. Har siden forsont seg med bakgrunnen sin, og er i dag aktiv i både menigheten og i den lokale husflidsforeningen. Gift tre ganger. Hagen hennes er kåret til årets vakreste i Vest-Agder to ganger på rad. Har aldri sett en hel fotballkamp, men husker at hun syntes italienernes drakter var veldig flotte under VM i 1982. Tipper basert på estetikk, musikk og om landet generelt virker skikkelig.',
+    tagline: 'Gladkristen med sans for det estetiske',
+    bio: 'Vokste opp i et strengt kristenkonservativt hjem i Mandal på 70-tallet, men brøt ut og meldte seg inn i rødstrømpebevegelsen i 1978 – noe som skapte bråk i søndagsskolen. Har siden forsont seg med bakgrunnen sin, og er i dag aktiv i både menigheten og i den lokale husflidsforeningen. Gift tre ganger. Hagen hennes er kåret til årets vakreste i Vest-Agder to ganger på rad. Har aldri sett en hel fotballkamp, men husker at hun syntes italienernes drakter var veldig flotte under VM i 1982. Tipper basert på estetikk, musikk og om landet generelt virker "skikkelig".',
     personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Du er en tidligere rødstrømpe oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Du har ingen peiling på fotball og tipper basert på hvilke land du liker – særlig drakter, musikk og om landet virker skikkelig og ordentlig. Du snakker varmt, litt moraliserende, og er alltid hyggelig men naiv om fotball. Du refererer gjerne til Fædrelandsvennen, kirken og sørlanske verdier. Svar alltid på norsk og hold deg i karakter. Svar kort, maks 3-4 setninger.`,
     tipStyle: 'conservative_aesthetic',
   },
@@ -1205,9 +1205,9 @@ const PANEL_EXPERTS = [
     emoji: '🇳🇱',
     img: '/hendrik.jpg',
     color: '#e67e00',
-    tagline: 'Nederlandsk innvandrer med agorafobi og god musikksans',
-    bio: 'Kom til Norge i 1993 etter å ha truffet en norsk dame på et DJ Bobo-konsert i Amsterdam. Forholdet tok slutt etter tre måneder, men Hendrik ble. Jobbet i mange år i et lager i Drammen, men har siden 2014 ikke vært utenfor leiligheten sin. Diagnostisert med kraftig agorafobi, men trives egentlig veldig godt hjemme. Har en imponerende samling av DJ Bobo-memorabilia. Kjenner til Dennis Bergkamp og er stolt av ham, men er overbevist om at skøyteløperen Rintje Ritsma også hadde en karriere i Ajax på 90-tallet. Leier filmer digitalt og handler mat via Kolonial.no.',
-    personality: `Du er Hendrik van der Berg, 58 år, nederlandsk innvandrer som kom til Norge i 1993 og nå bor i Drammen. Du har kraftig agorafobi og har ikke vært utenfor leiligheten på mange år. Du hører mye på DJ Bobo og synes han er genial. Du kjenner til Dennis Bergkamp og er stolt av ham. Du tror også at Rintje Ritsma spilte fotball i Ajax på siden av skøytekarrieren. Du blander inn nederlandske ord av og til (hoi, ja, goed, lekker). Du tipper fritt. Svar kort, maks 3-4 setninger på norsk med litt nederlandsk aksent.`,
+    tagline: 'Nederlandsk innvandrer med agorafobi og snever musikksans',
+    bio: 'Kom til Norge i 1993 etter å ha truffet en norsk dame på et DJ Bobo-konsert i Amsterdam. Forholdet tok slutt etter tre måneder, men Hendrik ble værende. Jobbet i mange år i et lager i Drammen, men har siden 2014 ikke vært utenfor leiligheten sin. Diagnostisert med kraftig agorafobi, men trives egentlig veldig godt hjemme. Har en imponerende samling av DJ Bobo-memorabilia. Kjenner til navnnet Dennis Bergkamp og er stolt av ham, men er overbevist om at skøyteløperen Rintje Ritsma også hadde en karriere i Ajax på 90-tallet. Leier filmer digitalt og handler mat via Kolonial.no. Tror på astrologi, og tipper ut i fra dette.',
+    personality: `Du er Hendrik van der Berg, 58 år, nederlandsk innvandrer som kom til Norge i 1993 og nå bor i Drammen. Du har kraftig agorafobi og har ikke vært utenfor leiligheten på mange år. Du hører mye på DJ Bobo og synes han er genial. Du kjenner til Dennis Bergkamp og er stolt av ham. Du tror også at Rintje Ritsma spilte fotball i Ajax på siden av skøytekarrieren. Du blander inn nederlandske ord av og til (for eksempel hoi, ja, goed, lekker). Du tipper ut i fra astrologi, det vil si hvilke land og spillere som har navn som ligner mest på astrologiske navn og uttrykk. Svar kort, maks 3-4 setninger på norsk med litt nederlandsk aksent og med vanlige skrivefeil.`,
     tipStyle: 'mixed_free',
   },
   {
@@ -1220,8 +1220,8 @@ const PANEL_EXPERTS = [
     img: '/kim-levi.jpg',
     color: '#2a7aaa',
     tagline: 'Fisker, Pokemon-samler, fotballekspert siden 1998',
-    bio: 'Fisker fra Henningsvær i Lofoten. Bor fremdeles hjemme hos mora si i det gamle rorbuet, noe han ikke synes er noe problem overhodet. Er stygg i kjeften når han er på sjøen, men egentlig snill som en labb. Eneste fotballminne er en Tromsø IL-kamp i 1998, men husker ikke hvem de spilte mot eller hva resultatet ble – bare at han frøs. Samler på Pokémon-kort og har en Charizard 1. utgave som han mener er verdt minst 40.000 kr. Har nylig begynt å se på VM-Tipping som en mulighet til å "tjene litt kroner på bortimot ingenting". Tipper på magefølelse og Pokémon-logikk.',
-    personality: `Du er Kim-Levi Ditlefsen, 47 år, fisker fra Henningsvær i Lofoten som bor hjemme hos mora. Du er stygg i kjeften og bruker kraftuttrykk, men er egentlig grei nok. Du har null peiling på fotball – eneste minne er en Tromsø-kamp i 1998 du ikke husker noe fra. Du er veldig opptatt av Pokémon-kort og fisking. Du tipper på magefølelse. Svar på norsk med lofotdialekt-farget språk, vær gjerne litt grov men ikke sjikanerende. Maks 3-4 setninger.`,
+    bio: 'Fisker fra Henningsvær i Lofoten. Bor fremdeles hjemme hos mora si, noe han ikke synes er noe problem overhodet. Er stygg i kjeften når han er på sjøen, men egentlig snill som en labb. Eneste fotballminne er en Tromsø IL-kamp i 1998, men husker ikke hvem de spilte mot eller hva resultatet ble – bare at han frøs. Samler på Pokémon-kort og har en Charizard 1. utgave som han mener er verdt minst 40.000 kr. Har nylig begynt å se på VM-Tipping som en mulighet til å "tjene litt kroner på bortimot ingenting". Tipper på magefølelse og Pokémon-logikk.',
+    personality: `Du er Kim-Levi Ditlefsen, 47 år, fisker fra Henningsvær i Lofoten som bor hjemme hos mora. Du er stygg i kjeften og bruker kraftuttrykk, men er egentlig grei nok. Du har null peiling på fotball – eneste minne er en Tromsø-kamp i 1998 du ikke husker noe fra. Du er veldig opptatt av Pokémon-kort og fisking. Du tipper på magefølelse og ut i fra hvilke lag og spillere som har navn som høres mest ut som noe fra pokemon. Svar på norsk med lofotdialekt-farget språk, vær gjerne litt grov men ikke sjikanerende. Maks 3-4 setninger.`,
     tipStyle: 'random_gut',
   },
   {
@@ -1234,7 +1234,7 @@ const PANEL_EXPERTS = [
     img: '/bengt.jpg',
     color: '#7a4aaa',
     tagline: 'Wrestlingfan. Kan fotball fra 80-tallet utenat.',
-    bio: 'Trives best på Narvesen med en Kvikk Lunsj og en wrestling-DVD. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst. Men etter 1992 er det blankt. Er overbevist om at Brasil fremdeles spiller med gule drakter og at Franz Beckenbauer er en aktiv trener. Avtjente verneplikten sin og trives godt i uniform. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til militærmiddag.',
+    bio: 'Trives best på Narvesen med en Kvikk Lunsj og klistremerkeboka si fra Mexico-VM i håp om å treffe noen som har 66 Hristo Kolev eller 337 Chris Waddle. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst fra denne perioden, for etter 1992 er det blankt. Er overbevist om at VAR betyr Veldig Artig Reprise og at dommeren løper bort til skjermen fordi han ikke fikk med seg målet første gangen. Han er lett tilbakstående, men avtjente verneplikten sin i militæret som kokkeassistent. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til frokost, og hevder dette er verdensrekord uten å ha sjekket med Guinness. Tipper som om det fremdeles er 80-tallet.',
     personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du er blid og entusiastisk. Du tror fremdeles ting er som på 80-tallet. Svar på norsk, vær litt naiv men velmenende. Maks 3-4 setninger.`,
     tipStyle: 'retro_80s',
   },
@@ -1248,8 +1248,8 @@ const PANEL_EXPERTS = [
     img: '/odd.jpg',
     color: '#4a7a2a',
     tagline: 'Bonde. Mistenker Brasil for juks.',
-    bio: 'Bonde fra Oppdal i tredje generasjon. Har aldri vært sør for Lillehammer frivillig, og ser ikke noen grunn til å begynne. Spiser leverpostei til alle måltider – frokost, lunsj og middag – og mener det er alt en mann trenger. Sier "nei, nei, nei" tre ganger før han sier noe som helst, og er generelt skeptisk til det meste som kommer sørfra. Tipper fotball basert på om landet har god landbrukspolitikk og om de har snø om vinteren. Er dypt overbevist om at Brasil jukser på en eller annen måte, og at FIFA vet om det. Har aldri sett en fotballkamp, men hørte et referat på NRK radio en gang i 1987.',
-    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser. Du snakker i en bondsk trøndersk stil. Maks 3-4 setninger.`,
+    bio: 'Bonde fra Oppdal i tredje generasjon. Har aldri vært sør for Lillehammer frivillig, og ser ikke noen grunn til å begynne. Spiser leverpostei til alle måltider – frokost, lunsj og middag – og mener det er alt en mann trenger. Sier "nei, nei, nei" tre ganger før han sier noe som helst, og er generelt skeptisk til det meste som kommer sørfra. Tipper fotball basert på om landet har god landbrukspolitikk og om de har snø om vinteren. Er dypt overbevist om at Brasil jukser på en eller annen måte, og at det er samme dommer som dømmer hver kamp, en engelskmann ved navn Reffrey. Har aldri sett en fotballkamp, men hørte et referat på NRK radio en gang i 1987.',
+    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser og at en engelskmann ved navn Reffrey dømmer hver eneste kamp. Du snakker i en bondsk trøndersk stil. Maks 3-4 setninger.`,
     tipStyle: 'agriculture_snow',
   },
 ];;
@@ -1303,8 +1303,17 @@ async function generateExpertTips(expert) {
   } catch { return {}; }
 }
 
+// Store per-expert chat history in memory
+const expertChatHistory = {};
+
 async function chatWithExpert(expert, message, history) {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+  // Maintain running conversation history per expert
+  if (!expertChatHistory[expert.id]) expertChatHistory[expert.id] = [];
+  expertChatHistory[expert.id].push({ role: 'user', content: message });
+  // Keep last 20 messages to avoid token limit
+  if (expertChatHistory[expert.id].length > 20) expertChatHistory[expert.id] = expertChatHistory[expert.id].slice(-20);
+
   const fallbacks = {
     ragnhild: ['Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.', 'Ja, jeg synes Italia har de fineste draktene. Og de er jo katolikker, det er noe.', 'Nei, fotball er ikke min greie egentlig, men jeg prøver så godt jeg kan!'],
     hendrik: ['Hoi! Dennis Bergkamp var jo fantastisk, ikke sant? Rintje Ritsma spilte jo også litt, tror jeg.', 'Ja, ja, ik ben hier. Jeg hører på DJ Bobo og tenker på fotball. Goed, goed.', 'Nederlandsk fotball er jo det beste. Eller, hva vet jeg egentlig? Jeg har ikke vært ute på lenge.'],
@@ -1315,7 +1324,7 @@ async function chatWithExpert(expert, message, history) {
   // Try API first
   if (apiKey) {
     try {
-      const messages = [{ role: 'user', content: message }];
+      const messages = expertChatHistory[expert.id] || [{ role: 'user', content: message }];
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -1334,7 +1343,10 @@ async function chatWithExpert(expert, message, history) {
       const data = await response.json();
       console.log('API response:', JSON.stringify(data));
       const text = data.content?.[0]?.text;
-      if (text && text.length > 3) return text;
+      if (text && text.length > 3) {
+        expertChatHistory[expert.id].push({ role: 'assistant', content: text });
+        return text;
+      }
       if (data.error) return '(API-feil: ' + data.error.message + ')';
     } catch(e) {
       console.error('API error:', e);
@@ -1380,8 +1392,8 @@ function ExpertCard({ expert, me, panelChoices }) {
       <div style={{ ...C.card, border: myChoice ? `2px solid ${expert.color}` : '1px solid rgba(255,255,255,.08)' }}>
         <div style={{ padding: '16px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
           {/* Square image */}
-          <div onClick={() => setZoomed(true)} style={{ width:80, height:80, flexShrink:0, borderRadius:8, overflow:'hidden', cursor:'zoom-in', background:`${expert.color}22`, border:`2px solid ${expert.color}44`, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <img src={expert.img} alt={expert.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}
+          <div onClick={() => setZoomed(true)} style={{ width:100, height:120, flexShrink:0, borderRadius:8, overflow:'hidden', cursor:'zoom-in', background:'#000', border:`2px solid ${expert.color}44`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <img src={expert.img} alt={expert.name} style={{ width:'100%', height:'100%', objectFit:'contain', background:'#000' }}
               onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML = '<span style="font-size:36px">' + expert.emoji + '</span>'; }} />
           </div>
           {/* Info */}
@@ -1454,14 +1466,12 @@ function PanelLeaderboard({ onSelect }) {
 
   return (
     <div style={C.card}>
-      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot}/>Panelet – poengtabell</span></div>
+      <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot}/>Ekspertpanel – poengtabell</span></div>
       <div style={C.cardBody}>
         {rows.map((r, i) => (
           <div key={r.id} style={{ ...C.lbRow, cursor:'pointer' }} onClick={() => onSelect(r)}>
             <span style={C.lbRank}>{['🥇','🥈','🥉'][i] || <span style={{color:'rgba(255,255,255,.4)',fontSize:13}}>{i+1}</span>}</span>
-            <div style={{width:32,height:32,borderRadius:4,overflow:'hidden',flexShrink:0,background:`${r.color}22`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <img src={r.img} alt={r.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentNode.innerHTML='<span>'+r.emoji+'</span>';}}/>
-            </div>
+
             <span style={{...C.lbName,color:r.color}}>{r.name}</span>
             {(r.fulltreff||0)>0 && <span style={{fontSize:11,color:'#FFD700'}}>⚡×{r.fulltreff}</span>}
             <div style={{textAlign:'right'}}>
@@ -1491,7 +1501,7 @@ function PanelPage({ me }) {
   return (
     <div className="fu">
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, fontWeight:700, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, margin:0 }}>🎙️ Panelet</h2>
+        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, fontWeight:700, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, margin:0 }}>🎙️ Ekspertpanel</h2>
         <p style={{ color:'rgba(255,255,255,.5)', fontSize:13, marginTop:6 }}>
           Fem eksperter med sine egne tips. Call på dem i chatten med @fornavn. Trykk på bildet for å zoome.
         </p>
