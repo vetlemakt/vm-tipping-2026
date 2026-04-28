@@ -819,11 +819,9 @@ function TipsForm({ me, phase }) {
           <div style={C.matchList}>
             {GROUP_MATCHES.filter(m => m.group === ag).map(m => {
               const t = tips[m.id] || {};
+              const act = results[m.id];
+              const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
               return (
-                {(() => {
-                  const act = results[m.id];
-                  const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
-                  return (
                     <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
                       {/* Date+time – hidden on portrait mobile via CSS class */}
                       <div className="hide-portrait" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0}}>
@@ -850,8 +848,6 @@ function TipsForm({ me, phase }) {
                       {act && <span style={{fontSize:10,color:'#00e5ff',fontFamily:"'Fira Code',monospace",background:'rgba(0,229,255,.08)',border:'1px solid rgba(0,229,255,.2)',borderRadius:5,padding:'2px 6px',flexShrink:0}}>{act.home}–{act.away}</span>}
                       {pts !== null && <span style={{fontSize:10,fontFamily:"'Fira Code',monospace",background:pts===4?'rgba(255,215,0,.15)':'rgba(255,255,255,.06)',border:`1px solid ${pts===4?'rgba(255,215,0,.4)':'rgba(255,255,255,.1)'}`,borderRadius:5,padding:'2px 6px',color:pts===4?'#FFD700':'rgba(255,255,255,.6)',flexShrink:0}}>{pts===4?'⚡':''}{pts}p</span>}
                     </div>
-                  );
-                })()}
               );
             })}
           </div>
