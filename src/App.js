@@ -148,19 +148,19 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const NAV_COLORS = {
-    leaderboard: '#FFD700',
-    tips:        '#ff6b6b',
-    myscore:     '#4ade80',
-    info:        '#60a5fa',
-    panel:       '#c084fc',
+    leaderboard: '#4ade80',
+    tips:        '#60a5fa',
+    chat:        '#ff6b6b',
+    panel:       '#FFD700',
+    info:        '#ffffff',
     admin:       '#fb923c',
   };
 
   const NAV_U = [
     { id: 'leaderboard', icon: null, img: '/tabell.png',  label: 'Tabell' },
     { id: 'tips',        icon: null, img: '/tips.png',    label: 'Tips' },
-    { id: 'myscore',     icon: null, img: '/poeng.png',   label: 'Poeng' },
-    { id: 'panel',       icon: '🎙️', img: null,           label: 'Ekspertpanel' },
+    { id: 'chat',        icon: null, img: '/chat.png',          label: 'Chat' },
+    { id: 'panel',       icon: null, img: '/ekspertpanel.png',   label: 'Ekspertpanel' },
     { id: 'info',        icon: null, img: '/info.png',    label: 'Info' },
   ];
   const NAV_A = [
@@ -202,7 +202,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
                       borderBottomColor: isOn ? color : 'transparent',
                       background: isOn ? `${color}15` : 'transparent',
                       WebkitTextStroke: isOn ? '0px' : '0px',
-                      textShadow: `0 0 0 #fff, -1px -1px 0 rgba(255,255,255,.3), 1px -1px 0 rgba(255,255,255,.3), -1px 1px 0 rgba(255,255,255,.3), 1px 1px 0 rgba(255,255,255,.3)`,
+                      textShadow: 'none',
                     }}
                     onClick={() => setTab(n.id)}>
                     {n.img
@@ -1597,6 +1597,106 @@ function PanelPage({ me }) {
 }
 
 
+
+// ══════════════════════════════════════════════════════════════════════
+//  CHAT PAGE
+// ══════════════════════════════════════════════════════════════════════
+function ChatPage({ me }) {
+  const [msgs, setMsgs] = useState([]);
+  const [input, setInput] = useState('');
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const chatBoxRef = useRef(null);
+
+  useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
+  useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
+  useEffect(() => {
+    if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+  }, [msgs]);
+
+  const fmt = ts => {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const sendMsg = async () => {
+    const t = input.trim(); if (!t) return;
+    setInput('');
+    await sendChatMessage(me.displayName, t, '');
+    const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
+    const mentionedExperts = [];
+    mentionMatches.forEach(match => {
+      const mentioned = match[1].toLowerCase().replace('-','');
+      const expert = PANEL_EXPERTS.find(e =>
+        e.firstName.toLowerCase() === match[1].toLowerCase() ||
+        e.firstName.toLowerCase().replace('-','') === mentioned ||
+        e.id === mentioned
+      );
+      if (expert && !mentionedExperts.find(e => e.id === expert.id)) mentionedExperts.push(expert);
+    });
+    mentionedExperts.forEach((expert, i) => {
+      setTimeout(async () => {
+        const reply = await chatWithExpert(expert, t, []);
+        await sendChatMessage(expert.name, reply, '');
+      }, 1000 + i * 1500);
+    });
+  };
+
+  return (
+    <div style={C.card}>
+      <div style={C.cardHeader}>
+        <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat</span>
+        <OnlineIndicator onlineUsers={onlineUsers} />
+      </div>
+      <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
+        {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
+        {msgs.map((m, i) => {
+          const mine = m.user === me.displayName;
+          return (
+            <div key={m.id||i} style={{ ...C.chatMsg, alignSelf: mine?'flex-end':'flex-start' }}>
+              <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}` }}>
+                {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : renderChatText(m.text)}
+              </span>
+              <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
+                <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
+                <span style={C.chatTime}>{fmt(m.ts)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={C.chatInputRow}>
+        <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}}>
+          🖼️<input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={e=>{
+            const file=e.target.files[0];if(!file)return;
+            const reader=new FileReader();
+            reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
+            reader.readAsDataURL(file);e.target.value='';
+          }}/>
+        </label>
+        <input style={{...C.inp,marginBottom:0,flex:1,fontSize:13,padding:'8px 12px'}}
+          value={input} onChange={e=>setInput(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&sendMsg()}
+          placeholder="Skriv melding… (lim inn bilde med Ctrl+V)"
+          onPaste={e=>{
+            const items=e.clipboardData?.items;if(!items)return;
+            for(let item of items){
+              if(item.type.startsWith('image/')){
+                e.preventDefault();
+                const file=item.getAsFile();
+                const reader=new FileReader();
+                reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
+                reader.readAsDataURL(file);return;
+              }
+            }
+          }}
+        />
+        <button style={{...C.btnCyan,padding:'8px 16px',fontSize:12}} onClick={sendMsg}>Send</button>
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  ROOT APP
 // ══════════════════════════════════════════════════════════════════════
@@ -1627,7 +1727,7 @@ export default function App() {
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
         {tab === 'leaderboard' && <Leaderboard me={user} />}
         {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} />}
-        {tab === 'myscore'     && !user.isAdmin && <MyScore me={user} />}
+        {tab === 'chat'       && !user.isAdmin && <ChatPage me={user} />}
         {tab === 'video'       && !user.isAdmin && <VideoChat me={user} />}
         {tab === 'info'        && !user.isAdmin && <InfoPage />}
         {tab === 'panel'       && !user.isAdmin && <PanelPage me={user} />}
