@@ -340,22 +340,26 @@ function Dashboard({ me }) {
     const t = input.trim(); if (!t) return;
     setInput('');
     await sendChatMessage(me.displayName, t, '');
-    // Check for @mentions - match any first name of panel experts
-    const mentionMatch = t.match(/@([a-zæøå-]+)/i);
-    if (mentionMatch) {
-      const mentioned = mentionMatch[1].toLowerCase().replace('-','');
+    // Check for @mentions - find ALL mentioned experts
+    const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
+    const mentionedExperts = [];
+    mentionMatches.forEach(match => {
+      const mentioned = match[1].toLowerCase().replace('-','');
       const expert = PANEL_EXPERTS.find(e =>
-        e.firstName.toLowerCase() === mentionMatch[1].toLowerCase() ||
+        e.firstName.toLowerCase() === match[1].toLowerCase() ||
         e.firstName.toLowerCase().replace('-','') === mentioned ||
         e.id === mentioned
       );
-      if (expert) {
-        setTimeout(async () => {
-          const reply = await chatWithExpert(expert, t, []);
-          await sendChatMessage(expert.name, reply, '');
-        }, 1000);
+      if (expert && !mentionedExperts.find(e => e.id === expert.id)) {
+        mentionedExperts.push(expert);
       }
-    }
+    });
+    mentionedExperts.forEach((expert, i) => {
+      setTimeout(async () => {
+        const reply = await chatWithExpert(expert, t, []);
+        await sendChatMessage(expert.name, reply, '');
+      }, 1000 + i * 1500); // stagger replies so they don't all come at once
+    });
   };
 
   const saveSummary = async (matchId) => {
@@ -1357,6 +1361,22 @@ async function generateExpertTips(expert) {
 // Store per-expert chat history in memory
 const expertChatHistory = {};
 
+const PANEL_GROUP_CONTEXT = `
+Du er en av fem deltakere i et VM-tippepanel. Her er de andre deltakerne du kjenner:
+
+1. Ragnhild Kristiansen (60, Mandal) – tidligere rødstrømpe, nå aktiv i menigheten. Veldig hyggelig. Tipper på drakter og musikk. Har vært gift tre ganger. Du har hørt at hun lager utrolig god sørlandskake.
+
+2. Hendrik van der Berg (58, Drammen) – nederlandsk innvandrer med agorafobi. Har ikke vært ute siden 2014. DJ Bobo-fan. Tror Rintje Ritsma spilte i Ajax. Bestiller alt på nett. Du vet at han egentlig savner Nederland men vil aldri innrømme det.
+
+3. Kim-Levi Ditlefsen (47, Henningsvær) – fisker, bor hjemme hos mor. Stygg i kjeften. Samler Pokémon-kort, har en Charizard 1. utgave. Så én Tromsø-kamp i 1998. Du vet han egentlig er ganske sårbar, men skjuler det bak kraftuttrykk.
+
+4. Bengt Sandvik (52, Trondheim) – wrestling- og kortspillfan. Kan fotball fra 80-tallet utenat men vet ingenting etter 1992. Veldig snill. Spiste vafler med brunost i militæret i tre år. Du vet han faktisk prøvde å bli proffbryter i 1987 men ga opp etter en skade i kneet.
+
+5. Odd Snerten (63, Oppdal) – bonde i tredje generasjon. Spiser leverpostei til alle måltider. Aldri sør for Lillehammer. Mistenker Brasil for juks. Du vet han faktisk har en hemmelig lidenskap for romantiske filmer men forteller det ikke til noen.
+
+Dere kjenner hverandre fra et lokalt tippekompani som har holdt på siden 2018. Det er ikke alltid like harmonisk, men det er varmt. Du kan referere til de andre med fornavn og kommentere hva du tror DE ville ha tippa eller ment.
+`;
+
 async function chatWithExpert(expert, message, history) {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
   // Maintain running conversation history per expert
@@ -1387,7 +1407,7 @@ async function chatWithExpert(expert, message, history) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: 300,
-          system: expert.personality,
+          system: expert.personality + '\n\n' + PANEL_GROUP_CONTEXT,
           messages,
         })
       });
