@@ -820,40 +820,38 @@ function TipsForm({ me, phase }) {
             {GROUP_MATCHES.filter(m => m.group === ag).map(m => {
               const t = tips[m.id] || {};
               return (
-                <div key={m.id} style={{...C.mRow, gap:6, flexWrap:'nowrap'}}>
-                  {/* Date+time box */}
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:52,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'4px 6px',flexShrink:0}}>
-                    <span style={{fontSize:10,color:'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
-                    {m.time && <span style={{fontSize:9,color:'rgba(255,255,255,.45)',fontFamily:"'Fira Code',monospace"}}>{m.time}</span>}
-                  </div>
-                  {/* Home team */}
-                  <span style={{...C.mTeam,display:'flex',alignItems:'center',gap:4}}><Flag team={m.home}/> {m.home}</span>
-                  {/* Score inputs */}
-                  <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
-                    value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
-                  <span style={C.dash}>–</span>
-                  <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
-                    value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
-                  {/* Away team */}
-                  <span style={{...C.mTeam,textAlign:'right',display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end'}}>{m.away} <Flag team={m.away}/></span>
-                  {/* Actual result */}
-                  {(() => {
-                    const act = results[m.id];
-                    const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
-                    return act ? (
-                      <>
-                        <span style={{fontSize:11,color:'#00e5ff',fontFamily:"'Fira Code',monospace",background:'rgba(0,229,255,.08)',border:'1px solid rgba(0,229,255,.2)',borderRadius:6,padding:'3px 8px',flexShrink:0,whiteSpace:'nowrap'}}>
-                          {act.home}–{act.away}
-                        </span>
-                        {pts !== null && (
-                          <span style={{fontSize:11,fontFamily:"'Fira Code',monospace",background: pts===4?'rgba(255,215,0,.15)':'rgba(255,255,255,.06)',border:`1px solid ${pts===4?'rgba(255,215,0,.4)':'rgba(255,255,255,.1)'}`,borderRadius:6,padding:'3px 8px',color:pts===4?'#FFD700':'rgba(255,255,255,.6)',flexShrink:0,whiteSpace:'nowrap'}}>
-                            {pts===4?'⚡':''}{pts}p
-                          </span>
-                        )}
-                      </>
-                    ) : null;
-                  })()}
-                </div>
+                {(() => {
+                  const act = results[m.id];
+                  const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
+                  return (
+                    <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
+                      {/* Date+time – hidden on portrait mobile via CSS class */}
+                      <div className="hide-portrait" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0}}>
+                        <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
+                        {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Fira Code',monospace"}}>{m.time}</span>}
+                      </div>
+                      {/* Home: flag + name(hidden on portrait) */}
+                      <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end'}}>
+                        <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.home}</span>
+                        <Flag team={m.home} size={18}/>
+                      </div>
+                      {/* Score inputs */}
+                      <input style={{...C.sInp,width:38,fontSize:15}} type="number" min={0} max={20} disabled={!grpOk}
+                        value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
+                      <span style={C.dash}>–</span>
+                      <input style={{...C.sInp,width:38,fontSize:15}} type="number" min={0} max={20} disabled={!grpOk}
+                        value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
+                      {/* Away: flag + name(hidden on portrait) */}
+                      <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start'}}>
+                        <Flag team={m.away} size={18}/>
+                        <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.away}</span>
+                      </div>
+                      {/* Result + points */}
+                      {act && <span style={{fontSize:10,color:'#00e5ff',fontFamily:"'Fira Code',monospace",background:'rgba(0,229,255,.08)',border:'1px solid rgba(0,229,255,.2)',borderRadius:5,padding:'2px 6px',flexShrink:0}}>{act.home}–{act.away}</span>}
+                      {pts !== null && <span style={{fontSize:10,fontFamily:"'Fira Code',monospace",background:pts===4?'rgba(255,215,0,.15)':'rgba(255,255,255,.06)',border:`1px solid ${pts===4?'rgba(255,215,0,.4)':'rgba(255,255,255,.1)'}`,borderRadius:5,padding:'2px 6px',color:pts===4?'#FFD700':'rgba(255,255,255,.6)',flexShrink:0}}>{pts===4?'⚡':''}{pts}p</span>}
+                    </div>
+                  );
+                })()}
               );
             })}
           </div>
@@ -1700,6 +1698,99 @@ function ChatPage({ me }) {
   );
 }
 
+
+// ── API-Football auto-fetch ───────────────────────────────────────────
+// World Cup 2026 competition ID on API-Football
+const WC_2026_ID = 1; // FIFA World Cup
+
+// Map Norwegian team names to API-Football team names for matching
+const TEAM_NAME_MAP = {
+  'Mexico':'Mexico','Sør-Afrika':'South Africa','Sør-Korea':'South Korea',
+  'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina',
+  'Qatar':'Qatar','Sveits':'Switzerland','Brasil':'Brazil','Marokko':'Morocco',
+  'Haiti':'Haiti','Skottland':'Scotland','USA':'USA','Paraguay':'Paraguay',
+  'Australia':'Australia','Tyrkia':'Turkey','Tyskland':'Germany','Curacao':'Curacao',
+  'Elfenbenskysten':'Ivory Coast','Ecuador':'Ecuador','Nederland':'Netherlands',
+  'Japan':'Japan','Sverige':'Sweden','Tunisia':'Tunisia','Belgia':'Belgium',
+  'Egypt':'Egypt','Iran':'Iran','New Zealand':'New Zealand','Spania':'Spain',
+  'Kapp Verde':'Cape Verde','Saudi-Arabia':'Saudi Arabia','Uruguay':'Uruguay',
+  'Frankrike':'France','Senegal':'Senegal','Irak':'Iraq','Norge':'Norway',
+  'Argentina':'Argentina','Algerie':'Algeria','Østerrike':'Austria','Jordan':'Jordan',
+  'Portugal':'Portugal','Kongo DR':'DR Congo','Usbekistan':'Uzbekistan','Colombia':'Colombia',
+  'England':'England','Kroatia':'Croatia','Ghana':'Ghana','Panama':'Panama',
+};
+
+async function fetchAndUpdateResults() {
+  const apiKey = process.env.REACT_APP_FOOTBALL_KEY;
+  if (!apiKey) return;
+  try {
+    const res = await fetch(
+      'https://v3.football.api-sports.io/fixtures?league=' + WC_2026_ID + '&season=2026&status=FT',
+      { headers: { 'x-apisports-key': apiKey } }
+    );
+    const data = await res.json();
+    if (!data.response) return;
+
+    const updates = {};
+    const cardUpdates = {};
+
+    data.response.forEach(fixture => {
+      const home = fixture.teams?.home?.name;
+      const away = fixture.teams?.away?.name;
+      const homeGoals = fixture.goals?.home;
+      const awayGoals = fixture.goals?.away;
+      if (homeGoals === null || awayGoals === null) return;
+
+      // Find matching group match
+      const match = GROUP_MATCHES.find(m => {
+        const mh = TEAM_NAME_MAP[m.home];
+        const ma = TEAM_NAME_MAP[m.away];
+        return (mh === home && ma === away) || (mh === away && ma === home);
+      });
+
+      if (match) {
+        const reversed = TEAM_NAME_MAP[match.home] === away;
+        updates[match.id] = {
+          home: reversed ? awayGoals : homeGoals,
+          away: reversed ? homeGoals : awayGoals,
+        };
+      }
+
+      // Cards per team
+      const events = fixture.events || [];
+      events.forEach(ev => {
+        if (ev.type === 'Card') {
+          const teamName = Object.keys(TEAM_NAME_MAP).find(k => TEAM_NAME_MAP[k] === ev.team?.name);
+          if (!teamName) return;
+          if (!cardUpdates[teamName]) cardUpdates[teamName] = { y: 0, r: 0 };
+          if (ev.detail === 'Yellow Card') cardUpdates[teamName].y++;
+          else if (ev.detail === 'Red Card' || ev.detail === 'Yellow-Red Card') cardUpdates[teamName].r++;
+        }
+      });
+    });
+
+    // Save results to Firebase
+    if (Object.keys(updates).length > 0) {
+      const cur = await getResults();
+      await setResults({ ...cur, ...updates });
+    }
+
+    // Save cards to Firebase
+    if (Object.keys(cardUpdates).length > 0) {
+      const curCards = await getCardStats();
+      const newCards = { ...curCards };
+      Object.entries(cardUpdates).forEach(([team, {y, r}]) => {
+        newCards['_y_' + team] = y;
+        newCards['_r_' + team] = r;
+        newCards[team] = y + r * 3;
+      });
+      await setCardStats(newCards);
+    }
+  } catch(e) {
+    console.warn('API-Football fetch error:', e);
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  ROOT APP
 // ══════════════════════════════════════════════════════════════════════
@@ -1715,6 +1806,12 @@ export default function App() {
   }, [user]);
 
   useEffect(() => { window.scrollTo(0,0); }, [tab]);
+  useEffect(() => {
+    if (!user || user.isAdmin) return;
+    fetchAndUpdateResults(); // fetch on load
+    const interval = setInterval(fetchAndUpdateResults, 5 * 60 * 1000); // every 5 min
+    return () => clearInterval(interval);
+  }, [user]);
   useEffect(() => {
     if (!user) return;
     updatePresence(user.username, user.displayName);
