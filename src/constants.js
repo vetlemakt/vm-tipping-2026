@@ -19,13 +19,23 @@ export const GROUPS = {
 
 export const ALL_TEAMS = [...new Set(Object.values(GROUPS).flat())].sort();
 
+// Match times in Norwegian time (CEST)
+const GROUP_TIMES = [
+  { date:'2026-06-11', time:'21:00' },
+  { date:'2026-06-12', time:'00:00' },
+  { date:'2026-06-13', time:'18:00' },
+  { date:'2026-06-23', time:'21:00' },
+  { date:'2026-06-24', time:'00:00' },
+  { date:'2026-06-25', time:'21:00' },
+];
+
 export const GROUP_MATCHES = Object.entries(GROUPS).flatMap(([g, t]) => [
-  { id:`${g}1`, group:g, home:t[0], away:t[1], phase:'group', date:'2026-06-11' },
-  { id:`${g}2`, group:g, home:t[0], away:t[2], phase:'group', date:'2026-06-12' },
-  { id:`${g}3`, group:g, home:t[1], away:t[3], phase:'group', date:'2026-06-13' },
-  { id:`${g}4`, group:g, home:t[2], away:t[3], phase:'group', date:'2026-06-23' },
-  { id:`${g}5`, group:g, home:t[0], away:t[3], phase:'group', date:'2026-06-24' },
-  { id:`${g}6`, group:g, home:t[1], away:t[2], phase:'group', date:'2026-06-25' },
+  { id:`${g}1`, group:g, home:t[0], away:t[1], phase:'group', date:GROUP_TIMES[0].date, time:GROUP_TIMES[0].time },
+  { id:`${g}2`, group:g, home:t[0], away:t[2], phase:'group', date:GROUP_TIMES[1].date, time:GROUP_TIMES[1].time },
+  { id:`${g}3`, group:g, home:t[1], away:t[3], phase:'group', date:GROUP_TIMES[2].date, time:GROUP_TIMES[2].time },
+  { id:`${g}4`, group:g, home:t[2], away:t[3], phase:'group', date:GROUP_TIMES[3].date, time:GROUP_TIMES[3].time },
+  { id:`${g}5`, group:g, home:t[0], away:t[3], phase:'group', date:GROUP_TIMES[4].date, time:GROUP_TIMES[4].time },
+  { id:`${g}6`, group:g, home:t[1], away:t[2], phase:'group', date:GROUP_TIMES[5].date, time:GROUP_TIMES[5].time },
 ]);
 
 export const KNOCKOUT_ROUNDS = [

@@ -253,6 +253,15 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
 
 
 
+
+// Format date nicely in Norwegian
+function fmtDate(dateStr) {
+  if (!dateStr) return '';
+  const months = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  const [, m, d] = dateStr.split('-');
+  return `${parseInt(d)}. ${months[parseInt(m)-1]}`;
+}
+
 // Render chat text with clickable links
 function renderChatText(text) {
   if (!text) return null;
@@ -520,7 +529,7 @@ function Dashboard({ me }) {
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
                   <span style={{ ...C.matchTeam, textAlign: 'right' }}>{m.away} <Flag team={m.away} /></span>
                 </div>
-                <div style={C.matchScorers}>Gruppe {m.group} · {m.date?.slice(5)}</div>
+                <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
                 {sum ? (
                   <div>
                     <div style={C.matchSummaryText}>{sum.text}</div>
@@ -783,7 +792,10 @@ function TipsForm({ me, phase }) {
               const t = tips[m.id] || {};
               return (
                 <div key={m.id} style={C.mRow}>
-                  <span style={C.mDate}>{m.date.slice(5)}</span>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',minWidth:52}}>
+                    <span style={C.mDate}>{fmtDate(m.date)}</span>
+                    {m.time && <span style={{...C.mDate,fontSize:9,opacity:.7}}>{m.time}</span>}
+                  </div>
                   <span style={C.mTeam}><Flag team={m.home} /> {m.home}</span>
                   <input style={C.sInp} type="number" min={0} max={20} disabled={!grpOk}
                     value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
