@@ -847,18 +847,26 @@ function TipsForm({ me, phase }) {
           {KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom: 18 }}>
               <span style={C.roundL}>{label}</span>
-              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map((m, i) => {
+              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map(m => {
                 const t = tips[m.id] || {};
+                const act = results[m.id];
+                const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
                 return (
-                  <div key={m.id} style={C.mRow}>
-                    <span style={C.mDate}>K{i + 1}</span>
-                    <span style={{ ...C.mTeam, color: '#6070a0' }}>Hjemme</span>
-                    <input style={{ ...C.sInp, opacity: koOk ? 1 : .3 }} type="number" min={0} max={20} disabled={!koOk}
+                  <div key={m.id} style={{...C.mRow, gap:6, flexWrap:'nowrap'}}>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:52,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'4px 6px',flexShrink:0}}>
+                      <span style={{fontSize:10,color:'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>Kamp {m.matchNum}</span>
+                      {m.date && <span style={{fontSize:9,color:'rgba(255,255,255,.45)',fontFamily:"'Fira Code',monospace"}}>{fmtDate(m.date)}</span>}
+                      {m.time && <span style={{fontSize:9,color:'rgba(255,255,255,.35)',fontFamily:"'Fira Code',monospace"}}>{m.time}</span>}
+                    </div>
+                    <span style={{...C.mTeam,fontSize:11,color:'rgba(255,255,255,.6)'}}>{m.home}</span>
+                    <input style={{...C.sInp, opacity: koOk ? 1 : .3}} type="number" min={0} max={20} disabled={!koOk}
                       value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
                     <span style={C.dash}>–</span>
-                    <input style={{ ...C.sInp, opacity: koOk ? 1 : .3 }} type="number" min={0} max={20} disabled={!koOk}
+                    <input style={{...C.sInp, opacity: koOk ? 1 : .3}} type="number" min={0} max={20} disabled={!koOk}
                       value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
-                    <span style={{ ...C.mTeam, color: '#6070a0', textAlign: 'right' }}>Borte</span>
+                    <span style={{...C.mTeam,fontSize:11,color:'rgba(255,255,255,.6)',textAlign:'right'}}>{m.away}</span>
+                    {act && <span style={{fontSize:11,color:'#00e5ff',fontFamily:"'Fira Code',monospace",background:'rgba(0,229,255,.08)',border:'1px solid rgba(0,229,255,.2)',borderRadius:6,padding:'3px 8px',flexShrink:0}}>{act.home}–{act.away}</span>}
+                    {pts !== null && <span style={{fontSize:11,fontFamily:"'Fira Code',monospace",background:pts===4?'rgba(255,215,0,.15)':'rgba(255,255,255,.06)',border:`1px solid ${pts===4?'rgba(255,215,0,.4)':'rgba(255,255,255,.1)'}`,borderRadius:6,padding:'3px 8px',color:pts===4?'#FFD700':'rgba(255,255,255,.6)',flexShrink:0}}>{pts===4?'⚡':''}{pts}p</span>}
                   </div>
                 );
               })}
