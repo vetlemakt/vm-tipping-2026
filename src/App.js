@@ -19,7 +19,34 @@ import { C } from './styles';
 
 const YEL = '#FFD700';
 
-const Flag = ({ team }) => <span title={team}>{FLAGS[team] || '🏳️'}</span>;
+const COUNTRY_CODES = {
+  'Argentina':'ar','Algerie':'dz','Australia':'au','Belgia':'be',
+  'Bosnia-Herz':'ba','Brasil':'br','Canada':'ca','Colombia':'co',
+  'Curacao':'cw','Ecuador':'ec','Elfenbenskysten':'ci','Egypt':'eg',
+  'England':'gb-eng','Frankrike':'fr','Tyskland':'de','Ghana':'gh',
+  'Haiti':'ht','Iran':'ir','Irak':'iq','Japan':'jp','Jordan':'jo',
+  'Kamerun':'cm','Kapp Verde':'cv','Kongo DR':'cd','Kroatia':'hr',
+  'Marokko':'ma','Mexico':'mx','Nederland':'nl','New Zealand':'nz',
+  'Norge':'no','Panama':'pa','Paraguay':'py','Portugal':'pt',
+  'Qatar':'qa','Saudi-Arabia':'sa','Senegal':'sn','Skottland':'gb-sct',
+  'Spania':'es','Sveits':'ch','Sverige':'se','Sør-Afrika':'za',
+  'Sør-Korea':'kr','Tunisia':'tn','Tyrkia':'tr','Tsjekkia':'cz',
+  'USA':'us','Uruguay':'uy','Usbekistan':'uz',
+};
+
+const Flag = ({ team, size=20 }) => {
+  const code = COUNTRY_CODES[team];
+  if (!code) return <span title={team} style={{fontSize:size*0.8}}>🏳️</span>;
+  return (
+    <img
+      src={`https://flagcdn.com/w${size*2}/${code}.png`}
+      srcSet={`https://flagcdn.com/w${size*4}/${code}.png 2x`}
+      width={size} height={Math.round(size*0.67)}
+      alt={team} title={team}
+      style={{display:'inline-block',verticalAlign:'middle',borderRadius:2,objectFit:'cover'}}
+    />
+  );
+};
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
 
 const useIsMobile = () => {
