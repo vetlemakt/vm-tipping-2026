@@ -1392,8 +1392,8 @@ function ExpertCard({ expert, me, panelChoices }) {
       <div style={{ ...C.card, border: myChoice ? `2px solid ${expert.color}` : '1px solid rgba(255,255,255,.08)' }}>
         <div style={{ padding: '16px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
           {/* Square image */}
-          <div onClick={() => setZoomed(true)} style={{ width:100, height:120, flexShrink:0, borderRadius:8, overflow:'hidden', cursor:'zoom-in', background:'#000', border:`2px solid ${expert.color}44`, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <img src={expert.img} alt={expert.name} style={{ width:'100%', height:'100%', objectFit:'contain', background:'#000' }}
+          <div onClick={() => setZoomed(true)} style={{ width:90, flexShrink:0, borderRadius:8, overflow:'hidden', cursor:'zoom-in', border:`2px solid ${expert.color}44` }}>
+            <img src={expert.img} alt={expert.name} style={{ width:'100%', height:'auto', display:'block' }}
               onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML = '<span style="font-size:36px">' + expert.emoji + '</span>'; }} />
           </div>
           {/* Info */}
