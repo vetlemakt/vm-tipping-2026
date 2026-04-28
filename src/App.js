@@ -39,11 +39,10 @@ const Flag = ({ team, size=20 }) => {
   if (!code) return <span title={team} style={{fontSize:size*0.8}}>🏳️</span>;
   return (
     <img
-      src={`https://flagcdn.com/w${size*2}/${code}.png`}
-      srcSet={`https://flagcdn.com/w${size*4}/${code}.png 2x`}
+      src={`https://flagcdn.com/w40/${code}.png`}
       width={size} height={Math.round(size*0.67)}
       alt={team} title={team}
-      style={{display:'inline-block',verticalAlign:'middle',borderRadius:2,objectFit:'cover'}}
+      style={{display:'inline-block',verticalAlign:'middle',borderRadius:2,objectFit:'cover',minWidth:size}}
     />
   );
 };
@@ -825,8 +824,8 @@ function TipsForm({ me, phase }) {
                     <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
                       {/* Date+time – hidden on portrait mobile via CSS class */}
                       <div className="hide-portrait" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0}}>
-                        <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
-                        {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Fira Code',monospace"}}>{m.time}</span>}
+                        <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
+                        {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
                       </div>
                       {/* Home: flag + name(hidden on portrait) */}
                       <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end'}}>
