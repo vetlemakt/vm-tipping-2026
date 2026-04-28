@@ -18,7 +18,7 @@ import {
 import { C } from './styles';
 
 const YEL = '#FFD700';
-const GRN = '#2EAA4A';
+
 const Flag = ({ team }) => <span title={team}>{FLAGS[team] || '🏳️'}</span>;
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
 
