@@ -252,6 +252,60 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
 }
 
 
+
+// Render chat text with clickable links
+function renderChatText(text) {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/\S+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) =>
+    urlRegex.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+          style={{ color:'#60a5fa', textDecoration:'underline', wordBreak:'break-all' }}>{part}</a>
+      : part
+  );
+}
+
+
+// Online users popup indicator
+function OnlineIndicator({ onlineUsers }) {
+  const [show, setShow] = useState(false);
+  const isMobile = useIsMobile();
+  return (
+    <div style={{ position:'relative' }}
+      onMouseEnter={() => !isMobile && setShow(true)}
+      onMouseLeave={() => !isMobile && setShow(false)}
+      onClick={() => isMobile && setShow(s => !s)}>
+      <span style={{ fontSize:12, color:'#4ade80', fontFamily:"'Fira Code',monospace", display:'flex', alignItems:'center', gap:4, cursor:'pointer' }}>
+        <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }}/>
+        {onlineUsers.length} online
+      </span>
+      {show && (
+        <>
+          {isMobile && <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:98 }}/>}
+          <div style={{
+            position:'absolute', top:'100%', right:0, zIndex:99,
+            background:'rgba(10,14,26,.97)', border:'1px solid rgba(74,222,128,.3)',
+            borderRadius:10, padding:'10px 14px', minWidth:160, marginTop:6,
+            boxShadow:'0 8px 24px rgba(0,0,0,.5)',
+          }}>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,.4)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>Pålogget nå</div>
+            {onlineUsers.length === 0
+              ? <div style={{ fontSize:12, color:'rgba(255,255,255,.4)' }}>Ingen</div>
+              : onlineUsers.map(name => (
+                <div key={name} style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 0', fontSize:13, color:'#e8edf8' }}>
+                  <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', display:'inline-block' }}/>
+                  {name}
+                </div>
+              ))
+            }
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════════════════════════════════════
@@ -363,9 +417,9 @@ function Dashboard({ me }) {
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Poengtabell</span>
           <span style={{ ...C.badge, background: 'rgba(255,215,0,.1)', color: YEL, border: '1px solid rgba(255,215,0,.2)' }}>LIVE</span>
         </div>
-        <div style={C.cardBody}>
+        <div style={{ ...C.cardBody, maxHeight: 420, overflowY: 'auto' }}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
-          {users.slice(0, 8).map((r, i) => (
+          {users.map((r, i) => (
             <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}) }}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
@@ -383,10 +437,7 @@ function Dashboard({ me }) {
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <span style={{ fontSize: 12, color: '#4ade80', fontFamily: "'Fira Code',monospace", display:'flex', alignItems:'center', gap:4 }}>
-              <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }}/>
-              {onlineUsers.length} online
-            </span>
+            <OnlineIndicator onlineUsers={onlineUsers} />
             <button onClick={() => setChatFullscreen(f => !f)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
@@ -397,7 +448,7 @@ function Dashboard({ me }) {
             return (
               <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
                 <span style={{ ...C.chatBubble, background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)', border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}` }}>
-                  {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:200,borderRadius:8,display:'block'}} /> : m.text}
+                  {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:200,borderRadius:8,display:'block'}} /> : renderChatText(m.text)}
                 </span>
                 <div style={{display:'flex',gap:8,alignItems:'center',justifyContent: mine?'flex-end':'flex-start'}}>
                   <span style={{...C.chatUser,color: mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
@@ -516,7 +567,7 @@ function Dashboard({ me }) {
                 return (
                   <div key={m.id||i} style={{ ...C.chatMsg, alignSelf: mine?'flex-end':'flex-start' }}>
                     <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}` }}>
-                      {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : m.text}
+                      {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : renderChatText(m.text)}
                     </span>
                     <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
                       <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
