@@ -1304,18 +1304,16 @@ function YouTubePlayer() {
           }}>×</button>
         </div>
       </div>
-      {!minimized && (
-        <iframe
-          width="240"
-          height="135"
-          src={`https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=${startIndex}&autoplay=0&rel=0`}
-          title="VM-musikk"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          style={{ display: 'block' }}
-        />
-      )}
+      <iframe
+        width="240"
+        height="135"
+        src={`https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=${startIndex}&autoplay=0&rel=0`}
+        title="VM-musikk"
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        style={{ display: minimized ? 'none' : 'block' }}
+      />
     </div>
   );
 }
