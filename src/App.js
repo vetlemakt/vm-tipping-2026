@@ -1270,7 +1270,13 @@ function InfoPage() {
 function YouTubePlayer() {
   const [visible, setVisible] = useState(true);
   const [minimized, setMinimized] = useState(true);
-  const [startIndex] = useState(() => Math.floor(Math.random() * 50));
+  const YT_STARTS = [
+    'n5F-4Dd0LwU&list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=3',
+    'OjY6k5aTgik&list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=7',
+    '0J2QdDbelmY&list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=11',
+    'dLB56lFYlBI&list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=13',
+  ];
+  const [startId] = useState(() => YT_STARTS[Math.floor(Math.random() * YT_STARTS.length)]);
   if (!visible) return null;
   return (
     <div style={{
@@ -1307,7 +1313,7 @@ function YouTubePlayer() {
       <iframe
         width="240"
         height="135"
-        src={`https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=${startIndex}&autoplay=0&rel=0`}
+        src={`https://www.youtube.com/embed/${startId}&autoplay=0&rel=0`}
         title="VM-musikk"
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
