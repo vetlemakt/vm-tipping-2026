@@ -1525,7 +1525,6 @@ function ExpertCard({ expert, me, panelChoices, userNames={} }) {
             )}
           </div>
         </div>
-        {viewTips && <ExpertTipsView expert={expert} />}
       </div>
     </>
   );
