@@ -985,6 +985,7 @@ function AdminPanel() {
   const [cards, setCardsState] = useState({});
   const [aTab, setATab] = useState('phase');
   const [ag, setAg] = useState('A');
+  const [generatingBots, setGeneratingBots] = useState(false);
 
   useEffect(() => { getPhase().then(setPhaseState); }, []);
   useEffect(() => { getResults().then(setResultsState); }, []);
@@ -995,6 +996,39 @@ function AdminPanel() {
   const setGrpResult = async (g, i, val) => { const key = `grp_${g}`; const arr = results[key] ? [...results[key]] : ['', '', '', '']; arr[i] = val; const upd = { ...results, [key]: arr }; setResultsState(upd); await setResults(upd); };
   const setSpec = async (key, val) => { const upd = { ...results, [key]: val }; setResultsState(upd); await setResults(upd); };
   const updCard = async (team, type, val) => { const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0); const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0); const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 }; setCardsState(upd); await setCardStats(upd); };
+
+  const generateAllBotTips = async () => {
+    setGeneratingBots(true);
+    try {
+      for (const expert of PANEL_EXPERTS) {
+        const tips = await generateExpertTips(expert);
+        if (Object.keys(tips).length > 0) {
+          // Generate special tips too
+          const specPrompt = 'Du er ' + expert.name + '. ' + expert.personality +
+            '\n\nVelg ett lag for hvert av disse spesialtipsene basert på din personlighet:\n' +
+            '- champion (VM-vinner)\n- runner_up (sølvvinner)\n- third (bronsevinner)\n- most_carded (lag med mest kort)\n\n' +
+            'Svar KUN med JSON: {"champion":"Brasil","runner_up":"Frankrike","third":"England","most_carded":"Argentina"}';
+          const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+          let specialTips = {};
+          if (apiKey) {
+            try {
+              const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+                body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:200,messages:[{role:'user',content:specPrompt}]})
+              });
+              const d = await res.json();
+              const t = d.content?.[0]?.text || '{}';
+              specialTips = JSON.parse(t.replace(/```json|```/g,'').trim());
+            } catch(e) { console.warn('Special tips failed:', e); }
+          }
+          await updateUser('panel_' + expert.id, { tips, specialTips });
+        }
+      }
+      alert('Bot-tips generert! ✅');
+    } catch(e) { alert('Feil: ' + e.message); }
+    setGeneratingBots(false);
+  };
 
   const downloadBackup = async () => {
     try {
@@ -1034,6 +1068,9 @@ function AdminPanel() {
         <span style={C.cardTitle}><span style={C.cardTitleDot} /> Admin</span>
         <button style={{ ...C.btnGold, width:'auto', padding:'7px 16px', fontSize:12 }} onClick={downloadBackup}>
           💾 Last ned backup
+        </button>
+        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:12 }} onClick={generateAllBotTips} disabled={generatingBots}>
+          {generatingBots ? '⟳ Genererer...' : '🤖 Generer bot-tips'}
         </button>
       </div>
       <div style={C.cardBody}>
@@ -1635,12 +1672,18 @@ function PanelPage({ me }) {
       </div>
       <PanelLeaderboard onSelect={setSelectedExpert} />
       {selectedExpert && (
-        <div style={C.card}>
-          <div style={C.cardHeader}>
-            <span style={C.cardTitle}><span style={C.cardTitleDot}/>{selectedExpert.firstName}s tips</span>
-            <button onClick={() => setSelectedExpert(null)} style={{...C.btnSecondary,padding:'5px 14px',fontSize:12}}>× Lukk</button>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}
+          onClick={() => setSelectedExpert(null)}>
+          <div style={{background:'#0d1230',border:`2px solid ${selectedExpert.color}`,borderRadius:16,width:'100%',maxWidth:560,maxHeight:'80vh',display:'flex',flexDirection:'column',overflow:'hidden'}}
+            onClick={e => e.stopPropagation()}>
+            <div style={{...C.cardHeader,flexShrink:0,borderBottom:`1px solid ${selectedExpert.color}33`}}>
+              <span style={{...C.cardTitle,color:selectedExpert.color}}>{selectedExpert.firstName}s tips</span>
+              <button onClick={() => setSelectedExpert(null)} style={{...C.btnSecondary,padding:'5px 14px',fontSize:12}}>× Lukk</button>
+            </div>
+            <div style={{overflowY:'auto',flex:1}}>
+              <div style={C.cardBody}><ExpertTipsView expert={selectedExpert}/></div>
+            </div>
           </div>
-          <div style={C.cardBody}><ExpertTipsView expert={selectedExpert}/></div>
         </div>
       )}
       <div style={{ display:'flex', flexDirection:'column', gap:16, marginTop:16 }}>
