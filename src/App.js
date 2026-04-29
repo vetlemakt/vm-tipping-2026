@@ -20,6 +20,7 @@ import { C } from './styles';
 const YEL = '#FFD700';
 
 const COUNTRY_CODES = {
+  'Danmark':'dk','Italia':'it','Østerrike':'at',
   'Argentina':'ar','Algerie':'dz','Australia':'au','Belgia':'be',
   'Bosnia-Herz':'ba','Brasil':'br','Canada':'ca','Colombia':'co',
   'Curacao':'cw','Ecuador':'ec','Elfenbenskysten':'ci','Egypt':'eg',
@@ -32,6 +33,14 @@ const COUNTRY_CODES = {
   'Spania':'es','Sveits':'ch','Sverige':'se','Sør-Afrika':'za',
   'Sør-Korea':'kr','Tunisia':'tn','Tyrkia':'tr','Tsjekkia':'cz',
   'USA':'us','Uruguay':'uy','Usbekistan':'uz',
+};
+
+const TOPSCORER_FLAGS = {
+  'Erik Solér': 'no',
+  'Jørn Hoel': 'no',
+  'Bjørn Wirkola': 'no',
+  'Diego Armando Maradona': 'ar',
+  'Dennis Bergkamp': 'nl',
 };
 
 const Flag = ({ team, size=20 }) => {
@@ -1020,10 +1029,17 @@ function AdminPanel() {
         if (Object.keys(mergedTips).length >= 0) {
           // Generate special tips too
           const teamList = ALL_TEAMS.join(', ');
-          const specPrompt = 'Du er ' + expert.name + '. ' + expert.personality +
-            '\n\nVelg ett lag for hvert spesialtips basert på din personlighet. Velg KUN fra disse lagene: ' + teamList +
-            '\n\n- champion (VM-vinner)\n- runner_up (sølvvinner)\n- third (bronsevinner)\n- most_carded (lag med mest kort)\n\n' +
-            'Svar KUN med JSON (ingen annen tekst): {"champion":"Brasil","runner_up":"Frankrike","third":"England","most_carded":"Argentina"}';
+          const specInstructions = {
+            ragnhild: 'Velg basert på drakter og musikk. Brasil (gult) vinner, Nederland (oransje) er fin. Du vil gjerne velge Danmark eller Italia men de er ikke med - velg da Spania som er nesten like elegante. Mest kort: England (de er litt røffe).',
+            hendrik: 'Nederland vinner ALT. Champion: Nederland. Runner_up: Nederland finnes ikke som nr 2 men hvis du må: Brasil. Third: Tyskland. Most_carded: England.',
+            kimlevi: 'Velg HELT tilfeldig fra listen. Du aner ikke hvem som er bra.',
+            bengt: 'Brasil vinner (Zico!), Argentina nummer to (Maradona!), Tyskland tredje (Beckenbauer!). Mest kort: Brasil selvfølgelig, de er aggressive.',
+            odd: 'Brasil kan ikke vinne (de jukser). Canada vinner hjemmebane! Runner_up: USA (hjemmebane fordel). Third: Mexico. Mest kort: Brasil (bevis på juks).',
+          };
+          const specPrompt = 'Du er ' + expert.name + '. ' +
+            (specInstructions[expert.id] || '') +
+            '\n\nVelg fra DISSE lagene: ' + teamList +
+            '\n\nSvar KUN med JSON: {"champion":"Brasil","runner_up":"Frankrike","third":"England","most_carded":"Argentina"}';
           const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
 
           let specialTips = {};
@@ -1393,15 +1409,52 @@ async function setPanelChoice(username, expertId) {
 // Generate tips via Claude API for a panel expert
 async function generateExpertTips(expert) {
   const matchLines = GROUP_MATCHES.map(m => m.id + ': ' + m.home + ' vs ' + m.away).join('\n');
-  const styleNote = expert.id === 'ragnhild' ? 'Tipper på land med fine drakter og god musikk.' :
-    expert.id === 'leifarne' ? 'Tipper tilfeldig basert på magefølelse.' :
-    expert.id === 'bjornar' ? 'Tipper basert på 80-talls fotballkunnskap.' :
-    expert.id === 'oddgunnar' ? 'Tipper mot Brasil alltid, favoriserer land med snø.' : '';
+
+  const styleInstructions = {
+    ragnhild: `VIKTIG: Du MÅ tippe basert UTELUKKENDE på drakter og musikk, IKKE fotballkunnskap.
+- Brasil har vakre gule drakter og samba → tipper Brasil vinner alltid
+- Nederland har flott oransje → tipper Nederland vinner
+- Italia er elegant blå (selv om de ikke er med) → du er skuffet
+- Land du liker estetisk: Brasil, Nederland, Spania, Frankrike, Argentina
+- Land du er skeptisk til: USA (for mye reklame), England (grå drakter), Korea (ukjent musikk)
+- Du tipper ALLTID høyere score for vakre lag. F.eks Brasil 3-0, Nederland 2-0.
+- Kamper mellom to "stygge" lag ender 0-0 etter din mening`,
+
+    hendrik: `VIKTIG: Du tipper Nederland til å vinne ALT. Nederland er uslåelige i dine øyne.
+- Nederland vinner alle kamper, minst 2-0
+- Land du kjenner fra TV: Brasil ok, Tyskland ok, Frankrike ok
+- Du tror fremdeles Rintje Ritsma er på laget til Nederland
+- Kamper uten nederlandske lag: tipp tilfeldig men helst lav score
+- DJ Bobo er fra Sveits → tipper Sveits litt høyere enn normalt`,
+
+    kimlevi: `VIKTIG: Du aner INGENTING om fotball. Tipp HELT TILFELDIG og kaotisk.
+- Ingen logikk whatsoever. Høye tall er like sannsynlig som lave.
+- Du kan tippe 5-4, 0-7, 3-3 - helt tilfeldig
+- Tromsø er ikke med i VM så du er ikke engasjert
+- Noen ganger tipper du 0-0 på alt fordi du ikke gidder
+- Maks variasjon: noen kamper 4-3, andre 0-0, noen 1-5`,
+
+    bengt: `VIKTIG: Din fotballkunnskap er fra 80-tallet og du tror verden er slik fremdeles.
+- Brasil er alltid best (Zico, Socrates, Falcao) → Brasil vinner ALT
+- Argentina er farlige (Maradona) → Argentina vinner mye
+- Vest-Tyskland/Tyskland er alltid solide → Germany vinner
+- Du har aldri hørt om Sør-Korea, Marokko, Senegal → tipp 0-2 mot disse
+- Kamper med "moderne" lag du ikke kjenner → hjemmelag taper alltid`,
+
+    odd: `VIKTIG: Brasil JUKSER alltid, og land uten snø er ikke til å stole på.
+- Brasil taper ALLE kamper (de jukser, men det hjelper dem ikke mot deg)
+- Land med snø vinner: Norge, Sverige, Canada, Island (ikke med men likevel)
+- Canada hjemmebane → Canada vinner alltid
+- Mexico er mistenkt for juks (det er varmt der)
+- Kamper mellom to "sørlige" land: begge taper (0-0 eller 1-1)
+- Frankrike er litt ok fordi de har bønder i Normandie`,
+  };
+
   const prompt = 'Du er ' + expert.name + '. ' + expert.personality +
-    '\n\nDu skal tippe resultater for VM 2026 kampene. Gi et realistisk resultat for disse kampene basert på din personlighet:\n' +
+    '\n\n' + (styleInstructions[expert.id] || '') +
+    '\n\nTipp disse kampene. Følg instruksjonene NØYAKTIG:\n' +
     matchLines +
-    '\n\nSvar KUN med JSON i dette formatet (ingen annen tekst):\n{"tips": {"A1": {"home": 2, "away": 1}, "A2": {"home": 0, "away": 0}, ...}}\n' +
-    styleNote;
+    '\n\nSvar KUN med JSON (ingen annen tekst, ingen forklaring):\n{"tips": {"A1": {"home": 2, "away": 1}, ...}}';
 
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
   if (!apiKey) return {};
@@ -1622,8 +1675,13 @@ function ExpertTipsView({ expert }) {
         {SPEC_FIELDS.map(({key,label}) => (
           <div key={key} style={{...C.specRow}}>
             <span style={{...C.specLabel,fontSize:12}}>{label}</span>
-            <span style={{color:spec[key]?'#e8edf8':'rgba(255,255,255,.3)',fontSize:13}}>
-              {spec[key] ? <><Flag team={spec[key]} size={16}/> {spec[key]}</> : key==='topscorer' ? (spec[key]||'–') : '–'}
+            <span style={{color:spec[key]?'#e8edf8':'rgba(255,255,255,.3)',fontSize:13,display:'flex',alignItems:'center',gap:6}}>
+              {key==='topscorer'
+                ? spec[key]
+                  ? <>{TOPSCORER_FLAGS[spec[key]] && <img src={`https://flagcdn.com/w40/${TOPSCORER_FLAGS[spec[key]]}.png`} width={16} height={11} alt="" style={{borderRadius:2,objectFit:'cover'}}/>} {spec[key]}</>
+                  : '–'
+                : spec[key] ? <><Flag team={spec[key]} size={16}/> {spec[key]}</> : '–'
+              }
             </span>
           </div>
         ))}
