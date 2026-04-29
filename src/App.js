@@ -1022,7 +1022,7 @@ function AdminPanel() {
               specialTips = JSON.parse(t.replace(/```json|```/g,'').trim());
             } catch(e) { console.warn('Special tips failed:', e); }
           }
-          await updateUser('panel_' + expert.id, { tips, specialTips });
+          await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips, specialTips, displayName: expert.name, password: 'bot' });
         }
       }
       alert('Bot-tips generert! ✅');
