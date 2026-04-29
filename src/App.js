@@ -1307,7 +1307,7 @@ function YouTubePlayer() {
         <iframe
           width="240"
           height="135"
-          src={`https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=${Math.floor(Math.random()*50)}&autoplay=0&rel=0`}
+          src="https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&autoplay=0&rel=0&shuffle=1"
           title="VM-musikk"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
