@@ -2001,6 +2001,18 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.isAdmin) return;
+    const check = async () => {
+      const auto = getAutoPhase();
+      const cur = await getPhase();
+      if (auto !== cur) await setPhase(auto);
+    };
+    check();
+    const iv = setInterval(check, 60000);
+    return () => clearInterval(iv);
+  }, [user]); // eslint-disable-line
+
   if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
   return (
     <div style={C.app}>
