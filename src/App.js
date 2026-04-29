@@ -698,8 +698,11 @@ function Leaderboard({ me }) {
               );
             })}
           </div>
-          <span style={{...C.secH,marginTop:16}}>Kamptips (gruppe {Object.keys(GROUPS)[0]})</span>
-          {GROUP_MATCHES.filter(m=>m.group==='A').map(m => {
+          <span style={{...C.secH,marginTop:16}}>Kamptips</span>
+          {Object.keys(GROUPS).map(g => (
+            <div key={g} style={{marginBottom:12}}>
+              <span style={C.roundL}>Gruppe {g}</span>
+              {GROUP_MATCHES.filter(m=>m.group===g).map(m => {
             const tip=(selected.tips||{})[m.id]; const act=results[m.id];
             const pts=tip&&act?calcMatchPts(tip,act):null;
             return (
@@ -712,6 +715,25 @@ function Leaderboard({ me }) {
                 {pts!==null&&<span style={{fontSize:11,color:pts===4?'#FFD700':'rgba(255,255,255,.5)',minWidth:32,textAlign:'right'}}>{pts===4?'⚡':''}{pts}p</span>}
               </div>
             );
+          })}
+            </div>
+          ))}
+          {/* Knockout matches */}
+          {KNOCKOUT_ROUNDS.map(({phase:kp,label}) => {
+            const kMatches = KNOCKOUT_MATCHES.filter(m => (selected.tips||{})[m.id]);
+            if(kMatches.length===0) return null;
+            return <div key={kp} style={{marginBottom:8}}>
+              <span style={C.roundL}>{label}</span>
+              {kMatches.map(m => {
+                const tip=(selected.tips||{})[m.id];
+                return <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:12}}>
+                  <span style={{color:'rgba(255,255,255,.4)',minWidth:55}}>Kamp {m.matchNum}</span>
+                  <span style={{flex:1,textAlign:'right',color:'rgba(255,255,255,.6)'}}>{m.home}</span>
+                  <span style={{fontFamily:"'Fira Code',monospace",color:'#FFD700',padding:'1px 6px',background:'rgba(255,215,0,.08)',borderRadius:4}}>{tip.home}–{tip.away}</span>
+                  <span style={{flex:1,color:'rgba(255,255,255,.6)'}}>{m.away}</span>
+                </div>;
+              })}
+            </div>;
           })}
           <p style={{color:'rgba(255,255,255,.3)',fontSize:12,marginTop:12}}>Trykk tilbake for å se full tabell</p>
         </div>
@@ -819,7 +841,7 @@ function TipsForm({ me, phase }) {
                   <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
                     value={spec[key] || ''} onChange={e => setSp(key, e.target.value)}>
                     <option value=''>– Velg –</option>
-                    {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
+                    {ALL_TEAMS.map(t => { const code = COUNTRY_CODES[t]; return <option key={t} value={t}>{code ? String.fromCodePoint(...[...code.toUpperCase()].map(c=>c.charCodeAt(0)+127397)) : (FLAGS[t]||'')} {t}</option>; })}
                   </select>
                   {spec[key] && <Flag team={spec[key]} />}
                 </>
@@ -882,7 +904,7 @@ function TipsForm({ me, phase }) {
               <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
                 value={grpO[ag]?.[pos] || ''} onChange={e => setOrd(ag, pos, e.target.value)}>
                 <option value=''>– Velg lag –</option>
-                {GROUPS[ag].map(t => <option key={t} value={t}>{FLAGS[t] || ''} {t}</option>)}
+                {GROUPS[ag].map(t => { const code = COUNTRY_CODES[t]; return <option key={t} value={t}>{code ? String.fromCodePoint(...[...code.toUpperCase()].map(c=>c.charCodeAt(0)+127397)) : (FLAGS[t]||'')} {t}</option>; })}
               </select>
             </div>
           ))}
