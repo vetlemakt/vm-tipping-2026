@@ -1584,27 +1584,65 @@ function ExpertCard({ expert, me, panelChoices, userNames={} }) {
 
 // ── Expert Tips View ──────────────────────────────────────────────────
 function ExpertTipsView({ expert }) {
-  const [tips, setTips] = useState(null);
+  const [userData, setUserData] = useState(null);
   useEffect(() => {
-    getUser('panel_' + expert.id).then(u => setTips(u?.tips || {}));
+    getUser('panel_' + expert.id).then(u => setUserData(u));
   }, [expert.id]);
 
-  if (!tips) return <div style={{ padding:'12px 18px', color:'rgba(255,255,255,.4)', fontSize:13 }}>Laster...</div>;
-  const played = Object.keys(tips).length;
-  if (played === 0) return <div style={{ padding:'12px 18px', color:'rgba(255,255,255,.4)', fontSize:13 }}>Ingen tips levert ennå.</div>;
+  if (!userData) return <div style={{color:'rgba(255,255,255,.4)',fontSize:13,padding:8}}>Laster...</div>;
+  const tips = userData.tips || {};
+  const spec = userData.specialTips || {};
+  if (Object.keys(tips).length === 0) return <div style={{color:'rgba(255,255,255,.4)',fontSize:13,padding:8}}>Ingen tips levert ennå.</div>;
 
   return (
-    <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', padding:'12px 18px' }}>
-      <span style={C.secH}>Kamptips – gruppe {Object.keys(GROUPS)[0]}</span>
-      {GROUP_MATCHES.filter(m => m.group === 'A' && tips[m.id]).map(m => (
-        <div key={m.id} style={{ ...C.mRow, marginBottom:3, justifyContent:'space-between' }}>
-          <span style={{ fontSize:13, flex:1 }}><Flag team={m.home}/> {m.home}</span>
-          <span style={{ fontFamily:"'Fira Code',monospace", color:'#FFD700', padding:'2px 10px', background:'rgba(255,215,0,.08)', borderRadius:6 }}>
-            {tips[m.id] ? tips[m.id].home + '–' + tips[m.id].away : '?'}
-          </span>
-          <span style={{ fontSize:13, flex:1, textAlign:'right' }}>{m.away} <Flag team={m.away}/></span>
+    <div>
+      {/* Special tips */}
+      <span style={C.secH}>Spesialtips</span>
+      <div style={{...C.specBox, marginBottom:16}}>
+        {SPEC_FIELDS.map(({key,label}) => (
+          <div key={key} style={{...C.specRow}}>
+            <span style={{...C.specLabel,fontSize:12}}>{label}</span>
+            <span style={{color:spec[key]?'#e8edf8':'rgba(255,255,255,.3)',fontSize:13}}>
+              {spec[key] ? <><Flag team={spec[key]} size={16}/> {spec[key]}</> : key==='topscorer' ? (spec[key]||'–') : '–'}
+            </span>
+          </div>
+        ))}
+      </div>
+      {/* All group matches */}
+      {Object.keys(GROUPS).map(g => (
+        <div key={g} style={{marginBottom:12}}>
+          <span style={{...C.roundL}}>Gruppe {g}</span>
+          {GROUP_MATCHES.filter(m => m.group === g && tips[m.id]).map(m => (
+            <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+              <span style={{fontSize:12,flex:1,display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end'}}><Flag team={m.home} size={14}/> {m.home}</span>
+              <span style={{fontFamily:"'Fira Code',monospace",color:'#FFD700',padding:'2px 8px',background:'rgba(255,215,0,.08)',borderRadius:5,fontSize:13,flexShrink:0}}>
+                {tips[m.id].home}–{tips[m.id].away}
+              </span>
+              <span style={{fontSize:12,flex:1,display:'flex',alignItems:'center',gap:4}}>{m.away} <Flag team={m.away} size={14}/></span>
+            </div>
+          ))}
         </div>
       ))}
+      {/* Knockout matches */}
+      {KNOCKOUT_ROUNDS.map(({phase:kp, label}) => {
+        const kMatches = KNOCKOUT_MATCHES.filter(m => m.phase === kp && tips[m.id]);
+        if (kMatches.length === 0) return null;
+        return (
+          <div key={kp} style={{marginBottom:12}}>
+            <span style={{...C.roundL}}>{label}</span>
+            {kMatches.map(m => (
+              <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                <span style={{fontSize:11,color:'rgba(255,255,255,.5)',minWidth:60}}>Kamp {m.matchNum}</span>
+                <span style={{fontSize:12,flex:1,textAlign:'right',color:'rgba(255,255,255,.6)'}}>{m.home}</span>
+                <span style={{fontFamily:"'Fira Code',monospace",color:'#FFD700',padding:'2px 8px',background:'rgba(255,215,0,.08)',borderRadius:5,fontSize:13,flexShrink:0}}>
+                  {tips[m.id].home}–{tips[m.id].away}
+                </span>
+                <span style={{fontSize:12,flex:1,color:'rgba(255,255,255,.6)'}}>{m.away}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1672,17 +1710,15 @@ function PanelPage({ me }) {
       </div>
       <PanelLeaderboard onSelect={setSelectedExpert} />
       {selectedExpert && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:600,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'16px 16px 0 16px',overflowY:'auto'}}
           onClick={() => setSelectedExpert(null)}>
-          <div style={{background:'#0d1230',border:`2px solid ${selectedExpert.color}`,borderRadius:16,width:'100%',maxWidth:560,maxHeight:'80vh',display:'flex',flexDirection:'column',overflow:'hidden'}}
+          <div style={{background:'#0d1230',border:`2px solid ${selectedExpert.color}`,borderRadius:16,width:'100%',maxWidth:600,marginTop:16,marginBottom:32}}
             onClick={e => e.stopPropagation()}>
-            <div style={{...C.cardHeader,flexShrink:0,borderBottom:`1px solid ${selectedExpert.color}33`}}>
+            <div style={{...C.cardHeader,borderBottom:`1px solid ${selectedExpert.color}33`,position:'sticky',top:0,background:'#0d1230',zIndex:1}}>
               <span style={{...C.cardTitle,color:selectedExpert.color}}>{selectedExpert.firstName}s tips</span>
               <button onClick={() => setSelectedExpert(null)} style={{...C.btnSecondary,padding:'5px 14px',fontSize:12}}>× Lukk</button>
             </div>
-            <div style={{overflowY:'auto',flex:1}}>
-              <div style={C.cardBody}><ExpertTipsView expert={selectedExpert}/></div>
-            </div>
+            <div style={C.cardBody}><ExpertTipsView expert={selectedExpert}/></div>
           </div>
         </div>
       )}
