@@ -1832,29 +1832,6 @@ async function fetchAndUpdateResults() {
 }
 
 
-// Auto-fill tips for users who haven't submitted before deadline
-async function autoFillMissingTips(users) {
-  const choices = await getPanelChoices();
-  for (const user of users) {
-    if (user.id === 'admin') continue;
-    const hasTips = user.tips && Object.keys(user.tips).length > 0;
-    if (!hasTips) {
-      // Pick random expert
-      const randomExpert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
-      try {
-        const tips = await generateExpertTips(randomExpert);
-        await updateUser(user.id, { tips: { ...(user.tips || {}), ...tips } });
-        // Record which expert was chosen
-        const snap = await getDoc(doc(db, 'config', 'panelChoices'));
-        const data = snap.exists() ? snap.data() : {};
-        if (!data[user.id]) { // only if they haven't already chosen
-          data[user.id] = randomExpert.id;
-          await setDoc(doc(db, 'config', 'panelChoices'), data);
-        }
-      } catch(e) { console.warn('Auto-fill failed for', user.id, e); }
-    }
-  }
-}
 
 // ══════════════════════════════════════════════════════════════════════
 //  ROOT APP
