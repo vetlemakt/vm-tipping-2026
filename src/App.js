@@ -1363,11 +1363,17 @@ async function generateExpertTips(expert) {
     })
   });
   const data = await response.json();
+  console.log('API response for tips:', JSON.stringify(data).slice(0, 500));
   const text = data.content?.[0]?.text || '{}';
   try {
     const clean = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(clean).tips || {};
-  } catch { return {}; }
+    const parsed = JSON.parse(clean);
+    console.log('Parsed tips keys:', Object.keys(parsed.tips || {}));
+    return parsed.tips || {};
+  } catch(e) {
+    console.error('Parse error:', e, 'Text was:', text.slice(0, 200));
+    return {};
+  }
 }
 
 // Store per-expert chat history in memory
@@ -1465,10 +1471,19 @@ function ExpertCard({ expert, me, panelChoices, userNames={} }) {
     try {
       const u = await getUser(me.username);
       const tips = await generateExpertTips(expert);
+      console.log('Generated tips:', tips, 'Keys:', Object.keys(tips).length);
+      if (Object.keys(tips).length === 0) {
+        alert('Fikk ingen tips fra ' + expert.firstName + '. Prøv igjen.');
+        setLoading(false);
+        return;
+      }
       await updateUser(me.username, { tips: { ...(u?.tips || {}), ...tips } });
       await setPanelChoice(me.username, expert.id);
       setDone(true);
-    } catch(e) { alert('Feil: ' + e.message); }
+    } catch(e) {
+      console.error('fillMyTips error:', e);
+      alert('Feil: ' + e.message);
+    }
     setLoading(false);
   };
 
