@@ -302,6 +302,19 @@ function renderChatText(text) {
 }
 
 
+// Format fulltreff lightning bolts - red for groups of 10
+function renderFulltreff(count) {
+  if (!count || count === 0) return null;
+  const trophies = Math.floor(count / 10);
+  const balls = count % 10;
+  return (
+    <span style={{display:'flex',alignItems:'center',gap:1,flexWrap:'nowrap',lineHeight:1}}>
+      {Array.from({length:trophies}).map((_,i) => <span key={'t'+i} style={{fontSize:14}}>🏆</span>)}
+      {Array.from({length:balls}).map((_,i) => <span key={'b'+i} style={{fontSize:12}}>⚽</span>)}
+    </span>
+  );
+}
+
 // Online users popup indicator
 function OnlineIndicator({ onlineUsers }) {
   const [show, setShow] = useState(false);
@@ -462,9 +475,12 @@ function Dashboard({ me }) {
             <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}) }}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
-              <div style={{ textAlign: 'right' }}>
-                <div style={C.lbPts}>{r.total}</div>
-                <div style={C.lbPtsL}>poeng</div>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
+                <div style={{ textAlign: 'right' }}>
+                  <div style={C.lbPts}>{r.total}</div>
+                  <div style={C.lbPtsL}>poeng</div>
+                </div>
               </div>
             </div>
           ))}
@@ -706,9 +722,9 @@ function Leaderboard({ me }) {
             </span>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {(r.fulltreff||0) > 0 && (
-                <span style={{ fontSize:12, color:'#FFD700', whiteSpace:'nowrap' }}>
-                  {isMobile ? `⚡×${r.fulltreff}` : '⚡'.repeat(Math.min(r.fulltreff,8))}
-                </span>
+                isMobile
+                  ? <span style={{fontSize:12,color:'#FFD700'}}>⚡×{r.fulltreff}</span>
+                  : renderFulltreff(r.fulltreff)
               )}
               <div style={{ textAlign: 'right' }}>
                 <div style={C.lbPts}>{r.total}</div>
@@ -1428,13 +1444,21 @@ async function chatWithExpert(expert, message, history) {
 }
 
 // ── Expert Profile Card ───────────────────────────────────────────────
-function ExpertCard({ expert, me, panelChoices }) {
+function ExpertCard({ expert, me, panelChoices, userNames={} }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [zoomed, setZoomed] = useState(false);
-  const [viewTips, setViewTips] = useState(false);
-  const choosers = Object.entries(panelChoices).filter(([, v]) => v === expert.id).map(([k]) => k);
+  const [confirm, setConfirm] = useState(false);
+  const choosers = Object.entries(panelChoices).filter(([, v]) => v === expert.id).map(([k]) => userNames[k] || k);
   const myChoice = panelChoices[me.username] === expert.id;
+
+  const cancelChoice = async () => {
+    const snap = await getDoc(doc(db, 'config', 'panelChoices'));
+    const data = snap.exists() ? snap.data() : {};
+    delete data[me.username];
+    await setDoc(doc(db, 'config', 'panelChoices'), data);
+    setDone(false);
+  };
 
   const fillMyTips = async () => {
     setLoading(true);
@@ -1470,19 +1494,35 @@ function ExpertCard({ expert, me, panelChoices }) {
             <div style={{ fontSize:12, color:expert.color, fontStyle:'italic', marginBottom:8 }}>{expert.tagline}</div>
             <p style={{ fontSize:12, color:'rgba(255,255,255,.65)', lineHeight:1.6, margin:0 }}>{expert.bio}</p>
             {choosers.length > 0 && (
-              <div style={{ fontSize:11, color:'rgba(255,255,255,.3)', fontFamily:"'Fira Code',monospace", marginTop:8 }}>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,.4)', fontFamily:"'Fira Code',monospace", marginTop:8 }}>
                 Valgt av: {choosers.join(', ')}
               </div>
             )}
-            <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap' }}>
-              <button style={{ background:`linear-gradient(135deg, ${expert.color}, ${expert.color}bb)`, color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Kanit',sans-serif", letterSpacing:.5, opacity:loading?.6:1, whiteSpace:'nowrap' }}
-                onClick={fillMyTips} disabled={loading}>
-                {loading ? '⟳' : done ? '✅' : `La ${expert.firstName} velge`}
+            <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap', alignItems:'center' }}>
+              <button style={{ background:`linear-gradient(135deg, ${expert.color}, ${expert.color}bb)`, color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Kanit',sans-serif", letterSpacing:.5, opacity:loading?0.6:1, whiteSpace:'nowrap' }}
+                onClick={() => setConfirm(true)} disabled={loading}>
+                {loading ? '⟳' : done ? '✅ Valgt!' : 'Bruk ekspert'}
               </button>
-              <button style={{ ...C.btnSecondary, padding:'7px 12px', fontSize:12 }} onClick={() => setViewTips(v => !v)}>
-                {viewTips ? 'Skjul tips' : 'Se tips'}
-              </button>
+              {myChoice && (
+                <button style={{...C.btnSecondary, padding:'7px 12px', fontSize:11, color:'#ff7777'}}
+                  onClick={cancelChoice}>
+                  Angre
+                </button>
+              )}
             </div>
+            {confirm && (
+              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:800,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+                <div style={{background:'#0d1230',border:`2px solid ${expert.color}`,borderRadius:16,padding:28,maxWidth:400,width:'100%'}}>
+                  <p style={{color:'#e8edf8',fontSize:15,lineHeight:1.6,marginBottom:20}}>
+                    Oi! Er du sikker på at du vil la <strong style={{color:expert.color}}>{expert.firstName}</strong> velge for deg? Dette vil slette alle dine kommende tips.
+                  </p>
+                  <div style={{display:'flex',gap:10}}>
+                    <button style={{...C.btnGold,flex:1}} onClick={() => { setConfirm(false); fillMyTips(); }}>Ja, kjør på!</button>
+                    <button style={{...C.btnSecondary,flex:1}} onClick={() => setConfirm(false)}>Avbryt</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         {viewTips && <ExpertTipsView expert={expert} />}
@@ -1540,7 +1580,7 @@ function PanelLeaderboard({ onSelect }) {
             <span style={C.lbRank}>{['🥇','🥈','🥉'][i] || <span style={{color:'rgba(255,255,255,.4)',fontSize:13}}>{i+1}</span>}</span>
 
             <span style={{...C.lbName,color:r.color}}>{r.name}</span>
-            {(r.fulltreff||0)>0 && <span style={{fontSize:11,color:'#FFD700'}}>⚡×{r.fulltreff}</span>}
+            {(r.fulltreff||0)>0 && renderFulltreff(r.fulltreff)}
             <div style={{textAlign:'right'}}>
               <div style={C.lbPts}>{r.total}</div>
               <div style={C.lbPtsL}>poeng</div>
@@ -1556,8 +1596,14 @@ function PanelLeaderboard({ onSelect }) {
 function PanelPage({ me }) {
   const [panelChoices, setPanelChoices] = useState({});
   const [selectedExpert, setSelectedExpert] = useState(null);
+  const [userNames, setUserNames] = useState({});
 
   useEffect(() => {
+    getAllUsers().then(users => {
+      const map = {};
+      users.forEach(u => { map[u.id] = u.displayName || u.id; });
+      setUserNames(map);
+    });
     getPanelChoices().then(setPanelChoices);
     const unsub = onSnapshot(doc(db, 'config', 'panelChoices'), snap => {
       if (snap.exists()) setPanelChoices(snap.data());
@@ -1585,7 +1631,7 @@ function PanelPage({ me }) {
       )}
       <div style={{ display:'flex', flexDirection:'column', gap:16, marginTop:16 }}>
         {PANEL_EXPERTS.map(expert => (
-          <ExpertCard key={expert.id} expert={expert} me={me} panelChoices={panelChoices} />
+          <ExpertCard key={expert.id} expert={expert} me={me} panelChoices={panelChoices} userNames={userNames} />
         ))}
       </div>
     </div>
@@ -1783,6 +1829,31 @@ async function fetchAndUpdateResults() {
     }
   } catch(e) {
     console.warn('API-Football fetch error:', e);
+  }
+}
+
+
+// Auto-fill tips for users who haven't submitted before deadline
+async function autoFillMissingTips(users) {
+  const choices = await getPanelChoices();
+  for (const user of users) {
+    if (user.id === 'admin') continue;
+    const hasTips = user.tips && Object.keys(user.tips).length > 0;
+    if (!hasTips) {
+      // Pick random expert
+      const randomExpert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+      try {
+        const tips = await generateExpertTips(randomExpert);
+        await updateUser(user.id, { tips: { ...(user.tips || {}), ...tips } });
+        // Record which expert was chosen
+        const snap = await getDoc(doc(db, 'config', 'panelChoices'));
+        const data = snap.exists() ? snap.data() : {};
+        if (!data[user.id]) { // only if they haven't already chosen
+          data[user.id] = randomExpert.id;
+          await setDoc(doc(db, 'config', 'panelChoices'), data);
+        }
+      } catch(e) { console.warn('Auto-fill failed for', user.id, e); }
+    }
   }
 }
 
