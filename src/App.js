@@ -998,35 +998,34 @@ function AdminPanel() {
   const updCard = async (team, type, val) => { const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0); const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0); const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 }; setCardsState(upd); await setCardStats(upd); };
 
   const generateAllBotTips = async () => {
+    const topscorerMap = {
+      ragnhild: 'Erik Solér',
+      hendrik: 'Dennis Bergkamp',
+      kimlevi: 'Jørn Hoel',
+      bengt: 'Diego Armando Maradona',
+      odd: 'Bjørn Wirkola',
+    };
     setGeneratingBots(true);
     try {
       for (const expert of PANEL_EXPERTS) {
-        // Get existing tips first - don't overwrite already tipped matches
         const existingUser = await getUser('panel_' + expert.id);
         const existingTips = existingUser?.tips || {};
         const existingSpec = existingUser?.specialTips || {};
         const tips = await generateExpertTips(expert);
-        // Only add tips for matches not already tipped
         const newTips = {};
         Object.entries(tips).forEach(([k, v]) => {
           if (!existingTips[k]) newTips[k] = v;
         });
-        if (Object.keys(newTips).length > 0 || !existingUser) {
-          const mergedTips = { ...existingTips, ...newTips };
+        const mergedTips = { ...existingTips, ...newTips };
+        if (Object.keys(mergedTips).length >= 0) {
           // Generate special tips too
+          const teamList = ALL_TEAMS.join(', ');
           const specPrompt = 'Du er ' + expert.name + '. ' + expert.personality +
-            '\n\nVelg ett lag for hvert av disse spesialtipsene basert på din personlighet:\n' +
-            '- champion (VM-vinner)\n- runner_up (sølvvinner)\n- third (bronsevinner)\n- most_carded (lag med mest kort)\n\n' +
-            'Svar KUN med JSON: {"champion":"Brasil","runner_up":"Frankrike","third":"England","most_carded":"Argentina"}';
+            '\n\nVelg ett lag for hvert spesialtips basert på din personlighet. Velg KUN fra disse lagene: ' + teamList +
+            '\n\n- champion (VM-vinner)\n- runner_up (sølvvinner)\n- third (bronsevinner)\n- most_carded (lag med mest kort)\n\n' +
+            'Svar KUN med JSON (ingen annen tekst): {"champion":"Brasil","runner_up":"Frankrike","third":"England","most_carded":"Argentina"}';
           const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-          // Hardcoded topscorer picks per bot
-          const topscorerMap = {
-            ragnhild: 'Erik Solér',
-            hendrik: 'Dennis Bergkamp',
-            kimlevi: 'Jørn Hoel',
-            bengt: 'Diego Armando Maradona',
-            odd: 'Bjørn Wirkola',
-          };
+
           let specialTips = {};
           if (apiKey) {
             try {
@@ -1041,8 +1040,8 @@ function AdminPanel() {
             } catch(e) { console.warn('Special tips failed:', e); }
           }
           specialTips.topscorer = topscorerMap[expert.id] || '';
-          const mergedSpec = Object.keys(existingSpec).length > 0 ? existingSpec : specialTips;
-          mergedSpec.topscorer = topscorerMap[expert.id] || existingSpec.topscorer || '';
+          const mergedSpec = { ...specialTips, ...existingSpec };
+          mergedSpec.topscorer = topscorerMap[expert.id] || '';
           await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips: mergedTips, specialTips: mergedSpec, displayName: expert.name, password: 'bot' });
         }
       }
@@ -1853,6 +1852,32 @@ function ChatPage({ me }) {
   );
 }
 
+
+
+// ── Auto Phase Management ─────────────────────────────────────────────
+const PHASE_SCHEDULE = [
+  { phase: 'pre',          until: new Date('2026-06-11T19:00:00+02:00') },
+  { phase: 'group_lock',   until: new Date('2026-06-27T23:59:00+02:00') },
+  { phase: 'group_done',   until: new Date('2026-06-28T16:00:00+02:00') },
+  { phase: 'r32_lock',     until: new Date('2026-07-03T23:59:00+02:00') },
+  { phase: 'r32_done',     until: new Date('2026-07-04T17:00:00+02:00') },
+  { phase: 'r16_lock',     until: new Date('2026-07-07T23:59:00+02:00') },
+  { phase: 'r16_done',     until: new Date('2026-07-09T21:00:00+02:00') },
+  { phase: 'qf_lock',      until: new Date('2026-07-12T23:59:00+02:00') },
+  { phase: 'qf_done',      until: new Date('2026-07-14T00:00:00+02:00') },
+  { phase: 'sf_lock',      until: new Date('2026-07-15T23:59:00+02:00') },
+  { phase: 'sf_done',      until: new Date('2026-07-18T21:00:00+02:00') },
+  { phase: 'bronze_lock',  until: new Date('2026-07-19T21:00:00+02:00') },
+  { phase: 'finished',     until: null },
+];
+
+function getAutoPhase() {
+  const now = new Date();
+  for (const p of PHASE_SCHEDULE) {
+    if (!p.until || now < p.until) return p.phase;
+  }
+  return 'finished';
+}
 
 // ── API-Football auto-fetch ───────────────────────────────────────────
 // World Cup 2026 competition ID on API-Football
