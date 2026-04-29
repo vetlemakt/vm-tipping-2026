@@ -995,6 +995,7 @@ function AdminPanel() {
   const [aTab, setATab] = useState('phase');
   const [ag, setAg] = useState('A');
   const [generatingBots, setGeneratingBots] = useState(false);
+  const [forceRegen, setForceRegen] = useState(false);
 
   useEffect(() => { getPhase().then(setPhaseState); }, []);
   useEffect(() => { getResults().then(setResultsState); }, []);
@@ -1023,9 +1024,9 @@ function AdminPanel() {
         const tips = await generateExpertTips(expert);
         const newTips = {};
         Object.entries(tips).forEach(([k, v]) => {
-          if (!existingTips[k]) newTips[k] = v;
+          if (forceRegen || !existingTips[k]) newTips[k] = v;
         });
-        const mergedTips = { ...existingTips, ...newTips };
+        const mergedTips = forceRegen ? newTips : { ...existingTips, ...newTips };
         if (Object.keys(mergedTips).length >= 0) {
           // Generate special tips too
           const teamList = ALL_TEAMS.join(', ');
@@ -1061,6 +1062,7 @@ function AdminPanel() {
           await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips: mergedTips, specialTips: mergedSpec, displayName: expert.name, password: 'bot' });
         }
       }
+      setForceRegen(false);
       alert('Bot-tips generert! ✅');
     } catch(e) { alert('Feil: ' + e.message); }
     setGeneratingBots(false);
@@ -1107,6 +1109,9 @@ function AdminPanel() {
         </button>
         <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:12 }} onClick={generateAllBotTips} disabled={generatingBots}>
           {generatingBots ? '⟳ Genererer...' : '🤖 Generer bot-tips'}
+        </button>
+        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#ff9966' }} onClick={() => { setForceRegen(true); generateAllBotTips(); }} disabled={generatingBots}>
+          🔄 Tving regenerer
         </button>
       </div>
       <div style={C.cardBody}>
@@ -1560,7 +1565,7 @@ async function chatWithExpert(expert, message, history) {
 }
 
 // ── Expert Profile Card ───────────────────────────────────────────────
-function ExpertCard({ expert, me, panelChoices, userNames={} }) {
+function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [zoomed, setZoomed] = useState(false);
@@ -1614,7 +1619,8 @@ function ExpertCard({ expert, me, panelChoices, userNames={} }) {
           </div>
           {/* Info */}
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Kanit',sans-serif", fontSize:17, fontWeight:700, color:'#fff' }}>{expert.name}</div>
+            <div style={{ fontFamily:"'Kanit',sans-serif", fontSize:17, fontWeight:700, color:expert.color, cursor:'pointer', textDecoration:'underline', textDecorationColor:expert.color+'66' }}
+              onClick={() => onShowTips && onShowTips(expert)}>{expert.name}</div>
             <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginBottom:2 }}>{expert.age} år · {expert.from}</div>
             <div style={{ fontSize:12, color:expert.color, fontStyle:'italic', marginBottom:8 }}>{expert.tagline}</div>
             <p style={{ fontSize:12, color:'rgba(255,255,255,.65)', lineHeight:1.6, margin:0 }}>{expert.bio}</p>
@@ -1701,26 +1707,33 @@ function ExpertTipsView({ expert }) {
           ))}
         </div>
       ))}
-      {/* Knockout matches */}
-      {KNOCKOUT_ROUNDS.map(({phase:kp, label}) => {
-        const kMatches = KNOCKOUT_MATCHES.filter(m => m.phase === kp && tips[m.id]);
-        if (kMatches.length === 0) return null;
-        return (
-          <div key={kp} style={{marginBottom:12}}>
-            <span style={{...C.roundL}}>{label}</span>
-            {kMatches.map(m => (
-              <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
-                <span style={{fontSize:11,color:'rgba(255,255,255,.5)',minWidth:60}}>Kamp {m.matchNum}</span>
-                <span style={{fontSize:12,flex:1,textAlign:'right',color:'rgba(255,255,255,.6)'}}>{m.home}</span>
-                <span style={{fontFamily:"'Fira Code',monospace",color:'#FFD700',padding:'2px 8px',background:'rgba(255,215,0,.08)',borderRadius:5,fontSize:13,flexShrink:0}}>
-                  {tips[m.id].home}–{tips[m.id].away}
-                </span>
-                <span style={{fontSize:12,flex:1,color:'rgba(255,255,255,.6)'}}>{m.away}</span>
-              </div>
-            ))}
-          </div>
-        );
-      })}
+      {/* Knockout matches - always show */}
+      <div style={{marginTop:8}}>
+        <span style={{...C.secH}}>Sluttspill</span>
+        {KNOCKOUT_ROUNDS.map(({phase:kp, label}) => {
+          const kMatches = KNOCKOUT_MATCHES.filter(m => m.phase === kp);
+          const tippedMatches = kMatches.filter(m => tips[m.id]);
+          return (
+            <div key={kp} style={{marginBottom:12}}>
+              <span style={{...C.roundL}}>{label}</span>
+              {tippedMatches.length === 0 ? (
+                <div style={{fontSize:12,color:'rgba(255,255,255,.3)',padding:'4px 0',fontStyle:'italic'}}>Ikke tippet ennå – låses opp etter gruppespillet</div>
+              ) : (
+                tippedMatches.map(m => (
+                  <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                    <span style={{fontSize:10,color:'rgba(255,255,255,.4)',minWidth:55,fontFamily:"'Fira Code',monospace"}}>Kamp {m.matchNum}</span>
+                    <span style={{fontSize:12,flex:1,textAlign:'right',color:'rgba(255,255,255,.6)'}}>{m.home}</span>
+                    <span style={{fontFamily:"'Fira Code',monospace",color:'#FFD700',padding:'2px 8px',background:'rgba(255,215,0,.08)',borderRadius:5,fontSize:13,flexShrink:0}}>
+                      {tips[m.id].home}–{tips[m.id].away}
+                    </span>
+                    <span style={{fontSize:12,flex:1,color:'rgba(255,255,255,.6)'}}>{m.away}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1782,8 +1795,10 @@ function PanelPage({ me }) {
     <div className="fu">
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, fontWeight:700, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, margin:0 }}>🎙️ Ekspertpanel</h2>
-        <p style={{ color:'rgba(255,255,255,.5)', fontSize:13, marginTop:6 }}>
-          Fem eksperter med sine egne tips. Call på dem i chatten med @fornavn. Trykk på bildet for å zoome.
+        <p style={{ color:'rgba(255,255,255,.5)', fontSize:13, marginTop:6, lineHeight:1.7 }}>
+          Fem eksperter med sine egne tips og sterke meninger. Call på dem i chatten med <span style={{color:'#FFD700'}}>@fornavn</span>. Trykk på bildet for å zoome.<br/>
+          Du kan la en av ekspertene fylle ut alle dine tips ved å trykke <span style={{color:'#FFD700'}}>"Bruk ekspert"</span> på profilen deres.<br/>
+          <span style={{color:'rgba(255,100,100,.8)'}}>OBS:</span> Glemmer du å levere tips i tide velges det tilfeldig en ekspert som fyller ut for deg!
         </p>
       </div>
       <PanelLeaderboard onSelect={setSelectedExpert} />
@@ -1802,7 +1817,7 @@ function PanelPage({ me }) {
       )}
       <div style={{ display:'flex', flexDirection:'column', gap:16, marginTop:16 }}>
         {PANEL_EXPERTS.map(expert => (
-          <ExpertCard key={expert.id} expert={expert} me={me} panelChoices={panelChoices} userNames={userNames} />
+          <ExpertCard key={expert.id} expert={expert} me={me} panelChoices={panelChoices} userNames={userNames} onShowTips={setSelectedExpert} />
         ))}
       </div>
     </div>
