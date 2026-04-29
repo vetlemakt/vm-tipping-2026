@@ -1001,14 +1001,32 @@ function AdminPanel() {
     setGeneratingBots(true);
     try {
       for (const expert of PANEL_EXPERTS) {
+        // Get existing tips first - don't overwrite already tipped matches
+        const existingUser = await getUser('panel_' + expert.id);
+        const existingTips = existingUser?.tips || {};
+        const existingSpec = existingUser?.specialTips || {};
         const tips = await generateExpertTips(expert);
-        if (Object.keys(tips).length > 0) {
+        // Only add tips for matches not already tipped
+        const newTips = {};
+        Object.entries(tips).forEach(([k, v]) => {
+          if (!existingTips[k]) newTips[k] = v;
+        });
+        if (Object.keys(newTips).length > 0 || !existingUser) {
+          const mergedTips = { ...existingTips, ...newTips };
           // Generate special tips too
           const specPrompt = 'Du er ' + expert.name + '. ' + expert.personality +
             '\n\nVelg ett lag for hvert av disse spesialtipsene basert på din personlighet:\n' +
             '- champion (VM-vinner)\n- runner_up (sølvvinner)\n- third (bronsevinner)\n- most_carded (lag med mest kort)\n\n' +
             'Svar KUN med JSON: {"champion":"Brasil","runner_up":"Frankrike","third":"England","most_carded":"Argentina"}';
           const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+          // Hardcoded topscorer picks per bot
+          const topscorerMap = {
+            ragnhild: 'Erik Solér',
+            hendrik: 'Dennis Bergkamp',
+            kimlevi: 'Jørn Hoel',
+            bengt: 'Diego Armando Maradona',
+            odd: 'Bjørn Wirkola',
+          };
           let specialTips = {};
           if (apiKey) {
             try {
@@ -1022,7 +1040,10 @@ function AdminPanel() {
               specialTips = JSON.parse(t.replace(/```json|```/g,'').trim());
             } catch(e) { console.warn('Special tips failed:', e); }
           }
-          await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips, specialTips, displayName: expert.name, password: 'bot' });
+          specialTips.topscorer = topscorerMap[expert.id] || '';
+          const mergedSpec = Object.keys(existingSpec).length > 0 ? existingSpec : specialTips;
+          mergedSpec.topscorer = topscorerMap[expert.id] || existingSpec.topscorer || '';
+          await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips: mergedTips, specialTips: mergedSpec, displayName: expert.name, password: 'bot' });
         }
       }
       alert('Bot-tips generert! ✅');
@@ -1712,7 +1733,7 @@ function PanelPage({ me }) {
       {selectedExpert && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:600,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'16px 16px 0 16px',overflowY:'auto'}}
           onClick={() => setSelectedExpert(null)}>
-          <div style={{background:'#0d1230',border:`2px solid ${selectedExpert.color}`,borderRadius:16,width:'100%',maxWidth:600,marginTop:16,marginBottom:32}}
+          <div style={{background:'#0d1230',border:`2px solid ${selectedExpert.color}`,borderRadius:12,width:'100%',maxWidth:600,marginTop:16,marginBottom:32,overflow:'hidden'}}
             onClick={e => e.stopPropagation()}>
             <div style={{...C.cardHeader,borderBottom:`1px solid ${selectedExpert.color}33`,position:'sticky',top:0,background:'#0d1230',zIndex:1}}>
               <span style={{...C.cardTitle,color:selectedExpert.color}}>{selectedExpert.firstName}s tips</span>
