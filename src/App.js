@@ -387,7 +387,7 @@ function Dashboard({ me }) {
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
     getAllUsers().then(us => {
-      setUsers(us.filter(u => u.id !== 'admin')
+      setUsers(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
         .map(u => ({ ...u, ...calcScore(u, results) }))
         .sort((a, b) => b.total - a.total));
     });
@@ -669,7 +669,7 @@ function Leaderboard({ me }) {
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     getAllUsers().then(us => {
-      setRows(us.filter(u => u.id !== 'admin')
+      setRows(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
         .map(u => ({ ...u, ...calcScore(u, results) }))
         .sort((a, b) => b.total - a.total));
     });
@@ -1077,7 +1077,7 @@ function AdminPanel() {
         phase,
         results,
         cards,
-        users: users.filter(u => u.id !== 'admin').map(u => ({
+        users: users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_')).map(u => ({
           username: u.id,
           displayName: u.displayName,
           tips: u.tips || {},
