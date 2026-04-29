@@ -995,7 +995,6 @@ function AdminPanel() {
   const [aTab, setATab] = useState('phase');
   const [ag, setAg] = useState('A');
   const [generatingBots, setGeneratingBots] = useState(false);
-  const [forceRegen, setForceRegen] = useState(false);
 
   useEffect(() => { getPhase().then(setPhaseState); }, []);
   useEffect(() => { getResults().then(setResultsState); }, []);
@@ -1007,7 +1006,7 @@ function AdminPanel() {
   const setSpec = async (key, val) => { const upd = { ...results, [key]: val }; setResultsState(upd); await setResults(upd); };
   const updCard = async (team, type, val) => { const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0); const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0); const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 }; setCardsState(upd); await setCardStats(upd); };
 
-  const generateAllBotTips = async () => {
+  const generateAllBotTips = async (force=false) => {
     const topscorerMap = {
       ragnhild: 'Erik Solér',
       hendrik: 'Dennis Bergkamp',
@@ -1024,9 +1023,9 @@ function AdminPanel() {
         const tips = await generateExpertTips(expert);
         const newTips = {};
         Object.entries(tips).forEach(([k, v]) => {
-          if (forceRegen || !existingTips[k]) newTips[k] = v;
+          if (force || !existingTips[k]) newTips[k] = v;
         });
-        const mergedTips = forceRegen ? newTips : { ...existingTips, ...newTips };
+        const mergedTips = force ? newTips : { ...existingTips, ...newTips };
         if (Object.keys(mergedTips).length >= 0) {
           // Generate special tips too
           const teamList = ALL_TEAMS.join(', ');
@@ -1062,7 +1061,6 @@ function AdminPanel() {
           await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips: mergedTips, specialTips: mergedSpec, displayName: expert.name, password: 'bot' });
         }
       }
-      setForceRegen(false);
       alert('Bot-tips generert! ✅');
     } catch(e) { alert('Feil: ' + e.message); }
     setGeneratingBots(false);
@@ -1110,7 +1108,7 @@ function AdminPanel() {
         <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:12 }} onClick={generateAllBotTips} disabled={generatingBots}>
           {generatingBots ? '⟳ Genererer...' : '🤖 Generer bot-tips'}
         </button>
-        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#ff9966' }} onClick={() => { setForceRegen(true); generateAllBotTips(); }} disabled={generatingBots}>
+        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#ff9966' }} onClick={() => generateAllBotTips(true)} disabled={generatingBots}>
           🔄 Tving regenerer
         </button>
       </div>
