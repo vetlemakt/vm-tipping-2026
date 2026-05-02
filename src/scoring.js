@@ -12,6 +12,8 @@ export function calcMatchPts(tip, act) {
   if (matchOutcome(tip.home, tip.away) === matchOutcome(act.home, act.away)) p += 2;
   if (parseInt(tip.home) === parseInt(act.home)) p += 1;
   if (parseInt(tip.away) === parseInt(act.away)) p += 1;
+  // Superbonus: correct score AND 5+ goals total = 5p
+  if (p === 4 && (parseInt(act.home) + parseInt(act.away)) >= 5) p = 5;
   return p;
 }
 

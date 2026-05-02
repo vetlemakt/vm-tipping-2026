@@ -928,6 +928,63 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
   );
 }
 
+// ── Render tipped score with color-coded correct parts ────────────────
+function renderTipScore(tip, act) {
+  const hasAct = act && act.home !== undefined && act.away !== undefined;
+  const hasTip = tip && tip.home !== undefined && tip.away !== undefined;
+  const tH = hasTip ? parseInt(tip.home) : null;
+  const tA = hasTip ? parseInt(tip.away) : null;
+  const aH = hasAct ? parseInt(act.home) : null;
+  const aA = hasAct ? parseInt(act.away) : null;
+
+  const rightOutcome = hasAct && hasTip && matchOutcome(tH, tA) === matchOutcome(aH, aA);
+  const rightHome = hasAct && hasTip && tH === aH;
+  const rightAway = hasAct && hasTip && tA === aA;
+  const fulltreff = rightOutcome && rightHome && rightAway;
+  const superbonus = fulltreff && hasAct && (aH + aA) >= 5;
+
+  const pts = hasAct && hasTip ? calcMatchPts(tip, act) : null;
+
+  const YEL = '#FFD700';
+  const DIM = '#e8edf8';
+  const numStyle = { fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 700, lineHeight: 1 };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, minWidth: 64 }}>
+      {/* Tipped score row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <span style={{ ...numStyle, color: rightHome ? YEL : DIM }}>{hasTip ? tH : '–'}</span>
+        <span style={{ ...numStyle, color: rightOutcome ? YEL : DIM, fontSize: 13 }}>–</span>
+        <span style={{ ...numStyle, color: rightAway ? YEL : DIM }}>{hasTip ? tA : '–'}</span>
+        {superbonus && <span style={{ marginLeft: 4, fontSize: 10, color: YEL, fontWeight: 800, letterSpacing: 0.5 }}>SUPER!</span>}
+        {fulltreff && !superbonus && <span style={{ marginLeft: 3, fontSize: 12 }}>⚡</span>}
+      </div>
+      {/* Actual result row */}
+      {hasAct && (
+        <div style={{ fontSize: 9, color: 'rgba(0,229,255,.8)', fontFamily: "'Fira Code',monospace", letterSpacing: 0.5 }}>
+          {aH}–{aA}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Points badge ───────────────────────────────────────────────────────
+function renderPtsBadge(pts) {
+  if (pts === null) return null;
+  const superbonus = pts === 5;
+  const fulltreff = pts >= 4;
+  return (
+    <span style={{
+      fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 800,
+      color: fulltreff ? '#FFD700' : pts > 0 ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.3)',
+      minWidth: 20, textAlign: 'right', flexShrink: 0,
+    }}>
+      {pts}
+    </span>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  TIPS FORM
 // ══════════════════════════════════════════════════════════════════════
@@ -1055,12 +1112,12 @@ function TipsForm({ me, phase }) {
               const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
               return (
                     <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
-                      {/* Date+time – hidden on portrait mobile via CSS class */}
+                      {/* Date+time */}
                       <div className="hide-portrait" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0}}>
                         <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
                         {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
                       </div>
-                      {/* Home: flag + name(hidden on portrait) */}
+                      {/* Home */}
                       <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end'}}>
                         <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.home}</span>
                         <Flag team={m.home} size={18}/>
@@ -1071,14 +1128,14 @@ function TipsForm({ me, phase }) {
                       <span style={C.dash}>–</span>
                       <input style={{...C.sInp,width:38,fontSize:15}} type="number" min={0} max={20} disabled={!grpOk}
                         value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
-                      {/* Away: flag + name(hidden on portrait) */}
+                      {/* Away */}
                       <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start'}}>
                         <Flag team={m.away} size={18}/>
                         <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.away}</span>
                       </div>
-                      {/* Result + points */}
-                      {act && <span style={{fontSize:10,color:'#00e5ff',fontFamily:"'Fira Code',monospace",background:'rgba(0,229,255,.08)',border:'1px solid rgba(0,229,255,.2)',borderRadius:5,padding:'2px 6px',flexShrink:0}}>{act.home}–{act.away}</span>}
-                      {pts !== null && <span style={{fontSize:10,fontFamily:"'Fira Code',monospace",background:pts===4?'rgba(255,215,0,.15)':'rgba(255,255,255,.06)',border:`1px solid ${pts===4?'rgba(255,215,0,.4)':'rgba(255,255,255,.1)'}`,borderRadius:5,padding:'2px 6px',color:pts===4?'#FFD700':'rgba(255,255,255,.6)',flexShrink:0}}>{pts===4?'⚡':''}{pts}p</span>}
+                      {/* Tipped score + actual + points */}
+                      {renderTipScore(t, act)}
+                      {renderPtsBadge(pts)}
                     </div>
               );
             })}
@@ -1118,8 +1175,8 @@ function TipsForm({ me, phase }) {
                     <input style={{...C.sInp, opacity: koOk ? 1 : .3}} type="number" min={0} max={20} disabled={!koOk}
                       value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
                     <span style={{...C.mTeam,fontSize:11,color:'rgba(255,255,255,.6)',textAlign:'right'}}>{m.away}</span>
-                    {act && <span style={{fontSize:11,color:'#00e5ff',fontFamily:"'Fira Code',monospace",background:'rgba(0,229,255,.08)',border:'1px solid rgba(0,229,255,.2)',borderRadius:6,padding:'3px 8px',flexShrink:0}}>{act.home}–{act.away}</span>}
-                    {pts !== null && <span style={{fontSize:11,fontFamily:"'Fira Code',monospace",background:pts===4?'rgba(255,215,0,.15)':'rgba(255,255,255,.06)',border:`1px solid ${pts===4?'rgba(255,215,0,.4)':'rgba(255,255,255,.1)'}`,borderRadius:6,padding:'3px 8px',color:pts===4?'#FFD700':'rgba(255,255,255,.6)',flexShrink:0}}>{pts===4?'⚡':''}{pts}p</span>}
+                    {renderTipScore(t, act)}
+                    {renderPtsBadge(pts)}
                   </div>
                 );
               })}
