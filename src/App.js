@@ -852,48 +852,6 @@ function matchOutcome(h, a) {
   return hi > ai ? 'H' : hi < ai ? 'A' : 'D';
 }
 
-function renderTipScore(tip, act, readonly) {
-  const hasAct = act && act.home !== undefined && act.away !== undefined;
-  const hasTip = tip && tip.home !== undefined && tip.away !== undefined;
-  const tH = hasTip ? parseInt(tip.home) : null;
-  const tA = hasTip ? parseInt(tip.away) : null;
-  const aH = hasAct ? parseInt(act.home) : null;
-  const aA = hasAct ? parseInt(act.away) : null;
-
-  const rightOutcome = hasAct && hasTip && matchOutcome(tH, tA) === matchOutcome(aH, aA);
-  const rightHome    = hasAct && hasTip && tH === aH;
-  const rightAway    = hasAct && hasTip && tA === aA;
-  const fulltreff    = rightOutcome && rightHome && rightAway;
-  const superbonus   = fulltreff && hasAct && (aH + aA) >= 5;
-
-  const YEL = '#FFD700';
-  const W   = '#e8edf8';
-  const numSz = { fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 700, lineHeight: 1 };
-
-  const numH  = hasAct ? (rightHome    ? YEL : W) : W;
-  const numA  = hasAct ? (rightAway    ? YEL : W) : W;
-  const dash  = hasAct ? (rightOutcome ? YEL : W) : W;
-  const dashW = superbonus ? 3 : rightOutcome ? 2 : 1;
-
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, minWidth: 60,
-      border: superbonus ? `2px solid ${YEL}` : '2px solid transparent',
-      borderRadius: 6, padding: '2px 5px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <span style={{ ...numSz, color: numH }}>{hasTip ? tH : '–'}</span>
-        <span style={{ ...numSz, color: dash, fontSize: 13, fontWeight: dashW >= 2 ? 900 : 700 }}>–</span>
-        <span style={{ ...numSz, color: numA }}>{hasTip ? tA : '–'}</span>
-      </div>
-      {hasAct && (
-        <div style={{ fontSize: 9, color: 'rgba(0,229,255,.75)', fontFamily: "'Fira Code',monospace", letterSpacing: 0.5 }}>
-          {aH}–{aA}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function renderPtsBadge(pts) {
   if (pts === null) return null;
