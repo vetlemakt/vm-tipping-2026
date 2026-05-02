@@ -8,7 +8,7 @@ import {
   updatePresence, subscribeOnlineUsers,
   db,
 } from './firebase';
-import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import {
   INVITE_CODE, ADMIN_CODE,
@@ -66,6 +66,22 @@ const useIsMobile = () => {
   }, []);
   return mobile;
 };
+
+async function getAdminMessage() {
+  const snap = await getDoc(doc(db, 'config', 'adminMessage'));
+  return snap.exists() ? snap.data().text || '' : '';
+}
+async function setAdminMessage(text) {
+  await setDoc(doc(db, 'config', 'adminMessage'), { text });
+}
+function subscribeAdminMessage(callback) {
+  return onSnapshot(doc(db, 'config', 'adminMessage'), snap => {
+    callback(snap.exists() ? snap.data().text || '' : '');
+  });
+}
+async function deleteMatchSummary(matchId) {
+  await deleteDoc(doc(db, 'summaries', matchId));
+}
 
 async function setMatchSummary(matchId, text, author) {
   const snap = await getDoc(doc(db, 'summaries', matchId));
@@ -185,9 +201,11 @@ function StatusBar({ phase, isAdmin }) {
 // ══════════════════════════════════════════════════════════════════════
 //  BANNER (topp-navigasjon)
 // ══════════════════════════════════════════════════════════════════════
-function Banner({ user, tab, setTab, phase, onLogout }) {
+function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessageClick }) {
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Mobile banner height: 80 * 0.85 = 68px
+  const bannerH = isMobile ? 68 : 90;
 
   const NAV_COLORS = {
     leaderboard: '#4ade80',
@@ -212,55 +230,63 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
 
   return (
     <div>
-      <div style={{ ...C.banner, overflow: isMobile ? 'visible' : 'visible' }}>
+      <div style={{ ...C.banner, height: bannerH, overflow: isMobile ? 'visible' : 'visible' }}>
         {/* Logo */}
-        <div style={{ width: isMobile?90:110, minWidth: isMobile?90:110, position:'relative', zIndex:20, cursor:'pointer', flexShrink:0 }}
+        <div style={{ width: isMobile?76:110, minWidth: isMobile?76:110, position:'relative', zIndex:20, cursor:'pointer', flexShrink:0 }}
           onClick={() => { setTab('dashboard'); setMenuOpen(false); }}>
           <img src="/vm-logo.png" alt="Gå til dashboard"
-            style={{ position:'absolute', top:0, left:0, height: isMobile?120:133, width: isMobile?120:133, objectFit:'contain', filter:'drop-shadow(0 8px 24px rgba(0,0,0,.5))', mixBlendMode:'multiply' }} />
+            style={{ position:'absolute', top:0, left:0, height: isMobile?102:133, width: isMobile?102:133, objectFit:'contain', filter:'drop-shadow(0 8px 24px rgba(0,0,0,.5))', mixBlendMode:'multiply' }} />
         </div>
 
         {/* Nav area */}
         <div style={{ ...C.bannerNav }}>
           {isMobile ? (
-            /* Mobile: hamburger */
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', height:'100%', paddingBottom:8 }}>
+            /* Mobile: hamburger + optional ticker */
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:'100%', paddingBottom:6 }}>
+              {adminMessage ? (
+                <AdminMessageTicker message={adminMessage} onClick={onAdminMessageClick} />
+              ) : <div />}
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
-                <button onClick={() => setMenuOpen(m => !m)} style={{ background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.2)', color:'#fff', borderRadius:8, padding:'7px 12px', cursor:'pointer', fontSize:18, lineHeight:1, fontFamily:'inherit' }}>
+                <button onClick={() => setMenuOpen(m => !m)} style={{ background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.2)', color:'#fff', borderRadius:8, padding:'6px 10px', cursor:'pointer', fontSize:18, lineHeight:1, fontFamily:'inherit' }}>
                   {menuOpen ? '✕' : '☰'}
                 </button>
               </div>
             </div>
           ) : (
-            /* Desktop: inline nav with colors */
-            <div style={{ display:'flex', alignItems:'flex-end', width:'100%', gap:4 }}>
-              {nav.map(n => {
-                const color = NAV_COLORS[n.id] || '#FFD700';
-                const isOn = tab === n.id;
-                return (
-                  <button key={n.id}
-                    style={{ ...C.navBtn, color: isOn ? color : 'rgba(255,255,255,.7)',
-                      borderBottomColor: isOn ? color : 'transparent',
-                      background: isOn ? `${color}15` : 'transparent',
-                      WebkitTextStroke: isOn ? '0px' : '0px',
-                      textShadow: 'none',
-                    }}
-                    onClick={() => setTab(n.id)}>
-                    {n.img
-                      ? <img src={n.img} alt={n.label} style={{ width:20, height:20, objectFit:'contain', opacity: isOn?1:.7, filter: isOn ? `drop-shadow(0 0 4px ${color})` : 'none' }} />
-                      : <span style={{ fontSize:16, filter: isOn ? `drop-shadow(0 0 4px ${color})` : 'none' }}>{n.icon}</span>
-                    }
-                    <span style={{ color: isOn ? color : 'rgba(255,255,255,.8)', fontWeight: isOn?800:600 }}>{n.label}</span>
-                  </button>
-                );
-              })}
-              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, paddingBottom:8 }}>
-                <div style={C.bannerUser}>
-                  <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
-                  <span>{user.displayName}</span>
+            /* Desktop: inline nav with colors + ticker */
+            <div style={{ display:'flex', flexDirection:'column', width:'100%', height:'100%', justifyContent:'space-between' }}>
+              {adminMessage && (
+                <div style={{ padding:'6px 0 0', display:'flex', alignItems:'center' }}>
+                  <AdminMessageTicker message={adminMessage} onClick={onAdminMessageClick} />
                 </div>
-                <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
+              )}
+              <div style={{ display:'flex', alignItems:'flex-end', width:'100%', gap:4 }}>
+                {nav.map(n => {
+                  const color = NAV_COLORS[n.id] || '#FFD700';
+                  const isOn = tab === n.id;
+                  return (
+                    <button key={n.id}
+                      style={{ ...C.navBtn, color: isOn ? color : 'rgba(255,255,255,.7)',
+                        borderBottomColor: isOn ? color : 'transparent',
+                        background: isOn ? `${color}15` : 'transparent',
+                      }}
+                      onClick={() => setTab(n.id)}>
+                      {n.img
+                        ? <img src={n.img} alt={n.label} style={{ width:20, height:20, objectFit:'contain', opacity: isOn?1:.7, filter: isOn ? `drop-shadow(0 0 4px ${color})` : 'none' }} />
+                        : <span style={{ fontSize:16 }}>{n.icon}</span>
+                      }
+                      <span style={{ color: isOn ? color : 'rgba(255,255,255,.8)', fontWeight: isOn?800:600 }}>{n.label}</span>
+                    </button>
+                  );
+                })}
+                <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, paddingBottom:8 }}>
+                  <div style={C.bannerUser}>
+                    <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
+                    <span>{user.displayName}</span>
+                  </div>
+                  <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
+                </div>
               </div>
             </div>
           )}
@@ -269,7 +295,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
 
       {/* Mobile dropdown */}
       {isMobile && menuOpen && (
-        <div style={{ position:'absolute', top: 80, right:0, left:0, background:'#01174C', zIndex:100, borderBottom:'2px solid rgba(255,215,0,.3)', boxShadow:'0 8px 24px rgba(0,0,0,.5)' }}>
+        <div style={{ position:'absolute', top: bannerH, right:0, left:0, background:'#01174C', zIndex:100, borderBottom:'2px solid rgba(255,215,0,.3)', boxShadow:'0 8px 24px rgba(0,0,0,.5)' }}>
           {nav.map(n => {
             const color = NAV_COLORS[n.id] || '#FFD700';
             const isOn = tab === n.id;
@@ -1196,10 +1222,14 @@ function AdminPanel() {
   const [aTab, setATab] = useState('phase');
   const [ag, setAg] = useState('A');
   const [generatingBots, setGeneratingBots] = useState(false);
+  const [msgInput, setMsgInput] = useState('');
+  const [summaries, setSummaries] = useState({});
 
   useEffect(() => { getPhase().then(setPhaseState); }, []);
   useEffect(() => { getResults().then(setResultsState); }, []);
   useEffect(() => { getCardStats().then(setCardsState); }, []);
+  useEffect(() => { getAdminMessage().then(setMsgInput); }, []);
+  useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
 
   const updPhase = async p => { setPhaseState(p); await setPhase(p); };
   const setResult = async (id, field, val) => { const upd = { ...results, [id]: { ...(results[id] || {}), [field]: parseInt(val) || 0 } }; setResultsState(upd); await setResults(upd); };
@@ -1334,7 +1364,7 @@ function AdminPanel() {
       </div>
       <div style={C.cardBody}>
         <div style={C.tabs}>
-          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort']].map(([t, l]) => (
+          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort'], ['msg', 'Melding'], ['matches', 'Kamper']].map(([t, l]) => (
             <button key={t} style={{ ...C.tab, ...(aTab === t ? C.tabOn : {}) }} onClick={() => setATab(t)}>{l}</button>
           ))}
         </div>
@@ -1412,6 +1442,49 @@ function AdminPanel() {
             ))}
           </div>
         </>}
+        {aTab === 'msg' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span style={C.secH}>Admin-melding i banneret</span>
+            <textarea style={{ ...C.ta, fontSize: 14 }} rows={4}
+              value={msgInput} onChange={e => setMsgInput(e.target.value)}
+              placeholder="Skriv en melding til alle spillere… (la stå tom for å skjule)" />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={{ ...C.btnGold, flex: 1 }} onClick={async () => { await setAdminMessage(msgInput); alert('✅ Melding lagret!'); }}>
+                💾 Lagre melding
+              </button>
+              <button style={{ ...C.btnDanger, flex: 1 }} onClick={async () => { setMsgInput(''); await setAdminMessage(''); }}>
+                🗑️ Slett melding
+              </button>
+            </div>
+            <p style={C.mono12}>Meldingen vises som en scrollende ticker i banneret. Hvis meldingen er lang scroller den to ganger, deretter vises "Les melding fra admin" til spilleren trykker på den.</p>
+          </div>
+        )}
+        {aTab === 'matches' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={C.secH}>Slett kamp fra "Siste kamper"</span>
+            {GROUP_MATCHES.filter(m => results[m.id]?.home !== undefined).length === 0 && (
+              <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>Ingen spilte kamper ennå.</p>
+            )}
+            {GROUP_MATCHES.filter(m => results[m.id]?.home !== undefined).slice().reverse().map(m => {
+              const r = results[m.id];
+              const sum = summaries[m.id];
+              return (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(255,255,255,.04)', borderRadius: 8 }}>
+                  <Flag team={m.home} />
+                  <span style={{ fontSize: 13, flex: 1 }}>{m.home} {r.home}–{r.away} {m.away}</span>
+                  <Flag team={m.away} />
+                  {sum && <span style={{ fontSize: 10, color: '#4ade80', fontFamily: "'Fira Code',monospace" }}>✍️+🤖</span>}
+                  <button style={{ ...C.btnDanger, padding: '5px 10px', fontSize: 11 }} onClick={async () => {
+                    if (!window.confirm(`Slette kommentarer for ${m.home}–${m.away}?`)) return;
+                    await deleteMatchSummary(m.id);
+                  }}>
+                    🗑️ Slett
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2311,6 +2384,132 @@ async function fetchAndUpdateResults() {
 
 
 // ══════════════════════════════════════════════════════════════════════
+//  VM COUNTDOWN (bottom right)
+// ══════════════════════════════════════════════════════════════════════
+const VM_START = new Date('2026-06-11T19:00:00Z'); // 21:00 CEST
+
+function VMCountdown() {
+  const [label, setLabel] = useState('');
+  useEffect(() => {
+    const update = () => {
+      const diff = VM_START - Date.now();
+      if (diff <= 0) { setLabel('VM er i gang! 🎉'); return; }
+      const hours = diff / 3600000;
+      if (hours <= 100) {
+        setLabel(`${Math.ceil(hours)} timer til VM starter!`);
+      } else {
+        setLabel(`${Math.ceil(diff / 86400000)} dager til VM starter!`);
+      }
+    };
+    update();
+    const iv = setInterval(update, 60000);
+    return () => clearInterval(iv);
+  }, []);
+  return (
+    <div style={{
+      position: 'fixed', bottom: 28, right: 12, zIndex: 500,
+      background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
+      boxShadow: '0 8px 32px rgba(0,0,0,.5)',
+      padding: '8px 12px',
+      minWidth: 160,
+    }}>
+      <div style={{ fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 0.5, textAlign: 'center' }}>
+        ⏱ {label}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ADMIN MESSAGE TICKER (in banner)
+// ══════════════════════════════════════════════════════════════════════
+function AdminMessageTicker({ message, onClick }) {
+  const [phase, setPhase] = useState('scroll'); // 'scroll' | 'pause' | 'static'
+  const [repeat, setRepeat] = useState(0);
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    if (!message) return;
+    setPhase('scroll');
+    setRepeat(0);
+  }, [message]);
+
+  useEffect(() => {
+    if (!message || phase === 'static') return;
+    if (phase === 'scroll') {
+      // After animation ends (handled by onAnimationEnd)
+      return;
+    }
+    if (phase === 'pause') {
+      const t = setTimeout(() => {
+        if (repeat < 1) {
+          setRepeat(r => r + 1);
+          setPhase('scroll');
+        } else {
+          setPhase('static');
+        }
+      }, 5000);
+      return () => clearTimeout(t);
+    }
+  }, [phase, repeat, message]);
+
+  if (!message) return null;
+
+  return (
+    <div onClick={onClick} style={{
+      flex: 1, height: 28, overflow: 'hidden', cursor: 'pointer',
+      display: 'flex', alignItems: 'center',
+      background: 'rgba(255,215,0,.08)',
+      border: '1px solid rgba(255,215,0,.2)',
+      borderRadius: 6,
+      padding: '0 10px',
+      maxWidth: 420,
+    }}>
+      {phase === 'static' ? (
+        <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 600, whiteSpace: 'nowrap' }}>
+          📢 Les melding fra admin
+        </span>
+      ) : (
+        <span
+          ref={animRef}
+          key={phase + repeat}
+          onAnimationEnd={() => setPhase('pause')}
+          style={{
+            fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif",
+            fontWeight: 600, whiteSpace: 'nowrap',
+            display: 'inline-block',
+            animation: 'tickerScroll 12s linear forwards',
+          }}>
+          📢 {message}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function AdminMessagePopup({ message, onClose }) {
+  if (!message) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 900,
+      background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'rgba(13,18,48,.97)', border: '2px solid rgba(255,215,0,.4)',
+        borderRadius: 16, padding: 28, maxWidth: 480, width: '100%',
+        boxShadow: '0 24px 80px rgba(0,0,0,.6)',
+      }}>
+        <div style={{ fontSize: 11, color: 'rgba(255,215,0,.6)', fontFamily: "'Fira Code',monospace", textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Melding fra admin</div>
+        <p style={{ fontSize: 15, color: '#e8edf8', lineHeight: 1.7, margin: 0 }}>{message}</p>
+        <button onClick={onClose} style={{ ...C.btnSecondary, marginTop: 20, width: '100%' }}>Lukk ✕</button>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
 //  ROOT APP
 // ══════════════════════════════════════════════════════════════════════
 export default function App() {
@@ -2323,6 +2522,20 @@ export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [phase, setPhaseState] = useState('pre');
   const [lbSelected, setLbSelected] = useState(null);
+  const [adminMessage, setAdminMessageState] = useState('');
+  const [showMsgPopup, setShowMsgPopup] = useState(false);
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = '@keyframes tickerScroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }';
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
+  useEffect(() => {
+    const unsub = subscribeAdminMessage(setAdminMessageState);
+    return unsub;
+  }, []);
 
   const handleLogin = u => {
     try { localStorage.setItem('vm_user', JSON.stringify(u)); } catch {}
@@ -2369,7 +2582,8 @@ export default function App() {
   if (!user) return <AuthScreen onLogin={handleLogin} />;
   return (
     <div style={C.app}>
-      <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={handleLogout} />
+      <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={handleLogout}
+        adminMessage={adminMessage} onAdminMessageClick={() => setShowMsgPopup(true)} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={r => { setLbSelected(r); setTab('leaderboard'); }} setTab={setTab} />}
         {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} initialSelected={lbSelected} onClearSelected={() => setLbSelected(null)} />}
@@ -2383,6 +2597,8 @@ export default function App() {
       <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
       <StatusBar phase={phase} isAdmin={user.isAdmin} />
       <YouTubePlayer />
+      <VMCountdown />
+      {showMsgPopup && <AdminMessagePopup message={adminMessage} onClose={() => setShowMsgPopup(false)} />}
     </div>
   );
 }
