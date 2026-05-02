@@ -35,6 +35,13 @@
       }
       button:active { transform: scale(.97); }
       option { background: #161b2c; color: #e8edf8; }
+      @media (orientation: portrait) and (max-width: 600px) {
+        .hide-portrait { display: none !important; }
+        .show-portrait { display: inline !important; }
+      }
+      @media not ((orientation: portrait) and (max-width: 600px)) {
+        .show-portrait { display: none !important; }
+      }
     </style>
   <script>if('scrollRestoration' in history){history.scrollRestoration='manual';} window.onload=function(){window.scrollTo(0,0);};</script>
   </head>

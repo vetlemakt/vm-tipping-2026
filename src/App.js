@@ -310,12 +310,28 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
 // Format date nicely in Norwegian
 function fmtDate(dateStr) {
   if (!dateStr) return '';
-  const months = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  const months = ['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
   const [, m, d] = dateStr.split('-');
   return `${parseInt(d)}. ${months[parseInt(m)-1]}`;
 }
 
-// Render chat text with clickable links
+// 3-letter team abbreviations for portrait mobile
+const TEAM_SHORT = {
+  'Mexico':'MEX','Sør-Afrika':'RSA','Sør-Korea':'KOR','Tsjekkia':'CZE',
+  'Canada':'CAN','Bosnia-Herz':'BIH','Qatar':'QAT','Sveits':'SUI',
+  'Brasil':'BRA','Marokko':'MAR','Haiti':'HAI','Skottland':'SCO',
+  'USA':'USA','Paraguay':'PAR','Australia':'AUS','Tyrkia':'TUR',
+  'Tyskland':'GER','Curacao':'CUW','Elfenbenskysten':'CIV','Ecuador':'ECU',
+  'Nederland':'NED','Japan':'JPN','Sverige':'SWE','Tunisia':'TUN',
+  'Belgia':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spania':'ESP','Kapp Verde':'CPV','Saudi-Arabia':'KSA','Uruguay':'URU',
+  'Frankrike':'FRA','Senegal':'SEN','Irak':'IRQ','Norge':'NOR',
+  'Argentina':'ARG','Algerie':'ALG','Østerrike':'AUT','Jordan':'JOR',
+  'Portugal':'POR','Kongo DR':'COD','Usbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Kroatia':'CRO','Ghana':'GHA','Panama':'PAN',
+};
+
+
 function renderChatText(text) {
   if (!text) return null;
   const urlRegex = /(https?:\/\/\S+)/g;
@@ -1124,26 +1140,28 @@ function TipsForm({ me, phase, viewUser }) {
               const rightAway    = hasAct && hasTip && tA === aA;
               const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
               return (
-                <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
+                <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px', alignItems:'center'}}>
+                  {/* Date/info box */}
                   <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
-                    style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s',position:'relative'}}
+                    style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.12)'}
                     onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
                     <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
                     {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
-                    <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Kanit',sans-serif"}}>Gr.{m.group}</span>
-                    <span style={{fontSize:7,color:'rgba(255,215,0,.4)',marginTop:1}}>ℹ︎</span>
+                    <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Kanit',sans-serif"}}>Gruppe {m.group}</span>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end'}}>
-                    <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.home}</span>
+                  {/* Home team – flex:1 so it pushes score box to center */}
+                  <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end',minWidth:0}}>
+                    <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.home}</span>
+                    <span className="show-portrait" style={{fontSize:11,color:'#e8edf8',fontWeight:700,whiteSpace:'nowrap'}}>{TEAM_SHORT[m.home]||m.home}</span>
                     <Flag team={m.home} size={18}/>
                   </div>
-                  {/* Single score box with actual result under */}
+                  {/* Score box – fixed width so pts badge doesn't shift it */}
                   <div style={{
                     display:'flex', flexDirection:'column', alignItems:'center', gap:1,
                     background:'rgba(255,255,255,.08)', borderRadius:8,
                     border: superbonus ? '1px solid #FFD700' : '1px solid rgba(255,255,255,.15)',
-                    padding:'2px 8px', minWidth:70,
+                    padding:'2px 8px', width:76, flexShrink:0,
                   }}>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!grpOk}
@@ -1154,11 +1172,16 @@ function TipsForm({ me, phase, viewUser }) {
                     </div>
                     {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start'}}>
+                  {/* Away team */}
+                  <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start',minWidth:0}}>
                     <Flag team={m.away} size={18}/>
-                    <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.away}</span>
+                    <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.away}</span>
+                    <span className="show-portrait" style={{fontSize:11,color:'#e8edf8',fontWeight:700,whiteSpace:'nowrap'}}>{TEAM_SHORT[m.away]||m.away}</span>
                   </div>
-                  {renderPtsBadge(pts)}
+                  {/* Points – fixed width so it doesn't shift score box */}
+                  <div style={{width:20,flexShrink:0,textAlign:'right'}}>
+                    {renderPtsBadge(pts)}
+                  </div>
                 </div>
               );
             })}
