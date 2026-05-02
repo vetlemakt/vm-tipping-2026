@@ -582,7 +582,7 @@ export const C = {
   dashCardFixed: {
     display: 'flex',
     flexDirection: 'column',
-    height: 365,
+    height: 476,
   },
   dashCardFixedBody: {
     flex: 1,

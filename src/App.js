@@ -497,8 +497,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
   const sendMsg = async () => {
     const t = input.trim(); if (!t) return;
+    // Don't let bots trigger other bots
+    const senderIsBot = PANEL_EXPERTS.some(e => e.name === me.displayName);
     setInput('');
     await sendChatMessage(me.displayName, t, '');
+    if (senderIsBot) return;
     // Check for @mentions - find ALL mentioned experts
     const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
     const mentionedExperts = [];
@@ -513,11 +516,12 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         mentionedExperts.push(expert);
       }
     });
+    // Each expert replies in its own separate message, staggered
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
         const reply = await chatWithExpert(expert, t, []);
         await sendChatMessage(expert.name, reply, '');
-      }, 1000 + i * 1500); // stagger replies so they don't all come at once
+      }, 1000 + i * 2000);
     });
   };
 
@@ -578,7 +582,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
         <div style={C.dashCardFixedBody}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
-          {users.slice(0, 5).map((r, i) => {
+          {users.slice(0, 8).map((r, i) => {
             const tipsLocked = !OPEN_PHASES.has(phase);
             const canView = tipsLocked || r.id === me.username;
             return (
@@ -599,11 +603,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             </div>
             );
           })}
-          {users.length > 5 && (
+          {users.length > 8 && (
             <div style={{ textAlign:'center', padding:'8px 0 4px', borderTop:'1px solid rgba(255,255,255,.05)', marginTop:4 }}>
               <button onClick={() => setTab('leaderboard')}
                 style={{ background:'none', border:'none', color:'rgba(255,255,255,.35)', fontSize:12, cursor:'pointer', fontFamily:"'Fira Code',monospace" }}>
-                +{users.length - 5} til
+                +{users.length - 8} til
               </button>
             </div>
           )}
@@ -1638,6 +1642,9 @@ async function setPanelChoice(username, expertId) {
 // Generate tips via Claude API for a panel expert
 async function generateExpertTips(expert) {
   const matchLines = GROUP_MATCHES.map(m => m.id + ': ' + m.home + ' vs ' + m.away).join('\n');
+  const groupLines = Object.entries(GROUPS).map(([g, teams]) =>
+    `Gruppe ${g}: ${teams.join(', ')}`
+  ).join('\n');
 
   const styleInstructions = {
     ragnhild: `VIKTIG: Du MÅ tippe basert UTELUKKENDE på drakter og musikk, IKKE fotballkunnskap.
@@ -1647,28 +1654,32 @@ async function generateExpertTips(expert) {
 - Land du liker estetisk: Brasil, Nederland, Spania, Frankrike, Argentina
 - Land du er skeptisk til: USA (for mye reklame), England (grå drakter), Korea (ukjent musikk)
 - Du tipper ALLTID høyere score for vakre lag. F.eks Brasil 3-0, Nederland 2-0.
-- Kamper mellom to "stygge" lag ender 0-0 etter din mening`,
+- Kamper mellom to "stygge" lag ender 0-0 etter din mening
+- Grupperangeringer: ranger lag basert på samme estetiske logikk`,
 
     hendrik: `VIKTIG: Du tipper Nederland til å vinne ALT. Nederland er uslåelige i dine øyne.
 - Nederland vinner alle kamper, minst 2-0
 - Land du kjenner fra TV: Brasil ok, Tyskland ok, Frankrike ok
 - Du tror fremdeles Rintje Ritsma er på laget til Nederland
 - Kamper uten nederlandske lag: tipp tilfeldig men helst lav score
-- DJ Bobo er fra Sveits → tipper Sveits litt høyere enn normalt`,
+- DJ Bobo er fra Sveits → tipper Sveits litt høyere enn normalt
+- Grupperangeringer: Nederland øverst i sin gruppe, resten tilfeldig`,
 
     kimlevi: `VIKTIG: Du aner INGENTING om fotball. Tipp HELT TILFELDIG og kaotisk.
 - Ingen logikk whatsoever. Høye tall er like sannsynlig som lave.
 - Du kan tippe 5-4, 0-7, 3-3 - helt tilfeldig
 - Tromsø er ikke med i VM så du er ikke engasjert
 - Noen ganger tipper du 0-0 på alt fordi du ikke gidder
-- Maks variasjon: noen kamper 4-3, andre 0-0, noen 1-5`,
+- Maks variasjon: noen kamper 4-3, andre 0-0, noen 1-5
+- Grupperangeringer: tilfeldig rekkefølge, ikke tenk`,
 
     bengt: `VIKTIG: Din fotballkunnskap er fra 80-tallet og du tror verden er slik fremdeles.
 - Brasil er alltid best (Zico, Socrates, Falcao) → Brasil vinner ALT
 - Argentina er farlige (Maradona) → Argentina vinner mye
 - Vest-Tyskland/Tyskland er alltid solide → Germany vinner
 - Du har aldri hørt om Sør-Korea, Marokko, Senegal → tipp 0-2 mot disse
-- Kamper med "moderne" lag du ikke kjenner → hjemmelag taper alltid`,
+- Kamper med "moderne" lag du ikke kjenner → hjemmelag taper alltid
+- Grupperangeringer: Brasil og Argentina øverst alltid, ukjente lag sist`,
 
     odd: `VIKTIG: Brasil JUKSER alltid, og land uten snø er ikke til å stole på.
 - Brasil taper ALLE kamper (de jukser, men det hjelper dem ikke mot deg)
@@ -1676,17 +1687,27 @@ async function generateExpertTips(expert) {
 - Canada hjemmebane → Canada vinner alltid
 - Mexico er mistenkt for juks (det er varmt der)
 - Kamper mellom to "sørlige" land: begge taper (0-0 eller 1-1)
-- Frankrike er litt ok fordi de har bønder i Normandie`,
+- Frankrike er litt ok fordi de har bønder i Normandie
+- Grupperangeringer: snøland øverst, varmland sist`,
   };
 
-  const prompt = 'Du er ' + expert.name + '. ' + expert.personality +
-    '\n\n' + (styleInstructions[expert.id] || '') +
-    '\n\nTipp disse kampene. Følg instruksjonene NØYAKTIG:\n' +
-    matchLines +
-    '\n\nSvar KUN med JSON (ingen annen tekst, ingen forklaring):\n{"tips": {"A1": {"home": 2, "away": 1}, ...}}';
+  const prompt = `Du er ${expert.name}. ${expert.personality}
+
+${styleInstructions[expert.id] || ''}
+
+Det er 2026 og VM i fotball spilles i USA, Mexico og Canada.
+
+Tipp disse kampene:
+${matchLines}
+
+Tipp også grupperangeringer for disse gruppene (alle 4 lag per gruppe i rekkefølge 1-4):
+${groupLines}
+
+Svar KUN med JSON (ingen annen tekst, ingen forklaring):
+{"tips": {"A1": {"home": 2, "away": 1}, ...}, "groupOrders": {"A": ["lag1","lag2","lag3","lag4"], "B": [...], ...}}`;
 
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-  if (!apiKey) return {};
+  if (!apiKey) return { tips: {}, groupOrders: {} };
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -1707,11 +1728,11 @@ async function generateExpertTips(expert) {
   try {
     const clean = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
-    console.log('Parsed tips keys:', Object.keys(parsed.tips || {}));
-    return parsed.tips || {};
+    console.log('Parsed tips keys:', Object.keys(parsed.tips || {}).length, 'groups:', Object.keys(parsed.groupOrders || {}).length);
+    return { tips: parsed.tips || {}, groupOrders: parsed.groupOrders || {} };
   } catch(e) {
     console.error('Parse error:', e, 'Text was:', text.slice(0, 200));
-    return {};
+    return { tips: {}, groupOrders: {} };
   }
 }
 
@@ -1734,7 +1755,14 @@ Du er en av fem deltakere i et VM-tippepanel. Her er de andre deltakerne du kjen
 Dere kjenner hverandre fra et lokalt tippekompani som har holdt på siden 2018. Det er ikke alltid like harmonisk, men det er varmt. Du kan referere til de andre med fornavn og kommentere hva du tror DE ville ha tippa eller ment.
 `;
 
-async function chatWithExpert(expert, message, history) {
+const CHAT_SYSTEM_SUFFIX = `
+
+VIKTIG – ALLTID FØLG DISSE REGLENE:
+1. Det er 2026. VM i fotball spilles nå i USA, Mexico og Canada (juni–juli 2026).
+2. Skriv ALDRI med **bold** eller *kursiv* markdown-formatering. Skriv helt vanlig tekst.
+3. Du snakker KUN på vegne av deg selv. Du skal IKKE svare som eller sitere andre eksperter i panelet med kolon-format. Ikke skriv "Ragnhild: ..." eller "Odd: ..." osv.
+4. Hvis meldingen nevner andre eksperter, kan du si din EGEN mening om hva de ville trodd, men ikke late som du er dem.
+`;
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
   // Maintain running conversation history per expert
   if (!expertChatHistory[expert.id]) expertChatHistory[expert.id] = [];
@@ -1764,7 +1792,7 @@ async function chatWithExpert(expert, message, history) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: 300,
-          system: expert.personality + '\n\n' + PANEL_GROUP_CONTEXT,
+          system: expert.personality + '\n\n' + PANEL_GROUP_CONTEXT + CHAT_SYSTEM_SUFFIX,
           messages,
         })
       });
@@ -1809,14 +1837,18 @@ function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
     setLoading(true);
     try {
       const u = await getUser(me.username);
-      const tips = await generateExpertTips(expert);
-      console.log('Generated tips:', tips, 'Keys:', Object.keys(tips).length);
+      const { tips, groupOrders } = await generateExpertTips(expert);
+      console.log('Generated tips:', Object.keys(tips).length, 'group orders:', Object.keys(groupOrders).length);
       if (Object.keys(tips).length === 0) {
         alert('Fikk ingen tips fra ' + expert.firstName + '. Prøv igjen.');
         setLoading(false);
         return;
       }
-      await updateUser(me.username, { tips: { ...(u?.tips || {}), ...tips } });
+      await updateUser(me.username, {
+        tips: { ...(u?.tips || {}), ...tips },
+        groupOrders: { ...(u?.groupOrders || {}), ...groupOrders },
+        botSource: expert.id,
+      });
       await setPanelChoice(me.username, expert.id);
       setDone(true);
     } catch(e) {
@@ -1868,8 +1900,14 @@ function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
             {confirm && (
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:800,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
                 <div style={{background:'#0d1230',border:`2px solid ${expert.color}`,borderRadius:16,padding:28,maxWidth:400,width:'100%'}}>
-                  <p style={{color:'#e8edf8',fontSize:15,lineHeight:1.6,marginBottom:20}}>
-                    Oi! Er du sikker på at du vil la <strong style={{color:expert.color}}>{expert.firstName}</strong> velge for deg? Dette vil slette alle dine kommende tips.
+                  <p style={{color:'#e8edf8',fontSize:15,lineHeight:1.6,marginBottom:16}}>
+                    Er du sikker på at du vil la <strong style={{color:expert.color}}>{expert.firstName}</strong> tippe for deg?
+                  </p>
+                  <p style={{color:'rgba(255,255,255,.65)',fontSize:13,lineHeight:1.6,marginBottom:8}}>
+                    ✅ Kamptips og grupperangeringer fylles ut automatisk.
+                  </p>
+                  <p style={{color:'#f59e0b',fontSize:13,lineHeight:1.6,marginBottom:20}}>
+                    ⚠️ Spesialtips (verdensmester, toppscorer osv.) fylles <strong>ikke</strong> ut av boten – husk å gjøre det selv!
                   </p>
                   <div style={{display:'flex',gap:10}}>
                     <button style={{...C.btnGold,flex:1}} onClick={() => { setConfirm(false); fillMyTips(); }}>Ja, kjør på!</button>
@@ -2073,8 +2111,10 @@ function ChatPage({ me }) {
 
   const sendMsg = async () => {
     const t = input.trim(); if (!t) return;
+    const senderIsBot = PANEL_EXPERTS.some(e => e.name === me.displayName);
     setInput('');
     await sendChatMessage(me.displayName, t, '');
+    if (senderIsBot) return;
     const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
     const mentionedExperts = [];
     mentionMatches.forEach(match => {
@@ -2090,7 +2130,7 @@ function ChatPage({ me }) {
       setTimeout(async () => {
         const reply = await chatWithExpert(expert, t, []);
         await sendChatMessage(expert.name, reply, '');
-      }, 1000 + i * 1500);
+      }, 1000 + i * 2000);
     });
   };
 
