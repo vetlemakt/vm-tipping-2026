@@ -813,42 +813,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   }, [results]);
   const medals = ['🥇', '🥈', '🥉'];
   if (selected) {
-    const allUsers = {};
-    rows.forEach(r => { allUsers[r.id] = r; });
-    if (!tipsLocked && selected.id !== me.username) {
-      return (
-        <div style={C.card}>
-          <div style={C.cardHeader}>
-            <span style={C.cardTitle}><span style={C.cardTitleDot} /> {selected.displayName}s tips</span>
-            <button onClick={() => { setSelected(null); if(onClearSelected) onClearSelected(); }} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
-          </div>
-          <div style={C.cardBody}>
-            <div style={{ textAlign:'center', padding:'48px 24px', color:'rgba(255,255,255,.4)' }}>
-              <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
-              <p style={{ fontSize:15, marginBottom:8, color:'rgba(255,255,255,.6)' }}>Tips er skjult</p>
-              <p style={{ fontSize:13 }}>Du kan se hva andre har tippet når tipsevinduet stenger.</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return (
-      <div style={C.card}>
-        <div style={C.cardHeader}>
-          <span style={C.cardTitle}><span style={C.cardTitleDot} /> {selected.displayName}s tips</span>
-          <button onClick={() => { setSelected(null); if(onClearSelected) onClearSelected(); }} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
-        </div>
-        <div style={C.cardBody}>
-          <span style={C.secH}>Spesialtips</span>
-          <div style={C.specBox}>
-            {SPEC_FIELDS.map(({key,label,pts}) => {
-              const myT=(selected.specialTips||{})[key], correct=results[key], won=correct&&myT===correct;
-              return (
-                <div key={key} style={C.specRow}>
-  if (selected) {
-    // Delegate to parent's TipsForm view
-    if (onShowTips) onShowTips(selected);
-    setSelected(null);
+    if (onShowTips) { onShowTips(selected); setSelected(null); }
     return null;
   }
   return (
