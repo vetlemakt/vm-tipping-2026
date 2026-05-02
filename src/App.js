@@ -656,10 +656,11 @@ function Dashboard({ me }) {
 // ══════════════════════════════════════════════════════════════════════
 //  LEADERBOARD
 // ══════════════════════════════════════════════════════════════════════
-function Leaderboard({ me }) {
+function Leaderboard({ me, phase }) {
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
   const [selected, setSelected] = useState(null);
+  const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     getAllUsers().then(us => {
@@ -672,6 +673,23 @@ function Leaderboard({ me }) {
   if (selected) {
     const allUsers = {};
     rows.forEach(r => { allUsers[r.id] = r; });
+    if (!tipsLocked && selected.id !== me.username) {
+      return (
+        <div style={C.card}>
+          <div style={C.cardHeader}>
+            <span style={C.cardTitle}><span style={C.cardTitleDot} /> {selected.displayName}s tips</span>
+            <button onClick={() => setSelected(null)} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
+          </div>
+          <div style={C.cardBody}>
+            <div style={{ textAlign:'center', padding:'48px 24px', color:'rgba(255,255,255,.4)' }}>
+              <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
+              <p style={{ fontSize:15, marginBottom:8, color:'rgba(255,255,255,.6)' }}>Tips er skjult</p>
+              <p style={{ fontSize:13 }}>Du kan se hva andre har tippet når tipsevinduet stenger.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div style={C.card}>
         <div style={C.cardHeader}>
@@ -738,12 +756,15 @@ function Leaderboard({ me }) {
     <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Full poengtabell</span></div>
       <div style={C.cardBody}>
-        {rows.map((r, i) => (
-          <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor:'pointer' }}
-            onClick={() => setSelected && setSelected(r)}>
+        {rows.map((r, i) => {
+          const canView = tipsLocked || r.id === me.username;
+          return (
+          <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
+            onClick={() => canView && setSelected(r)}>
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
-            <span style={{ ...C.lbName, textDecoration:'underline', textDecorationColor:'rgba(255,215,0,.3)' }}>
+            <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
               {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
+              {!canView && <span style={{ marginLeft:6, fontSize:11, color:'rgba(255,255,255,.25)' }}>🔒</span>}
             </span>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
@@ -753,7 +774,8 @@ function Leaderboard({ me }) {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1018,6 +1040,22 @@ function AdminPanel() {
   const setSpec = async (key, val) => { const upd = { ...results, [key]: val }; setResultsState(upd); await setResults(upd); };
   const updCard = async (team, type, val) => { const y = type === 'y' ? parseInt(val) || 0 : (cards[`_y_${team}`] || 0); const r = type === 'r' ? parseInt(val) || 0 : (cards[`_r_${team}`] || 0); const upd = { ...cards, [`_y_${team}`]: y, [`_r_${team}`]: r, [team]: y + r * 3 }; setCardsState(upd); await setCardStats(upd); };
 
+  const resetAllResults = async () => {
+    const confirmed = window.confirm(
+      '⚠️ Er du sikker?\n\nDette nullstiller ALLE resultater:\n• Alle kampresultater (gruppe + sluttspill)\n• Grupperangeringer\n• Spesialtips-fasit\n• Kortstatistikk\n\nHandlingen kan ikke angres.'
+    );
+    if (!confirmed) return;
+    try {
+      await setResults({});
+      await setCardStats({});
+      setResultsState({});
+      setCardsState({});
+      alert('✅ Alle resultater er nullstilt.');
+    } catch(e) {
+      alert('Feil ved nullstilling: ' + e.message);
+    }
+  };
+
   const generateAllBotTips = async (force=false) => {
     const topscorerMap = {
       ragnhild: 'Erik Solér',
@@ -1122,6 +1160,9 @@ function AdminPanel() {
         </button>
         <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#ff9966' }} onClick={() => generateAllBotTips(true)} disabled={generatingBots}>
           🔄 Tving regenerer
+        </button>
+        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#f87171', borderColor:'rgba(248,113,113,.3)' }} onClick={resetAllResults}>
+          🗑️ Nullstill resultater
         </button>
       </div>
       <div style={C.cardBody}>
@@ -1404,7 +1445,17 @@ const PANEL_EXPERTS = [
     color: '#4a7a2a',
     tagline: 'Bonde. Mistenker Brasil for juks.',
     bio: 'Bonde fra Oppdal i tredje generasjon. Har aldri vært sør for Lillehammer frivillig, og ser ikke noen grunn til å begynne. Spiser leverpostei til alle måltider – frokost, lunsj og middag – og mener det er alt en mann trenger. Sier "nei, nei, nei" tre ganger før han sier noe som helst, og er generelt skeptisk til det meste som kommer sørfra. Tipper fotball basert på om landet har god landbrukspolitikk og om de har snø om vinteren. Er dypt overbevist om at Brasil jukser på en eller annen måte, og at det er samme dommer som dømmer hver kamp, en engelskmann ved navn Reffrey. Har aldri sett en fotballkamp, men hørte et referat på NRK radio en gang i 1987.',
-    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser og at en engelskmann ved navn Reffrey dømmer hver eneste kamp. Du snakker i en bondsk trøndersk stil. Maks 3-4 setninger.`,
+    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser og at en engelskmann ved navn Reffrey dømmer hver eneste kamp.
+
+VIKTIG – du snakker ALLTID i autentisk trønderdialekt fra Oppdal. Bruk disse trekkene konsekvent:
+- "æ" for "jeg", "itj" for "ikke", "hain" for "han", "hu" for "hun", "dæm" for "dem/de"
+- "vårrå" for "være", "sei" for "si/sier", "kåmmå" for "komme", "hoill" for "holde"
+- "tå" for "av", "te'" for "til", "omkreng" for "omkring", "ivæg" for "i vei/avgårde"
+- "kor'n" for "hvordan/der han", "aillfall" for "i alle fall", "forresten" brukes mye
+- "ska'" for "skal", "ha'" for "har", "va'" for "var", "veit" for "vet"
+- Setninger som: "Nei, nei, nei, det e' itj sånn det fungere'", "Æ ska' sei dæ", "Det vet æ'itj"
+- Kortform av ord: "da'n" for "dagen", "mårråna" for "morningen", "næstan" for "nesten"
+Svar maks 3-4 setninger.`,
     tipStyle: 'agriculture_snow',
   },
 ];;
@@ -1515,7 +1566,7 @@ Du er en av fem deltakere i et VM-tippepanel. Her er de andre deltakerne du kjen
 
 4. Bengt Sandvik (52, Trondheim) – wrestling- og kortspillfan. Kan fotball fra 80-tallet utenat men vet ingenting etter 1992. Veldig snill. Spiste vafler med brunost i militæret i tre år. Du vet han faktisk prøvde å bli proffbryter i 1987 men ga opp etter en skade i kneet.
 
-5. Odd Snerten (63, Oppdal) – bonde i tredje generasjon. Spiser leverpostei til alle måltider. Aldri sør for Lillehammer. Mistenker Brasil for juks. Du vet han faktisk har en hemmelig lidenskap for romantiske filmer men forteller det ikke til noen.
+5. Odd Snerten (63, Oppdal) – bonde i tredje generasjon. Spiser leverpostei til alle måltider. Aldri sør for Lillehammer. Mistenker Brasil for juks. Snakker trønderdialekt ("æ", "itj", "hain", "dæm"). Du vet han faktisk har en hemmelig lidenskap for romantiske filmer men forteller det ikke til noen.
 
 Dere kjenner hverandre fra et lokalt tippekompani som har holdt på siden 2018. Det er ikke alltid like harmonisk, men det er varmt. Du kan referere til de andre med fornavn og kommentere hva du tror DE ville ha tippa eller ment.
 `;
@@ -1533,7 +1584,7 @@ async function chatWithExpert(expert, message, history) {
     hendrik: ['Hoi! Dennis Bergkamp var jo fantastisk, ikke sant? Rintje Ritsma spilte jo også litt, tror jeg.', 'Ja, ja, ik ben hier. Jeg hører på DJ Bobo og tenker på fotball. Goed, goed.', 'Nederlandsk fotball er jo det beste. Eller, hva vet jeg egentlig? Jeg har ikke vært ute på lenge.'],
     kimlevi: ['Kem faen vet, æ har jo bare sett én kamp. Charizard er uansett verdt mer enn dette.', 'Jævla spørsmål! Men æ tipper på magefølelsen, den er sjeldent feil på sjøen.', 'Mor sier jeg burde bry meg mer om fotball. Men Pokémon-kortene gir bedre avkastning.'],
     bengt: ['Hei hei! Maradona hadde jo gjort det bra her, tror jeg! Hva mener du?', 'Nei, dette minner meg om da Zico spilte i -82. Fantastisk tider! Hva spurte du om igjen?', 'Jeg scoret ti mål mot Rosenborg som keeper, så jeg vet litt om fotball, jeg!'],
-    odd: ['Nei, nei, nei. Brasil jukser uansett, det vet alle. Leverposteien er klar.', 'Nei, nei, nei. Hvem som helst som har snø om vinteren er å stole på. Det er min filosofi.', 'Fotball er en bygreie. Men jeg følger med, jeg, fra Oppdal.'],
+    odd: ['Nei, nei, nei. Brasil jukse' aillfall, det veit æ. Æ ska' hent' leverposteien å tenk på det.', 'Nei, nei, nei. Kvar'n som hæll ha' snø om vinteren e' te' å stoil på. Det e' min filosofi, det.', 'Nei, nei, nei. Fotball e' ein bygreie, men æ følge' med æ, frå Oppdal. Reffrey dømme' aillfall urettferdig.'],
   };
   // Try API first
   if (apiKey) {
@@ -2117,7 +2168,7 @@ export default function App() {
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={handleLogout} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
-        {tab === 'leaderboard' && <Leaderboard me={user} />}
+        {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} />}
         {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} />}
         {tab === 'chat'       && !user.isAdmin && <ChatPage me={user} />}
         {tab === 'video'       && !user.isAdmin && <VideoChat me={user} />}
