@@ -468,7 +468,7 @@ function BotSummaryTrigger({ matchId, match, results, users, summaries }) {
 // ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════════════════════════════════════
-function Dashboard({ me, phase, onShowTips }) {
+function Dashboard({ me, phase, onShowTips, setTab }) {
   const isMobile = useIsMobile();
   const [users, setUsers] = useState([]);
   const [results, setResultsState] = useState({});
@@ -551,21 +551,17 @@ function Dashboard({ me, phase, onShowTips }) {
           const r = results[m.id];
           return r?.home !== undefined ? s + (r.home||0) + (r.away||0) : s;
         }, 0);
-        const stats = isMobile ? [
-          { num: myRank ? `#${myRank}` : '–', label: 'Plassering' },
-          { num: myPts, label: 'Poeng' },
+        const stats = [
+          { num: myRank ? `#${myRank}` : '–', label: isMobile ? 'Plass' : 'Din plassering' },
+          { num: myPts, label: isMobile ? 'Poeng' : 'Dine poeng' },
           { num: users.length, label: 'Deltakere' },
-        ] : [
-          { num: myRank ? `#${myRank}` : '–', label: 'Din plassering' },
-          { num: myPts, label: 'Dine poeng' },
-          { num: users.length, label: 'Deltakere' },
-          { num: finishedCount, label: 'Spilte kamper' },
-          { num: totalGoals, label: 'Antall mål' },
+          { num: finishedCount, label: isMobile ? 'Kamper' : 'Spilte kamper' },
+          { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
         return (
-          <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : 'repeat(5,1fr)', gap:12, marginBottom:16 }}>
+          <div style={isMobile ? C.statsRowMobile : C.statsRowDesktop}>
             {stats.map(({ num, label }) => (
-              <div key={label} style={C.statWidget}>
+              <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
                 <div style={C.statNum}>{num}</div>
                 <div style={C.statLabel}>{label}</div>
               </div>
@@ -574,15 +570,15 @@ function Dashboard({ me, phase, onShowTips }) {
         );
       })()}
       <div style={isMobile ? C.dashGrid3Mobile : C.dashGrid3}>
-      {/* Poengtabell */}
+      {/* Tabell */}
       <div style={{ ...C.card, ...C.cardStretch }}>
-        <div style={C.cardHeader}>
-          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Poengtabell</span>
-          <span style={{ ...C.badge, background: 'rgba(255,215,0,.1)', color: YEL, border: '1px solid rgba(255,215,0,.2)' }}>LIVE</span>
+        <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
+          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Tabell</span>
+          <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Se full tabell →</span>
         </div>
         <div style={C.cardBodyScroll}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
-          {users.map((r, i) => {
+          {users.slice(0, 5).map((r, i) => {
             const tipsLocked = !OPEN_PHASES.has(phase);
             const canView = tipsLocked || r.id === me.username;
             return (
@@ -603,6 +599,14 @@ function Dashboard({ me, phase, onShowTips }) {
             </div>
             );
           })}
+          {users.length > 5 && (
+            <div style={{ textAlign:'center', padding:'8px 0 4px', borderTop:'1px solid rgba(255,255,255,.05)', marginTop:4 }}>
+              <button onClick={() => setTab('leaderboard')}
+                style={{ background:'none', border:'none', color:'rgba(255,255,255,.35)', fontSize:12, cursor:'pointer', fontFamily:"'Fira Code',monospace" }}>
+                +{users.length - 5} til
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2327,7 +2331,7 @@ export default function App() {
     <div style={C.app}>
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={handleLogout} />
       <div style={C.main}>
-        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={r => { setLbSelected(r); setTab('leaderboard'); }} />}
+        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={r => { setLbSelected(r); setTab('leaderboard'); }} setTab={setTab} />}
         {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} initialSelected={lbSelected} onClearSelected={() => setLbSelected(null)} />}
         {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} />}
         {tab === 'chat'       && !user.isAdmin && <ChatPage me={user} />}

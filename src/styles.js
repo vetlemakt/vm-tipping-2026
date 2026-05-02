@@ -556,6 +556,28 @@ export const C = {
     borderTop: '1px solid rgba(255,255,255,.05)',
     fontFamily: "'Fira Code',monospace", letterSpacing: 1,
   },
+  // ── Stats row ──────────────────────────────────────────────
+  statsRowDesktop: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, 1fr)',
+    gap: 12,
+    marginBottom: 16,
+  },
+  statsRowMobile: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+    overflowX: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    paddingBottom: 4,
+    scrollbarWidth: 'none',
+  },
+  statWidgetMobile: {
+    flexShrink: 0,
+    minWidth: 90,
+  },
+
   // ── Dashboard 3-column grid ────────────────────────────────
   dashGrid3: {
     display: 'grid',
