@@ -660,7 +660,6 @@ function Leaderboard({ me }) {
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
   const [selected, setSelected] = useState(null);
-  const isMobile = useIsMobile();
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     getAllUsers().then(us => {
