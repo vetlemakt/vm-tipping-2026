@@ -2399,11 +2399,9 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
   useEffect(() => {
     if (!adminMessage || phase === 'static') return;
     if (phase === 'pause') {
-      const t = setTimeout(() => {
-        if (repeat < 1) { setRepeat(r => r + 1); setPhase('scroll'); }
-        else setPhase('static');
-      }, 5000);
-      return () => clearTimeout(t);
+      // No pause – go straight to next repeat or static
+      if (repeat < 1) { setRepeat(r => r + 1); setPhase('scroll'); }
+      else setPhase('static');
     }
   }, [phase, repeat, adminMessage]);
 
@@ -2422,9 +2420,10 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
         background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
         border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,.5)',
-        padding: '8px 12px', minWidth: 160, maxWidth: 220,
+        padding: '8px 14px', minWidth: 160, maxWidth: 220,
         overflow: 'hidden',
         cursor: adminMessage ? 'pointer' : 'default',
+        backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',
       }}>
       {adminMessage && phase !== 'static' ? (
         <span
@@ -2433,6 +2432,7 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
           style={{
             fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif",
             fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-block',
+            padding: '0 4px',
             animation: 'tickerScroll 12s linear forwards',
           }}>
           📢 {adminMessage}
