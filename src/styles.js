@@ -578,12 +578,39 @@ export const C = {
     minWidth: 90,
   },
 
+  // ── Dashboard fixed-height cards ──────────────────────────
+  dashCardFixed: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: 365,
+  },
+  dashCardFixedBody: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '16px 18px',
+    minHeight: 0,
+  },
+  dashCardFixedMatchList: {
+    flex: 1,
+    overflowY: 'auto',
+    minHeight: 0,
+  },
+  dashCardFixedChat: {
+    flex: 1,
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    padding: '12px 16px',
+    minHeight: 0,
+  },
+
   // ── Dashboard 3-column grid ────────────────────────────────
   dashGrid3: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr 1fr',
     gap: 16,
-    alignItems: 'stretch',
+    alignItems: 'start',
   },
   dashGrid3Mobile: {
     display: 'flex',

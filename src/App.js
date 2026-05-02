@@ -571,12 +571,12 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       })()}
       <div style={isMobile ? C.dashGrid3Mobile : C.dashGrid3}>
       {/* Tabell */}
-      <div style={{ ...C.card, ...C.cardStretch }}>
+      <div style={{ ...C.card, ...C.dashCardFixed }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Tabell</span>
           <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Se full tabell →</span>
         </div>
-        <div style={C.cardBodyScroll}>
+        <div style={C.dashCardFixedBody}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
           {users.slice(0, 5).map((r, i) => {
             const tipsLocked = !OPEN_PHASES.has(phase);
@@ -611,15 +611,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       </div>
 
       {/* Chat */}
-      <div style={{ ...C.card, ...C.cardStretch }}>
-        <div style={C.cardHeader}>
+      <div style={{ ...C.card, ...C.dashCardFixed }}>
+        <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('chat')}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
             <OnlineIndicator onlineUsers={onlineUsers} />
-            <button onClick={() => setChatFullscreen(f => !f)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
+            <button onClick={e => { e.stopPropagation(); setChatFullscreen(f => !f); }} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
-        <div style={{ ...C.chatBox, flex:1 }} ref={chatBoxRef}>
+        <div style={C.dashCardFixedChat} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => {
             const mine = m.user === me.displayName;
@@ -636,7 +636,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             );
           })}
         </div>
-
         <div style={C.chatInputRow}>
           <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}} title="Last opp bilde">
             🖼️
@@ -651,7 +650,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
-            placeholder="Skriv melding… (lim inn bilde med Ctrl+V)" 
+            placeholder="Skriv melding… (lim inn bilde med Ctrl+V)"
             onPaste={e=>{
               const items=e.clipboardData?.items;
               if(!items)return;
@@ -672,16 +671,17 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       </div>
 
       {/* Kamper */}
-      <div style={{ ...C.card, ...C.cardStretch }}>
-        <div style={C.cardHeader}>
+      <div style={{ ...C.card, ...C.dashCardFixed }}>
+        <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
+          <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Alle kamper →</span>
         </div>
         {finishedMatches.length === 0 && (
           <p style={{ color: '#4a5a80', textAlign: 'center', padding: 24, fontSize: 13 }}>
             Ingen kampresultater ennå – admin legger inn etter kampene.
           </p>
         )}
-        <div style={C.cardMatchList}>
+        <div style={C.dashCardFixedMatchList}>
           {finishedMatches.map(m => {
             const r = results[m.id];
             const sum = summaries[m.id];
