@@ -869,23 +869,15 @@ function renderPtsBadge(pts) {
 // ══════════════════════════════════════════════════════════════════════
 //  MATCH INFO POPUP
 // ══════════════════════════════════════════════════════════════════════
-function MatchInfoPopup({ match, onClose, pos }) {
-  const pw = 300;
-  let top, left;
-  if (pos) {
-    left = Math.min(Math.max(pos.x - pw/2, 8), window.innerWidth - pw - 8);
-    top  = Math.min(pos.y + 8, window.innerHeight - 340);
-    if (top < 8) top = 8;
-  }
+function MatchInfoPopup({ match, onClose }) {
   const s = STADIUMS[match.stadium] || {};
   const fmtD = d => { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}.${m}.${y}`; };
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
       <div onClick={e => e.stopPropagation()} style={{
-        position:'fixed', zIndex:900, width:pw,
-        top: pos ? top : '50%', left: pos ? left : '50%',
-        transform: pos ? 'none' : 'translate(-50%,-50%)',
+        position:'fixed', zIndex:900, width:280,
+        bottom:28, left:12,
         background:'rgba(13,18,48,.97)',
         border:'2px solid rgba(255,215,0,.3)', borderRadius:14,
         overflow:'hidden', boxShadow:'0 12px 40px rgba(0,0,0,.8)',
@@ -917,7 +909,7 @@ function MatchInfoPopup({ match, onClose, pos }) {
 //  TIPS FORM
 // ══════════════════════════════════════════════════════════════════════
 
-function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose, pos }) {
+function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
   const teams = GROUPS[group];
   const actOrder = results[`grp_${group}`];
   const tipOrder = grpO[group] || [];
@@ -927,21 +919,12 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose, pos }) 
     tipOrder.forEach((t, i) => { if (t && t === actOrder[i]) totalGrpPts += 5; });
   }
 
-  const pw = Math.min(320, window.innerWidth - 16);
-  let gtop, gleft;
-  if (pos) {
-    gleft = Math.min(Math.max(pos.x - pw/2, 8), window.innerWidth - pw - 8);
-    gtop  = Math.min(pos.y + 8, window.innerHeight - 360);
-    if (gtop < 8) gtop = 8;
-  }
   return (
     <>
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
       <div onClick={e => e.stopPropagation()} style={{
         position:'fixed', zIndex:900,
-        width: pw,
-        top: pos ? gtop : '50%', left: pos ? gleft : '50%',
-        transform: pos ? 'none' : 'translate(-50%,-50%)',
+        width:280, bottom:28, left:12,
         background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.3)',
         borderRadius:16, padding:24,
         boxShadow:'0 12px 40px rgba(0,0,0,.8)',
@@ -994,9 +977,7 @@ function TipsForm({ me, phase, viewUser }) {
   const [loading, setLoading] = useState(true);
   const [results, setResultsState] = useState({});
   const [grpPopup, setGrpPopup] = useState(null);
-  const [grpPos, setGrpPos] = useState(null);
   const [matchPopup, setMatchPopup] = useState(null);
-  const [matchPos, setMatchPos] = useState(null);
 
   // Determine default tab: sluttspill if all group matches played
   const allGroupDone = GROUP_MATCHES.every(m => results[m.id]?.home !== undefined);
@@ -1119,7 +1100,7 @@ function TipsForm({ me, phase, viewUser }) {
           <div style={C.gTabs}>
             {Object.keys(GROUPS).map(g => (
               <button key={g} style={{ ...C.gTab }}
-                onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setGrpPopup(g); setGrpPos({x: r.left + r.width/2, y: r.bottom}); }}>
+                onClick={e => { e.stopPropagation(); setGrpPopup(g); }}>
                 Gr.{g}
               </button>
             ))}
@@ -1143,7 +1124,7 @@ function TipsForm({ me, phase, viewUser }) {
               const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
               return (
                 <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
-                  <div onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMatchPopup(m); setMatchPos({x: r.left + r.width/2, y: r.bottom}); }}
+                  <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
                     style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.1)'}
                     onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
@@ -1245,10 +1226,10 @@ function TipsForm({ me, phase, viewUser }) {
       </div>
 
       {grpPopup && (
-        <GroupOrderPopup group={grpPopup} grpO={grpO} setOrd={setOrd} results={results} grpOk={grpOk} pos={grpPos} onClose={() => { setGrpPopup(null); setGrpPos(null); }} />
+        <GroupOrderPopup group={grpPopup} grpO={grpO} setOrd={setOrd} results={results} grpOk={grpOk} onClose={() => setGrpPopup(null)} />
       )}
       {matchPopup && (
-        <MatchInfoPopup match={matchPopup} pos={matchPos} onClose={() => { setMatchPopup(null); setMatchPos(null); }} />
+        <MatchInfoPopup match={matchPopup} onClose={() => setMatchPopup(null)} />
       )}
     </div>
   );
