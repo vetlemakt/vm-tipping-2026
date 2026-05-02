@@ -1208,18 +1208,27 @@ function TipsForm({ me, phase, viewUser }) {
                 const rightAway    = hasAct && hasTip && tA === aA;
                 const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
                 return (
-                  <div key={m.id} style={{...C.mRow, gap:6, flexWrap:'nowrap'}}>
-                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:52,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'4px 6px',flexShrink:0}}>
-                      <span style={{fontSize:10,color:'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>Kamp {m.matchNum}</span>
-                      {m.date && <span style={{fontSize:9,color:'rgba(255,255,255,.45)',fontFamily:"'Fira Code',monospace"}}>{fmtDate(m.date)}</span>}
-                      {m.time && <span style={{fontSize:9,color:'rgba(255,255,255,.35)',fontFamily:"'Fira Code',monospace"}}>{m.time}</span>}
+                  <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px', alignItems:'center'}}>
+                    {/* Info box */}
+                    <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
+                      style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.12)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
+                      <span style={{fontSize:9,color:'rgba(255,255,255,.5)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>Kamp {m.matchNum}</span>
+                      {m.date && <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>}
+                      {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
                     </div>
-                    <span style={{...C.mTeam,fontSize:11,color:'rgba(255,255,255,.6)'}}>{m.home}</span>
+                    {/* Home */}
+                    <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end',minWidth:0}}>
+                      <span style={{fontSize:11,color:'rgba(255,255,255,.7)',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.home}</span>
+                      <Flag team={m.home} size={18}/>
+                    </div>
+                    {/* Score box */}
                     <div style={{
                       display:'flex', flexDirection:'column', alignItems:'center', gap:1,
                       background:'rgba(255,255,255,.08)', borderRadius:8,
                       border: superbonus ? '1px solid #FFD700' : '1px solid rgba(255,255,255,.15)',
-                      padding:'2px 8px', minWidth:70,
+                      padding:'2px 8px', width:76, flexShrink:0,
                     }}>
                       <div style={{display:'flex',alignItems:'center',gap:4}}>
                         <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:koOk?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!koOk}
@@ -1230,8 +1239,15 @@ function TipsForm({ me, phase, viewUser }) {
                       </div>
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
                     </div>
-                    <span style={{...C.mTeam,fontSize:11,color:'rgba(255,255,255,.6)',textAlign:'right'}}>{m.away}</span>
-                    {renderPtsBadge(pts)}
+                    {/* Away */}
+                    <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start',minWidth:0}}>
+                      <Flag team={m.away} size={18}/>
+                      <span style={{fontSize:11,color:'rgba(255,255,255,.7)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.away}</span>
+                    </div>
+                    {/* Points */}
+                    <div style={{width:20,flexShrink:0,textAlign:'right'}}>
+                      {renderPtsBadge(pts)}
+                    </div>
                   </div>
                 );
               })}
@@ -1330,12 +1346,15 @@ function AdminPanel() {
   const [generatingBots, setGeneratingBots] = useState(false);
   const [msgInput, setMsgInput] = useState('');
   const [summaries, setSummaries] = useState({});
+  const [allUsers, setAllUsers] = useState([]);
+  const [showTopscorer, setShowTopscorer] = useState(false);
 
   useEffect(() => { getPhase().then(setPhaseState); }, []);
   useEffect(() => { getResults().then(setResultsState); }, []);
   useEffect(() => { getCardStats().then(setCardsState); }, []);
   useEffect(() => { getAdminMessage().then(setMsgInput); }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
+  useEffect(() => { getAllUsers().then(us => setAllUsers(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_')))); }, []);
 
   const updPhase = async p => { setPhaseState(p); await setPhase(p); };
   const setResult = async (id, field, val) => { const upd = { ...results, [id]: { ...(results[id] || {}), [field]: parseInt(val) || 0 } }; setResultsState(upd); await setResults(upd); };
@@ -1504,33 +1523,127 @@ function AdminPanel() {
             </div>
           ))}
         </>}
-        {aTab === 'knockout' && KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
-          <div key={kp} style={{ marginBottom: 16 }}>
-            <span style={C.roundL}>{label}</span>
-            {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map((m, i) => (
-              <div key={m.id} style={C.mRow}>
-                <span style={{ ...C.mDate, minWidth: 40 }}>K{i + 1}</span>
-                <input style={C.sInp} type="number" min={0} value={results[m.id]?.home ?? ''} placeholder='–' onChange={e => setResult(m.id, 'home', e.target.value)} />
-                <span style={C.dash}>–</span>
-                <input style={C.sInp} type="number" min={0} value={results[m.id]?.away ?? ''} placeholder='–' onChange={e => setResult(m.id, 'away', e.target.value)} />
-              </div>
-            ))}
-          </div>
-        ))}
+        {aTab === 'knockout' && (() => {
+          // Track which teams are already used across all knockout matches
+          const usedTeams = new Set();
+          Object.entries(results).forEach(([id, r]) => {
+            if (id.startsWith('r32_') || id.startsWith('r16_') || id.startsWith('qf_') || id.startsWith('sf_') || id === 'bronze' || id === 'final') {
+              if (r.homeTeam) usedTeams.add(r.homeTeam + '_' + id);
+              if (r.awayTeam) usedTeams.add(r.awayTeam + '_' + id);
+            }
+          });
+          const setKOTeam = async (matchId, side, team) => {
+            const cur = results[matchId] || {};
+            await setResults({ ...results, [matchId]: { ...cur, [side === 'home' ? 'homeTeam' : 'awayTeam']: team } });
+            setResultsState(r => ({ ...r, [matchId]: { ...cur, [side === 'home' ? 'homeTeam' : 'awayTeam']: team } }));
+          };
+          const setKOScore = (matchId, side, val) => {
+            const cur = results[matchId] || {};
+            setResultsState(r => ({ ...r, [matchId]: { ...cur, [side]: val === '' ? '' : parseInt(val) } }));
+          };
+          const saveKOScore = async (matchId) => {
+            const cur = results[matchId] || {};
+            await setResults({ ...results, [matchId]: cur });
+          };
+          return KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
+            <div key={kp} style={{ marginBottom: 16 }}>
+              <span style={C.roundL}>{label}</span>
+              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map(m => {
+                const r = results[m.id] || {};
+                const homeTeam = r.homeTeam || '';
+                const awayTeam = r.awayTeam || '';
+                // Teams used in OTHER matches (not this one)
+                const takenHome = new Set(
+                  KNOCKOUT_MATCHES.filter(x => x.id !== m.id).map(x => results[x.id]?.homeTeam).filter(Boolean)
+                );
+                const takenAway = new Set(
+                  KNOCKOUT_MATCHES.filter(x => x.id !== m.id).map(x => results[x.id]?.awayTeam).filter(Boolean)
+                );
+                const taken = new Set([...takenHome, ...takenAway]);
+                return (
+                  <div key={m.id} style={{ ...C.mRow, gap:6, flexWrap:'wrap', marginBottom:6 }}>
+                    <span style={{ fontSize:11, color:'rgba(255,215,0,.7)', fontFamily:"'Fira Code',monospace", minWidth:55 }}>Kamp {m.matchNum}</span>
+                    <select style={{ ...C.sel, flex:1, minWidth:100 }} value={homeTeam}
+                      onChange={e => setKOTeam(m.id, 'home', e.target.value)}>
+                      <option value=''>– Hjemmelag –</option>
+                      {ALL_TEAMS.filter(t => !taken.has(t) || t === homeTeam).map(t => (
+                        <option key={t} value={t}>{FLAGS[t]||''} {t}</option>
+                      ))}
+                    </select>
+                    <input style={{ ...C.sInp, width:40 }} type="number" min={0} value={r.home ?? ''} placeholder='–'
+                      onChange={e => setKOScore(m.id, 'home', e.target.value)}
+                      onBlur={() => saveKOScore(m.id)} />
+                    <span style={C.dash}>–</span>
+                    <input style={{ ...C.sInp, width:40 }} type="number" min={0} value={r.away ?? ''} placeholder='–'
+                      onChange={e => setKOScore(m.id, 'away', e.target.value)}
+                      onBlur={() => saveKOScore(m.id)} />
+                    <select style={{ ...C.sel, flex:1, minWidth:100 }} value={awayTeam}
+                      onChange={e => setKOTeam(m.id, 'away', e.target.value)}>
+                      <option value=''>– Bortelag –</option>
+                      {ALL_TEAMS.filter(t => !taken.has(t) || t === awayTeam).map(t => (
+                        <option key={t} value={t}>{FLAGS[t]||''} {t}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          ));
+        })()}
         {aTab === 'special' && (
           <div style={C.specBox}>
             {[{ key: 'champion', label: '🥇 Verdensmester' }, { key: 'runner_up', label: '🥈 Sølvvinner' },
-            { key: 'third', label: '🥉 Bronsevinner' }, { key: 'topscorer', label: '⚽ Toppscorer – lag' },
-            { key: 'most_carded', label: '🟨 Mest kort – lag' }].map(({ key, label }) => (
+              { key: 'third', label: '🥉 Bronsevinner' }, { key: 'most_carded', label: '🟨 Mest kort – lag' }].map(({ key, label }) => (
               <div key={key} style={C.specRow}>
                 <span style={C.specLabel}>{label}</span>
                 <select style={C.sel} value={results[key] || ''} onChange={e => setSpec(key, e.target.value)}>
                   <option value=''>– Ikke satt –</option>
-                  {ALL_TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+                  {ALL_TEAMS.map(t => <option key={t} value={t}>{FLAGS[t]||''} {t}</option>)}
                 </select>
                 {results[key] && <Flag team={results[key]} />}
               </div>
             ))}
+            {/* Toppscorer – text + popup */}
+            <div style={C.specRow}>
+              <span style={C.specLabel}>⚽ Toppscorer</span>
+              <input style={{ ...C.inp, marginBottom:0, flex:1, fontSize:13, padding:'6px 10px' }}
+                value={results['topscorer'] || ''}
+                onChange={e => setSpec('topscorer', e.target.value)}
+                placeholder="Skriv spillernavn…" />
+              <button style={{ ...C.btnSecondary, padding:'6px 12px', fontSize:12, marginLeft:6 }}
+                onClick={() => setShowTopscorer(true)}>
+                Se tips
+              </button>
+            </div>
+            {showTopscorer && createPortal(
+              <>
+                <div onClick={() => setShowTopscorer(false)} style={{ position:'fixed', inset:0, zIndex:899, background:'rgba(0,0,0,.6)', backdropFilter:'blur(3px)' }} />
+                <div style={{
+                  position:'fixed', bottom:28, left:12, zIndex:900, width:300,
+                  background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.3)',
+                  borderRadius:14, padding:20, boxShadow:'0 12px 40px rgba(0,0,0,.8)',
+                  maxHeight:'70vh', overflowY:'auto',
+                }} onClick={e => e.stopPropagation()}>
+                  <div style={{ fontSize:13, color:'rgba(255,215,0,.8)', fontFamily:"'Fira Code',monospace", marginBottom:14, textTransform:'uppercase', letterSpacing:1 }}>
+                    Toppscorertips
+                  </div>
+                  {allUsers.length === 0 && <p style={{ color:'rgba(255,255,255,.4)', fontSize:13 }}>Ingen spillere.</p>}
+                  {allUsers.map(u => {
+                    const tip = u.specialTips?.topscorer || '';
+                    const correct = results['topscorer'] && tip && tip.toLowerCase() === results['topscorer'].toLowerCase();
+                    return (
+                      <div key={u.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
+                        <span style={{ flex:1, fontSize:13, color: correct ? '#4ade80' : '#e8edf8' }}>{u.displayName}</span>
+                        <span style={{ fontSize:13, color: correct ? '#4ade80' : 'rgba(255,255,255,.5)', fontStyle: tip ? 'normal' : 'italic' }}>
+                          {tip || '–'}
+                        </span>
+                        {correct && <span style={{ fontSize:14 }}>✅</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>, document.body
+            )}
           </div>
         )}
         {aTab === 'cards' && <>
@@ -1609,7 +1722,10 @@ function InfoPage() {
           <div>✅ Riktig utfall (H/U/B): <strong style={{color:'#FFD700'}}>2 poeng</strong></div>
           <div>⚽ Riktig antall mål hjemmelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
           <div>⚽ Riktig antall mål bortelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
-          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Maks per kamp: 4 poeng</div>
+          <div style={{marginTop:6}}>⚡ Fulltreffer (rett resultat): <strong style={{color:'#FFD700'}}>4 poeng totalt</strong></div>
+          <div style={{background:'rgba(255,215,0,.07)',borderRadius:8,padding:'8px 12px',marginTop:8,border:'1px solid rgba(255,215,0,.2)'}}>
+            <strong style={{color:'#FFD700'}}>⚡ SUPERBONUS:</strong> <span style={{color:'rgba(255,255,255,.8)'}}>Tipp rett resultat i en kamp med 5 mål eller mer og du får <strong style={{color:'#FFD700'}}>5 poeng</strong> – ett ekstra for å tørre å tippe høyt!</span>
+          </div>
         </div>
 
         <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>📋 Poengsystem – Grupper</h3>
@@ -1620,10 +1736,10 @@ function InfoPage() {
 
         <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🌟 Spesialtips (låses før gruppespillet)</h3>
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
-          <div>🥇 Riktig verdensmester: <strong style={{color:'#FFD700'}}>25 poeng</strong></div>
-          <div>🥈 Riktig sølvvinner: <strong style={{color:'#FFD700'}}>15 poeng</strong></div>
+          <div>🥇 Riktig verdensmester: <strong style={{color:'#FFD700'}}>30 poeng</strong></div>
+          <div>🥈 Riktig sølvvinner: <strong style={{color:'#FFD700'}}>20 poeng</strong></div>
           <div>🥉 Riktig bronsevinner: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
-          <div>⚽ Riktig toppscorer: <strong style={{color:'#FFD700'}}>20 poeng</strong></div>
+          <div>⚽ Riktig toppscorer (spillernavn): <strong style={{color:'#FFD700'}}>20 poeng</strong></div>
           <div>🟨 Riktig lag med mest kort: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
         </div>
 

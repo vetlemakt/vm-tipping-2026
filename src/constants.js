@@ -210,8 +210,8 @@ export const WS_MSGS = {
 };
 
 export const SPEC_FIELDS = [
-  { key:'champion',    label:'🥇 Verdensmester',   pts:25 },
-  { key:'runner_up',   label:'🥈 Sølvvinner',       pts:15 },
+  { key:'champion',    label:'🥇 Verdensmester',   pts:30 },
+  { key:'runner_up',   label:'🥈 Sølvvinner',       pts:20 },
   { key:'third',       label:'🥉 Bronsevinner',      pts:10 },
   { key:'topscorer',   label:'⚽ Toppscorer',         pts:20 },
   { key:'most_carded', label:'🟨 Mest kort – lag',   pts:10 },
