@@ -948,8 +948,6 @@ function renderTipScore(tip, act) {
   const fulltreff = rightOutcome && rightHome && rightAway;
   const superbonus = fulltreff && hasAct && (aH + aA) >= 5;
 
-  const pts = hasAct && hasTip ? calcMatchPts(tip, act) : null;
-
   const YEL = '#FFD700';
   const DIM = '#e8edf8';
   const numStyle = { fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 700, lineHeight: 1 };
@@ -977,7 +975,6 @@ function renderTipScore(tip, act) {
 // ── Points badge ───────────────────────────────────────────────────────
 function renderPtsBadge(pts) {
   if (pts === null) return null;
-  const superbonus = pts === 5;
   const fulltreff = pts >= 4;
   return (
     <span style={{
