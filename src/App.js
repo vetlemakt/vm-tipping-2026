@@ -361,7 +361,7 @@ function OnlineIndicator({ onlineUsers }) {
 // ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════════════════════════════════════
-function Dashboard({ me }) {
+function Dashboard({ me, phase, onShowTips }) {
   const isMobile = useIsMobile();
   const [users, setUsers] = useState([]);
   const [results, setResultsState] = useState({});
@@ -475,10 +475,17 @@ function Dashboard({ me }) {
         </div>
         <div style={{ ...C.cardBody, maxHeight: 420, overflowY: 'auto' }}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
-          {users.map((r, i) => (
-            <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}) }}>
+          {users.map((r, i) => {
+            const tipsLocked = !OPEN_PHASES.has(phase);
+            const canView = tipsLocked || r.id === me.username;
+            return (
+            <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
+              onClick={() => canView && onShowTips && onShowTips(r)}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
-              <span style={C.lbName}>{r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}</span>
+              <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
+                {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
+                {!canView && <span style={{ marginLeft:6, fontSize:11, color:'rgba(255,255,255,.25)' }}>🔒</span>}
+              </span>
               <div style={{display:'flex',alignItems:'center',gap:6}}>
                 {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
                 <div style={{ textAlign: 'right' }}>
@@ -487,7 +494,8 @@ function Dashboard({ me }) {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -656,10 +664,10 @@ function Dashboard({ me }) {
 // ══════════════════════════════════════════════════════════════════════
 //  LEADERBOARD
 // ══════════════════════════════════════════════════════════════════════
-function Leaderboard({ me, phase }) {
+function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(initialSelected || null);
   const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
@@ -678,7 +686,7 @@ function Leaderboard({ me, phase }) {
         <div style={C.card}>
           <div style={C.cardHeader}>
             <span style={C.cardTitle}><span style={C.cardTitleDot} /> {selected.displayName}s tips</span>
-            <button onClick={() => setSelected(null)} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
+            <button onClick={() => { setSelected(null); if(onClearSelected) onClearSelected(); }} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
           </div>
           <div style={C.cardBody}>
             <div style={{ textAlign:'center', padding:'48px 24px', color:'rgba(255,255,255,.4)' }}>
@@ -694,7 +702,7 @@ function Leaderboard({ me, phase }) {
       <div style={C.card}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> {selected.displayName}s tips</span>
-          <button onClick={() => setSelected(null)} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
+          <button onClick={() => { setSelected(null); if(onClearSelected) onClearSelected(); }} style={{ ...C.btnSecondary, padding:'5px 14px', fontSize:12 }}>← Tilbake</button>
         </div>
         <div style={C.cardBody}>
           <span style={C.secH}>Spesialtips</span>
@@ -711,6 +719,11 @@ function Leaderboard({ me, phase }) {
             })}
           </div>
           <span style={{...C.secH,marginTop:16}}>Kamptips</span>
+          {selected.botSource && (
+            <div style={{marginBottom:10,padding:'6px 12px',background:'rgba(255,215,0,.07)',border:'1px solid rgba(255,215,0,.2)',borderRadius:8,fontSize:12,color:'rgba(255,215,0,.8)'}}>
+              🤖 Tips generert av <strong>{PANEL_EXPERTS.find(e=>e.id===selected.botSource)?.name || selected.botSource}</strong>
+            </div>
+          )}
           {Object.keys(GROUPS).map(g => (
             <div key={g} style={{marginBottom:12}}>
               <span style={C.roundL}>Gruppe {g}</span>
@@ -788,6 +801,7 @@ function TipsForm({ me, phase }) {
   const [tips, setTips] = useState({});
   const [grpO, setGrpO] = useState({});
   const [spec, setSpec] = useState({});
+  const [botSource, setBotSource] = useState(null);
   const [ag, setAg] = useState('A');
   const [tab, setTab] = useState('group');
   const [saved, setSaved] = useState(false);
@@ -798,7 +812,7 @@ function TipsForm({ me, phase }) {
 
   useEffect(() => {
     getUser(me.username).then(u => {
-      if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); }
+      if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); setBotSource(u.botSource || null); }
       setLoading(false);
     });
   }, [me.username]);
@@ -819,6 +833,27 @@ function TipsForm({ me, phase }) {
   };
   const setSp = (k, v) => { setSpec(p => ({ ...p, [k]: v })); setDirty(true); };
 
+  const resetTips = async () => {
+    const confirmed = window.confirm('Er du sikker på at du vil nullstille tipsene dine?\n\nTips for kamper som allerede er spilt kan ikke fjernes.');
+    if (!confirmed) return;
+    // Only keep tips for matches that have a result (already played)
+    const playedMatchIds = new Set(Object.keys(results));
+    const keptTips = {};
+    [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].forEach(m => {
+      if (playedMatchIds.has(m.id) && tips[m.id]) keptTips[m.id] = tips[m.id];
+    });
+    // Keep group orders only if group phase is locked
+    const keptGrpO = grpOk ? {} : grpO;
+    // Keep spec tips only if they relate to played phase
+    const keptSpec = grpOk ? {} : spec;
+    setTips(keptTips);
+    setGrpO(keptGrpO);
+    setSpec(keptSpec);
+    await updateUser(me.username, { tips: keptTips, groupOrders: keptGrpO, specialTips: keptSpec });
+    setSaved(true); setDirty(false);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
   const save = async () => {
     await updateUser(me.username, { tips, groupOrders: grpO, specialTips: spec });
     setSaved(true); setDirty(false);
@@ -834,6 +869,11 @@ function TipsForm({ me, phase }) {
 
       </div>
       <div style={C.cardBody}>
+        {botSource && (
+          <div style={{marginBottom:12,padding:'8px 14px',background:'rgba(255,215,0,.07)',border:'1px solid rgba(255,215,0,.2)',borderRadius:8,fontSize:12,color:'rgba(255,215,0,.8)'}}>
+            🤖 Disse tipsene ble generert av <strong>{PANEL_EXPERTS.find(e=>e.id===botSource)?.name || botSource}</strong>
+          </div>
+        )}
         <div style={C.specBox}>
           <span style={C.secH}>🌟 Spesialtips – låses før gruppespillet</span>
           {SPEC_FIELDS.map(({ key, label, pts }) => (
@@ -953,7 +993,10 @@ function TipsForm({ me, phase }) {
           ))}
         </>}
         <button style={{ ...C.btnGold, width: '100%', marginTop: 16, opacity: dirty ? 1 : .5 }} onClick={save}>
-          {saved ? '✅ Lagret!' : '💾 Lagre alle tips'}
+          {saved ? '✅ Lagret!' : '💾 Lagre mine tips'}
+        </button>
+        <button style={{ ...C.btnSecondary, width: '100%', marginTop: 8, color: '#f87171', borderColor: 'rgba(248,113,113,.3)' }} onClick={resetTips}>
+          🗑️ Nullstill tips
         </button>
         {dirty && <p style={{ color: '#f59e0b', fontSize: 11, textAlign: 'center', marginTop: 6, fontFamily: "'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
       </div>
@@ -1046,8 +1089,8 @@ function AdminPanel() {
     );
     if (!confirmed) return;
     try {
-      await setResults({});
-      await setCardStats({});
+      await setDoc(doc(db, 'config', 'results'), {});
+      await setDoc(doc(db, 'config', 'cards'), {});
       setResultsState({});
       setCardsState({});
       alert('✅ Alle resultater er nullstilt.');
@@ -2119,6 +2162,7 @@ export default function App() {
   });
   const [tab, setTab] = useState('dashboard');
   const [phase, setPhaseState] = useState('pre');
+  const [lbSelected, setLbSelected] = useState(null);
 
   const handleLogin = u => {
     try { localStorage.setItem('vm_user', JSON.stringify(u)); } catch {}
@@ -2167,8 +2211,8 @@ export default function App() {
     <div style={C.app}>
       <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={handleLogout} />
       <div style={C.main}>
-        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
-        {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} />}
+        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={r => { setLbSelected(r); setTab('leaderboard'); }} />}
+        {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} initialSelected={lbSelected} onClearSelected={() => setLbSelected(null)} />}
         {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} />}
         {tab === 'chat'       && !user.isAdmin && <ChatPage me={user} />}
         {tab === 'video'       && !user.isAdmin && <VideoChat me={user} />}
