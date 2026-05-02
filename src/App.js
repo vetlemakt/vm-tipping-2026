@@ -798,7 +798,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 // ══════════════════════════════════════════════════════════════════════
 //  LEADERBOARD
 // ══════════════════════════════════════════════════════════════════════
-function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
+function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }) {
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
   const [selected, setSelected] = useState(initialSelected || null);
@@ -845,59 +845,11 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
               const myT=(selected.specialTips||{})[key], correct=results[key], won=correct&&myT===correct;
               return (
                 <div key={key} style={C.specRow}>
-                  <span style={C.specLabel}>{label}</span>
-                  <span style={{color:won?'#4ade80':myT?'#e8edf8':'rgba(255,255,255,.3)'}}>{myT||'–'}</span>
-                  {won&&<span style={C.wonBadge}>✓ +{pts}p</span>}
-                </div>
-              );
-            })}
-          </div>
-          <span style={{...C.secH,marginTop:16}}>Kamptips</span>
-          {selected.botSource && (
-            <div style={C.botBanner}>
-              🤖 Tips generert av <strong>{PANEL_EXPERTS.find(e=>e.id===selected.botSource)?.name || selected.botSource}</strong>
-            </div>
-          )}
-          {Object.keys(GROUPS).map(g => (
-            <div key={g} style={{marginBottom:12}}>
-              <span style={C.roundL}>Gruppe {g}</span>
-              {GROUP_MATCHES.filter(m=>m.group===g).map(m => {
-            const tip=(selected.tips||{})[m.id]; const act=results[m.id];
-            const pts=tip&&act?calcMatchPts(tip,act):null;
-            return (
-              <div key={m.id} style={{...C.mRow,marginBottom:3,justifyContent:'space-between'}}>
-                <span style={{fontSize:13,flex:1}}><Flag team={m.home}/> {m.home}</span>
-                <span style={{fontFamily:"'Fira Code',monospace",color:'#e8edf8',padding:'2px 10px',background:'rgba(255,255,255,.06)',borderRadius:6}}>
-                  {tip?`${tip.home}–${tip.away}`:'?'}
-                </span>
-                <span style={{fontSize:13,flex:1,textAlign:'right'}}>{m.away} <Flag team={m.away}/></span>
-                {pts!==null&&<span style={{fontSize:11,color:pts===4?'#FFD700':'rgba(255,255,255,.5)',minWidth:32,textAlign:'right'}}>{pts===4?'⚡':''}{pts}p</span>}
-              </div>
-            );
-          })}
-            </div>
-          ))}
-          {/* Knockout matches */}
-          {KNOCKOUT_ROUNDS.map(({phase:kp,label}) => {
-            const kMatches = KNOCKOUT_MATCHES.filter(m => (selected.tips||{})[m.id]);
-            if(kMatches.length===0) return null;
-            return <div key={kp} style={{marginBottom:8}}>
-              <span style={C.roundL}>{label}</span>
-              {kMatches.map(m => {
-                const tip=(selected.tips||{})[m.id];
-                return <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:12}}>
-                  <span style={{color:'rgba(255,255,255,.4)',minWidth:55}}>Kamp {m.matchNum}</span>
-                  <span style={{flex:1,textAlign:'right',color:'rgba(255,255,255,.6)'}}>{m.home}</span>
-                  <span style={{fontFamily:"'Fira Code',monospace",color:'#FFD700',padding:'1px 6px',background:'rgba(255,215,0,.08)',borderRadius:4}}>{tip.home}–{tip.away}</span>
-                  <span style={{flex:1,color:'rgba(255,255,255,.6)'}}>{m.away}</span>
-                </div>;
-              })}
-            </div>;
-          })}
-          <p style={{color:'rgba(255,255,255,.3)',fontSize:12,marginTop:12}}>Trykk tilbake for å se full tabell</p>
-        </div>
-      </div>
-    );
+  if (selected) {
+    // Delegate to parent's TipsForm view
+    if (onShowTips) onShowTips(selected);
+    setSelected(null);
+    return null;
   }
   return (
     <div style={C.card}>
@@ -907,7 +859,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
           const canView = tipsLocked || r.id === me.username;
           return (
           <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
-            onClick={() => canView && setSelected(r)}>
+            onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
             <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
               {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
@@ -934,7 +886,8 @@ function matchOutcome(h, a) {
   if (isNaN(hi) || isNaN(ai)) return null;
   return hi > ai ? 'H' : hi < ai ? 'A' : 'D';
 }
-function renderTipScore(tip, act) {
+
+function renderTipScore(tip, act, readonly) {
   const hasAct = act && act.home !== undefined && act.away !== undefined;
   const hasTip = tip && tip.home !== undefined && tip.away !== undefined;
   const tH = hasTip ? parseInt(tip.home) : null;
@@ -943,28 +896,33 @@ function renderTipScore(tip, act) {
   const aA = hasAct ? parseInt(act.away) : null;
 
   const rightOutcome = hasAct && hasTip && matchOutcome(tH, tA) === matchOutcome(aH, aA);
-  const rightHome = hasAct && hasTip && tH === aH;
-  const rightAway = hasAct && hasTip && tA === aA;
-  const fulltreff = rightOutcome && rightHome && rightAway;
-  const superbonus = fulltreff && hasAct && (aH + aA) >= 5;
+  const rightHome    = hasAct && hasTip && tH === aH;
+  const rightAway    = hasAct && hasTip && tA === aA;
+  const fulltreff    = rightOutcome && rightHome && rightAway;
+  const superbonus   = fulltreff && hasAct && (aH + aA) >= 5;
 
   const YEL = '#FFD700';
-  const DIM = '#e8edf8';
-  const numStyle = { fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 700, lineHeight: 1 };
+  const W   = '#e8edf8';
+  const numSz = { fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 700, lineHeight: 1 };
+
+  const numH  = hasAct ? (rightHome    ? YEL : W) : W;
+  const numA  = hasAct ? (rightAway    ? YEL : W) : W;
+  const dash  = hasAct ? (rightOutcome ? YEL : W) : W;
+  const dashW = superbonus ? 3 : rightOutcome ? 2 : 1;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, minWidth: 64 }}>
-      {/* Tipped score row */}
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, minWidth: 60,
+      border: superbonus ? `2px solid ${YEL}` : '2px solid transparent',
+      borderRadius: 6, padding: '2px 5px',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <span style={{ ...numStyle, color: rightHome ? YEL : DIM }}>{hasTip ? tH : '–'}</span>
-        <span style={{ ...numStyle, color: rightOutcome ? YEL : DIM, fontSize: 13 }}>–</span>
-        <span style={{ ...numStyle, color: rightAway ? YEL : DIM }}>{hasTip ? tA : '–'}</span>
-        {superbonus && <span style={{ marginLeft: 4, fontSize: 10, color: YEL, fontWeight: 800, letterSpacing: 0.5 }}>SUPER!</span>}
-        {fulltreff && !superbonus && <span style={{ marginLeft: 3, fontSize: 12 }}>⚡</span>}
+        <span style={{ ...numSz, color: numH }}>{hasTip ? tH : '–'}</span>
+        <span style={{ ...numSz, color: dash, fontSize: 13, fontWeight: dashW >= 2 ? 900 : 700 }}>–</span>
+        <span style={{ ...numSz, color: numA }}>{hasTip ? tA : '–'}</span>
       </div>
-      {/* Actual result row */}
       {hasAct && (
-        <div style={{ fontSize: 9, color: 'rgba(0,229,255,.8)', fontFamily: "'Fira Code',monospace", letterSpacing: 0.5 }}>
+        <div style={{ fontSize: 9, color: 'rgba(0,229,255,.75)', fontFamily: "'Fira Code',monospace", letterSpacing: 0.5 }}>
           {aH}–{aA}
         </div>
       )}
@@ -972,15 +930,13 @@ function renderTipScore(tip, act) {
   );
 }
 
-// ── Points badge ───────────────────────────────────────────────────────
 function renderPtsBadge(pts) {
   if (pts === null) return null;
-  const fulltreff = pts >= 4;
   return (
     <span style={{
-      fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 800,
-      color: fulltreff ? '#FFD700' : pts > 0 ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.3)',
-      minWidth: 20, textAlign: 'right', flexShrink: 0,
+      fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 800, minWidth: 20,
+      textAlign: 'right', flexShrink: 0,
+      color: pts > 0 ? '#FFD700' : '#e8edf8',
     }}>
       {pts}
     </span>
@@ -990,34 +946,88 @@ function renderPtsBadge(pts) {
 // ══════════════════════════════════════════════════════════════════════
 //  TIPS FORM
 // ══════════════════════════════════════════════════════════════════════
-function TipsForm({ me, phase }) {
-  const [tips, setTips] = useState({});
-  const [grpO, setGrpO] = useState({});
-  const [spec, setSpec] = useState({});
+
+function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
+  const teams = GROUPS[group];
+  const actOrder = results[`grp_${group}`];
+  const tipOrder = grpO[group] || [];
+  const allGroupPlayed = GROUP_MATCHES.filter(m => m.group === group).every(m => results[m.id]?.home !== undefined);
+  let totalGrpPts = 0;
+  if (allGroupPlayed && actOrder) {
+    tipOrder.forEach((t, i) => { if (t && t === actOrder[i]) totalGrpPts += 5; });
+  }
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:800, background:'rgba(0,0,0,.7)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.3)', borderRadius:16, padding:24, minWidth:260, maxWidth:340, width:'100%' }}>
+        <div style={{ fontSize:13, color:'rgba(255,215,0,.7)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>Gruppe {group} – rangering</div>
+        {[0,1,2,3].map(pos => {
+          const picked = tipOrder[pos] || '';
+          const correct = allGroupPlayed && actOrder && picked && picked === actOrder[pos];
+          return (
+            <div key={pos} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={{ color:'rgba(255,255,255,.4)', fontSize:12, width:16 }}>{pos+1}.</span>
+              {grpOk ? (
+                <select style={{ ...C.sel, flex:1, opacity:1 }} value={picked} onChange={e => setOrd(group, pos, e.target.value)}>
+                  <option value=''>– Velg –</option>
+                  {teams.map(t => <option key={t} value={t}>{FLAGS[t]||''} {t}</option>)}
+                </select>
+              ) : (
+                <span style={{ flex:1, fontSize:13, color:'#e8edf8', display:'flex', alignItems:'center', gap:6 }}>
+                  {picked ? <><Flag team={picked} /> {picked}</> : <span style={{color:'rgba(255,255,255,.3)'}}>–</span>}
+                </span>
+              )}
+              {allGroupPlayed && actOrder && picked && (
+                <span style={{ fontSize:13 }}>{correct ? '✅' : '❌'}</span>
+              )}
+            </div>
+          );
+        })}
+        {allGroupPlayed && actOrder && (
+          <div style={{ marginTop:14, paddingTop:10, borderTop:'1px solid rgba(255,255,255,.1)', textAlign:'center' }}>
+            <span style={{ fontSize:13, color:'rgba(255,255,255,.5)', marginRight:6 }}>Gruppepoeng:</span>
+            <span style={{ fontSize:18, fontWeight:800, color:'#FFD700', fontFamily:"'Kanit',sans-serif" }}>{totalGrpPts}</span>
+          </div>
+        )}
+        <button onClick={onClose} style={{ ...C.btnSecondary, width:'100%', marginTop:16 }}>Lukk</button>
+      </div>
+    </div>
+  );
+}
+
+function TipsForm({ me, phase, viewUser }) {
+  const isOwn = !viewUser || viewUser.id === me.username;
+  const userId = viewUser ? viewUser.id : me.username;
+
+  const [tips, setTips]   = useState({});
+  const [grpO, setGrpO]   = useState({});
+  const [spec, setSpec]   = useState({});
   const [botSource, setBotSource] = useState(null);
-  const [ag, setAg] = useState('A');
-  const [tab, setTab] = useState('group');
-  const [saved, setSaved] = useState(false);
-  const [dirty, setDirty] = useState(false);
+  const [saved, setSaved]   = useState(false);
+  const [dirty, setDirty]   = useState(false);
   const [loading, setLoading] = useState(true);
   const [results, setResultsState] = useState({});
-  useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
+  const [grpPopup, setGrpPopup] = useState(null);
 
+  // Determine default tab: sluttspill if all group matches played
+  const allGroupDone = GROUP_MATCHES.every(m => results[m.id]?.home !== undefined);
+  const [tab, setTab] = useState(() => allGroupDone ? 'knockout' : 'group');
+  useEffect(() => { if (allGroupDone) setTab('knockout'); }, [allGroupDone]);
+
+  useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
-    getUser(me.username).then(u => {
+    getUser(userId).then(u => {
       if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); setBotSource(u.botSource || null); }
       setLoading(false);
     });
-  }, [me.username]);
+  }, [userId]);
 
-  const grpOk = phase === 'pre';
-  const koOk = OPEN_PHASES.has(phase);
+  const grpOk = isOwn && phase === 'pre';
+  const koOk  = isOwn && OPEN_PHASES.has(phase);
 
   const setTip = (id, field, val) => { setTips(p => ({ ...p, [id]: { ...p[id], [field]: val } })); setDirty(true); };
   const setOrd = (g, i, val) => {
     setGrpO(p => {
-      const a = p[g] ? [...p[g]] : ['', '', '', ''];
-      // Remove val from other positions first
+      const a = p[g] ? [...p[g]] : ['','','',''];
       const cleaned = a.map((v, idx) => (idx !== i && v === val) ? '' : v);
       cleaned[i] = val;
       return { ...p, [g]: cleaned };
@@ -1027,21 +1037,15 @@ function TipsForm({ me, phase }) {
   const setSp = (k, v) => { setSpec(p => ({ ...p, [k]: v })); setDirty(true); };
 
   const resetTips = async () => {
-    const confirmed = window.confirm('Er du sikker på at du vil nullstille tipsene dine?\n\nTips for kamper som allerede er spilt kan ikke fjernes.');
-    if (!confirmed) return;
-    // Only keep tips for matches that have a result (already played)
+    if (!window.confirm('Er du sikker på at du vil nullstille tipsene dine?\n\nTips for kamper som allerede er spilt kan ikke fjernes.')) return;
     const playedMatchIds = new Set(Object.keys(results));
     const keptTips = {};
     [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].forEach(m => {
       if (playedMatchIds.has(m.id) && tips[m.id]) keptTips[m.id] = tips[m.id];
     });
-    // Keep group orders only if group phase is locked
     const keptGrpO = grpOk ? {} : grpO;
-    // Keep spec tips only if they relate to played phase
     const keptSpec = grpOk ? {} : spec;
-    setTips(keptTips);
-    setGrpO(keptGrpO);
-    setSpec(keptSpec);
+    setTips(keptTips); setGrpO(keptGrpO); setSpec(keptSpec);
     await updateUser(me.username, { tips: keptTips, groupOrders: keptGrpO, specialTips: keptSpec });
     setSaved(true); setDirty(false);
     setTimeout(() => setSaved(false), 2500);
@@ -1053,111 +1057,122 @@ function TipsForm({ me, phase }) {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  if (loading) return <div style={C.card}><p style={{ color: '#6070a0', textAlign: 'center', padding: 40 }}>Laster…</p></div>;
+  if (loading) return <div style={C.card}><p style={{ color:'#6070a0', textAlign:'center', padding:40 }}>Laster…</p></div>;
+
+  const displayName = viewUser ? viewUser.displayName : me.displayName;
+
+  // Chronological group matches
+  const chronoGroupMatches = [...GROUP_MATCHES].sort((a,b) => {
+    const da = new Date(`${a.date}T${a.time||'00:00'}`);
+    const db = new Date(`${b.date}T${b.time||'00:00'}`);
+    return da - db;
+  });
 
   return (
     <div style={C.card}>
       <div style={C.cardHeader}>
-        <span style={C.cardTitle}><span style={C.cardTitleDot} /> Mine tips</span>
-
+        <span style={C.cardTitle}><span style={C.cardTitleDot} /> {isOwn ? 'Mine tips' : `${displayName}s tips`}</span>
       </div>
       <div style={C.cardBody}>
-        {botSource && (
-          <div style={C.botBanner}>
-            🤖 Disse tipsene ble generert av <strong>{PANEL_EXPERTS.find(e=>e.id===botSource)?.name || botSource}</strong>
-          </div>
+        {botSource && isOwn && (
+          <div style={C.botBanner}>🤖 Disse tipsene ble generert av <strong>{PANEL_EXPERTS.find(e=>e.id===botSource)?.name || botSource}</strong></div>
         )}
+
+        {/* Spesialtips */}
         <div style={C.specBox}>
           <span style={C.secH}>🌟 Spesialtips – låses før gruppespillet</span>
-          {SPEC_FIELDS.map(({ key, label, pts }) => (
-            <div key={key} style={C.specRow}>
-              <span style={C.specLabel}>{label}</span>
-              <span style={C.ptsBadge}>{pts}p</span>
-              {key === 'topscorer' ? (
-                <input
-                  style={{ ...C.inp, marginBottom:0, flex:1, fontSize:13, padding:'6px 10px', opacity: grpOk?1:.5 }}
-                  disabled={!grpOk}
-                  value={spec[key] || ''}
-                  onChange={e => setSp(key, e.target.value)}
-                  placeholder="Skriv spillernavn (f.eks. Mbappé)"
-                />
-              ) : (
-                <>
-                  <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
-                    value={spec[key] || ''} onChange={e => setSp(key, e.target.value)}>
-                    <option value=''>– Velg –</option>
-                    {ALL_TEAMS.map(t => { const code = COUNTRY_CODES[t]; return <option key={t} value={t}>{code ? String.fromCodePoint(...[...code.toUpperCase()].map(c=>c.charCodeAt(0)+127397)) : (FLAGS[t]||'')} {t}</option>; })}
-                  </select>
-                  {spec[key] && <Flag team={spec[key]} />}
-                </>
-              )}
-            </div>
-          ))}
+          {SPEC_FIELDS.map(({ key, label, pts }) => {
+            const correctVal = results[key];
+            const tipVal = spec[key];
+            const correct = correctVal && tipVal && tipVal === correctVal;
+            const specPts = correct ? pts : null;
+            return (
+              <div key={key} style={C.specRow}>
+                <span style={C.specLabel}>{label}</span>
+                <span style={C.ptsBadge}>{pts}p</span>
+                {grpOk ? (
+                  key === 'topscorer' ? (
+                    <input style={{ ...C.inp, marginBottom:0, flex:1, fontSize:13, padding:'6px 10px' }}
+                      value={spec[key]||''} onChange={e => setSp(key, e.target.value)}
+                      placeholder="Skriv spillernavn (f.eks. Mbappé)" />
+                  ) : (
+                    <>
+                      <select style={C.sel} value={spec[key]||''} onChange={e => setSp(key, e.target.value)}>
+                        <option value=''>– Velg –</option>
+                        {ALL_TEAMS.map(t => { const code = COUNTRY_CODES[t]; return <option key={t} value={t}>{code ? String.fromCodePoint(...[...code.toUpperCase()].map(c=>c.charCodeAt(0)+127397)) : (FLAGS[t]||'')} {t}</option>; })}
+                      </select>
+                      {spec[key] && <Flag team={spec[key]} />}
+                    </>
+                  )
+                ) : (
+                  <span style={{ flex:1, fontSize:13, color: correct ? '#FFD700' : '#e8edf8', display:'flex', alignItems:'center', gap:6 }}>
+                    {spec[key] ? <>{key !== 'topscorer' && <Flag team={spec[key]} />} {spec[key]}</> : <span style={{color:'rgba(255,255,255,.3)'}}>–</span>}
+                    {specPts && <span style={{ marginLeft:'auto', fontSize:15, fontWeight:800, color:'#FFD700' }}>{specPts}</span>}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {/* Tabs */}
         <div style={C.tabs}>
-          {['group', 'knockout'].map(t => (
-            <button key={t} style={{ ...C.tab, ...(tab === t ? C.tabOn : {}) }} onClick={() => setTab(t)}>
+          {['group','knockout'].map(t => (
+            <button key={t} style={{ ...C.tab, ...(tab===t ? C.tabOn : {}) }} onClick={() => setTab(t)}>
               {t === 'group' ? '📋 Gruppespill' : '🏟️ Sluttspill'}
             </button>
           ))}
         </div>
+
         {tab === 'group' && <>
+          {/* Group buttons */}
           <div style={C.gTabs}>
             {Object.keys(GROUPS).map(g => (
-              <button key={g} style={{ ...C.gTab, ...(ag === g ? C.gTabOn : {}) }} onClick={() => setAg(g)}>Gr.{g}</button>
+              <button key={g} style={{ ...C.gTab, ...(false ? C.gTabOn : {}) }}
+                onClick={() => setGrpPopup(g)}>
+                Gr.{g}
+              </button>
             ))}
           </div>
+
+          {/* Chronological matches */}
           <div style={C.matchList}>
-            {GROUP_MATCHES.filter(m => m.group === ag).map(m => {
+            {chronoGroupMatches.map(m => {
               const t = tips[m.id] || {};
               const act = results[m.id];
               const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
               return (
-                    <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
-                      {/* Date+time */}
-                      <div className="hide-portrait" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0}}>
-                        <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
-                        {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
-                      </div>
-                      {/* Home */}
-                      <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end'}}>
-                        <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.home}</span>
-                        <Flag team={m.home} size={18}/>
-                      </div>
-                      {/* Score inputs */}
-                      <input style={{...C.sInp,width:38,fontSize:15}} type="number" min={0} max={20} disabled={!grpOk}
-                        value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
-                      <span style={C.dash}>–</span>
-                      <input style={{...C.sInp,width:38,fontSize:15}} type="number" min={0} max={20} disabled={!grpOk}
-                        value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
-                      {/* Away */}
-                      <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start'}}>
-                        <Flag team={m.away} size={18}/>
-                        <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.away}</span>
-                      </div>
-                      {/* Tipped score + actual + points */}
-                      {renderTipScore(t, act)}
-                      {renderPtsBadge(pts)}
-                    </div>
+                <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0}}>
+                    <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
+                    {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
+                    <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Kanit',sans-serif"}}>Gr.{m.group}</span>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end'}}>
+                    <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.home}</span>
+                    <Flag team={m.home} size={18}/>
+                  </div>
+                  <input style={{...C.sInp,width:38,fontSize:15}} type="number" min={0} max={20} disabled={!grpOk}
+                    value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id,'home',e.target.value)} />
+                  <span style={C.dash}>–</span>
+                  <input style={{...C.sInp,width:38,fontSize:15}} type="number" min={0} max={20} disabled={!grpOk}
+                    value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
+                  <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start'}}>
+                    <Flag team={m.away} size={18}/>
+                    <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:90}}>{m.away}</span>
+                  </div>
+                  {renderTipScore(t, act)}
+                  {renderPtsBadge(pts)}
+                </div>
               );
             })}
           </div>
-          <span style={{ ...C.secH, marginTop: 16 }}>Grupperangering – 5p per riktig plass</span>
-          {[0, 1, 2, 3].map(pos => (
-            <div key={pos} style={C.plRow}>
-              <span style={C.plPos}>{pos + 1}.</span>
-              <select style={{ ...C.sel, opacity: grpOk ? 1 : .5 }} disabled={!grpOk}
-                value={grpO[ag]?.[pos] || ''} onChange={e => setOrd(ag, pos, e.target.value)}>
-                <option value=''>– Velg lag –</option>
-                {GROUPS[ag].map(t => { const code = COUNTRY_CODES[t]; return <option key={t} value={t}>{code ? String.fromCodePoint(...[...code.toUpperCase()].map(c=>c.charCodeAt(0)+127397)) : (FLAGS[t]||'')} {t}</option>; })}
-              </select>
-            </div>
-          ))}
         </>}
+
         {tab === 'knockout' && <>
           {!koOk && <div style={C.lockBanner}>🔒 Sluttspill-vinduet er stengt.</div>}
           {KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
-            <div key={kp} style={{ marginBottom: 18 }}>
+            <div key={kp} style={{ marginBottom:18 }}>
               <span style={C.roundL}>{label}</span>
               {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map(m => {
                 const t = tips[m.id] || {};
@@ -1171,11 +1186,11 @@ function TipsForm({ me, phase }) {
                       {m.time && <span style={{fontSize:9,color:'rgba(255,255,255,.35)',fontFamily:"'Fira Code',monospace"}}>{m.time}</span>}
                     </div>
                     <span style={{...C.mTeam,fontSize:11,color:'rgba(255,255,255,.6)'}}>{m.home}</span>
-                    <input style={{...C.sInp, opacity: koOk ? 1 : .3}} type="number" min={0} max={20} disabled={!koOk}
-                      value={t.home ?? ''} placeholder='–' onChange={e => setTip(m.id, 'home', e.target.value)} />
+                    <input style={{...C.sInp, opacity:koOk?1:.3}} type="number" min={0} max={20} disabled={!koOk}
+                      value={t.home??''} placeholder='–' onChange={e => setTip(m.id,'home',e.target.value)} />
                     <span style={C.dash}>–</span>
-                    <input style={{...C.sInp, opacity: koOk ? 1 : .3}} type="number" min={0} max={20} disabled={!koOk}
-                      value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id, 'away', e.target.value)} />
+                    <input style={{...C.sInp, opacity:koOk?1:.3}} type="number" min={0} max={20} disabled={!koOk}
+                      value={t.away??''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
                     <span style={{...C.mTeam,fontSize:11,color:'rgba(255,255,255,.6)',textAlign:'right'}}>{m.away}</span>
                     {renderTipScore(t, act)}
                     {renderPtsBadge(pts)}
@@ -1185,14 +1200,28 @@ function TipsForm({ me, phase }) {
             </div>
           ))}
         </>}
-        <button style={{ ...C.btnGold, width: '100%', marginTop: 16, opacity: dirty ? 1 : .5 }} onClick={save}>
-          {saved ? '✅ Lagret!' : '💾 Lagre mine tips'}
-        </button>
-        <button style={{ ...C.btnDanger, width: '100%', marginTop: 8 }} onClick={resetTips}>
-          🗑️ Nullstill tips
-        </button>
-        {dirty && <p style={{ color: '#f59e0b', fontSize: 11, textAlign: 'center', marginTop: 6, fontFamily: "'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
+
+        {isOwn && <>
+          <button style={{ ...C.btnGold, width:'100%', marginTop:16, opacity:dirty?1:.5 }} onClick={save}>
+            {saved ? '✅ Lagret!' : '💾 Lagre mine tips'}
+          </button>
+          <button style={{ ...C.btnDanger, width:'100%', marginTop:8 }} onClick={resetTips}>
+            🗑️ Nullstill tips
+          </button>
+          {dirty && <p style={{ color:'#f59e0b', fontSize:11, textAlign:'center', marginTop:6, fontFamily:"'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
+        </>}
       </div>
+
+      {grpPopup && (
+        <GroupOrderPopup
+          group={grpPopup}
+          grpO={grpO}
+          setOrd={setOrd}
+          results={results}
+          grpOk={grpOk}
+          onClose={() => setGrpPopup(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2550,6 +2579,12 @@ export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [phase, setPhaseState] = useState('pre');
   const [lbSelected, setLbSelected] = useState(null);
+  const [viewUser, setViewUser] = useState(null);
+
+  const handleShowTips = (r) => {
+    setViewUser(r);
+    setTab('tips');
+  };
   const [adminMessage, setAdminMessageState] = useState('');
   const [showMsgPopup, setShowMsgPopup] = useState(false);
 
@@ -2610,11 +2645,11 @@ export default function App() {
   if (!user) return <AuthScreen onLogin={handleLogin} />;
   return (
     <div style={C.app}>
-      <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={handleLogout} />
+      <Banner user={user} tab={tab} setTab={t => { setViewUser(null); setTab(t); }} phase={phase} onLogout={handleLogout} />
       <div style={C.main}>
-        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={r => { setLbSelected(r); setTab('leaderboard'); }} setTab={setTab} />}
-        {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} initialSelected={lbSelected} onClearSelected={() => setLbSelected(null)} />}
-        {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} />}
+        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={handleShowTips} setTab={setTab} />}
+        {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} initialSelected={lbSelected} onClearSelected={() => setLbSelected(null)} onShowTips={handleShowTips} />}
+        {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} viewUser={viewUser} />}
         {tab === 'chat'       && !user.isAdmin && <ChatPage me={user} />}
         {tab === 'video'       && !user.isAdmin && <VideoChat me={user} />}
         {tab === 'info'        && !user.isAdmin && <InfoPage />}
