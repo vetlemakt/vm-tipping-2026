@@ -974,9 +974,7 @@ function TipsForm({ me, phase, viewUser }) {
   const [loading, setLoading] = useState(true);
   const [results, setResultsState] = useState({});
   const [grpPopup, setGrpPopup] = useState(null);
-  const [grpAnchor, setGrpAnchor] = useState(null);
   const [matchPopup, setMatchPopup] = useState(null);
-  const [matchAnchor, setMatchAnchor] = useState(null);
 
   // Determine default tab: sluttspill if all group matches played
   const allGroupDone = GROUP_MATCHES.every(m => results[m.id]?.home !== undefined);
@@ -1099,7 +1097,7 @@ function TipsForm({ me, phase, viewUser }) {
           <div style={C.gTabs}>
             {Object.keys(GROUPS).map(g => (
               <button key={g} style={{ ...C.gTab }}
-                onClick={e => { setGrpAnchor(e.currentTarget.getBoundingClientRect()); setGrpPopup(g); }}>
+                onClick={e => { e.stopPropagation(); setGrpPopup(g); }}>
                 Gr.{g}
               </button>
             ))}
@@ -1123,7 +1121,7 @@ function TipsForm({ me, phase, viewUser }) {
               const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
               return (
                 <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
-                  <div onClick={e => { setMatchAnchor(e.currentTarget.getBoundingClientRect()); setMatchPopup(m); }}
+                  <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
                     style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.1)'}
                     onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
@@ -1225,20 +1223,10 @@ function TipsForm({ me, phase, viewUser }) {
       </div>
 
       {grpPopup && (
-        <GroupOrderPopup
-          group={grpPopup}
-          grpO={grpO}
-          setOrd={setOrd}
-          results={results}
-          grpOk={grpOk}
-          onClose={() => { setGrpPopup(null); setGrpAnchor(null); }}
-        />
+        <GroupOrderPopup group={grpPopup} grpO={grpO} setOrd={setOrd} results={results} grpOk={grpOk} onClose={() => setGrpPopup(null)} />
       )}
       {matchPopup && (
-        <MatchInfoPopup
-          match={matchPopup}
-          onClose={() => { setMatchPopup(null); setMatchAnchor(null); }}
-        />
+        <MatchInfoPopup match={matchPopup} onClose={() => setMatchPopup(null)} />
       )}
     </div>
   );
