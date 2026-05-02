@@ -556,5 +556,89 @@ export const C = {
     borderTop: '1px solid rgba(255,255,255,.05)',
     fontFamily: "'Fira Code',monospace", letterSpacing: 1,
   },
+  // ── Dashboard 3-column grid ────────────────────────────────
+  dashGrid3: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: 16,
+    alignItems: 'stretch',
+  },
+  dashGrid3Mobile: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+  },
+  cardStretch: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  cardBodyScroll: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '16px 18px',
+  },
+  cardMatchList: {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+    overflowY: 'auto',
+  },
+
+  // ── Bot summary ────────────────────────────────────────────
+  botSummaryBox: {
+    marginTop: 6,
+    padding: '7px 11px',
+    background: 'rgba(255,255,255,.03)',
+    borderRadius: 6,
+    borderLeft: '2px solid rgba(255,215,0,.3)',
+  },
+  botSummaryText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,.75)',
+    lineHeight: 1.5,
+  },
+  botSummaryAuthor: {
+    fontSize: 11,
+    color: 'rgba(255,215,0,.6)',
+    marginTop: 4,
+    fontFamily: "'Fira Code',monospace",
+  },
+  botSummaryBtn: {
+    marginTop: 7, fontSize: 12, color: 'rgba(255,215,0,.5)',
+    background: 'transparent', border: '1px solid rgba(255,215,0,.15)',
+    borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit',
+  },
+
+  // ── Leaderboard extras ─────────────────────────────────────
+  lbLockIcon: {
+    marginLeft: 6,
+    fontSize: 11,
+    color: 'rgba(255,255,255,.25)',
+  },
+
+  // ── Bot banner (TipsForm / Leaderboard) ───────────────────
+  botBanner: {
+    marginBottom: 12,
+    padding: '8px 14px',
+    background: 'rgba(255,215,0,.07)',
+    border: '1px solid rgba(255,215,0,.2)',
+    borderRadius: 8,
+    fontSize: 12,
+    color: 'rgba(255,215,0,.8)',
+  },
+
+  // ── Admin reset button ─────────────────────────────────────
+  btnDanger: {
+    background: 'rgba(255,255,255,.06)',
+    border: '1px solid rgba(248,113,113,.3)',
+    color: '#f87171',
+    borderRadius: 10,
+    padding: '8px 16px',
+    cursor: 'pointer',
+    fontSize: 11,
+    fontFamily: 'inherit',
+    transition: 'all .15s',
+  },
+
   spinner: { display: 'inline-block', animation: 'spin 1s linear infinite' },
 };

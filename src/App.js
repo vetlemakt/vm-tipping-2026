@@ -68,7 +68,14 @@ const useIsMobile = () => {
 };
 
 async function setMatchSummary(matchId, text, author) {
-  await setDoc(doc(db, 'summaries', matchId), { text, author, ts: Date.now() });
+  const snap = await getDoc(doc(db, 'summaries', matchId));
+  const existing = snap.exists() ? snap.data() : {};
+  await setDoc(doc(db, 'summaries', matchId), { ...existing, text, author, ts: Date.now() });
+}
+async function setMatchBotSummary(matchId, text, botId, botName) {
+  const snap = await getDoc(doc(db, 'summaries', matchId));
+  const existing = snap.exists() ? snap.data() : {};
+  await setDoc(doc(db, 'summaries', matchId), { ...existing, botText: text, botId, botName, botTs: Date.now() });
 }
 function subscribeMatchSummaries(callback) {
   return onSnapshot(collection(db, 'summaries'), snap => {
@@ -358,6 +365,106 @@ function OnlineIndicator({ onlineUsers }) {
   );
 }
 
+// ── Bot match summary ────────────────────────────────────────────────
+async function generateBotMatchSummary(match, results, users, allSummaries) {
+  const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+  if (!apiKey) return null;
+
+  // Pick expert rotating by match index
+  const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
+  const matchIdx = allMatches.findIndex(m => m.id === match.id);
+  const expert = PANEL_EXPERTS[matchIdx % PANEL_EXPERTS.length];
+
+  const act = results[match.id];
+  if (!act) return null;
+
+  // Build scoring context
+  const scored = users.map(u => {
+    const tip = u.tips?.[match.id];
+    const pts = tip && act ? (function(){
+      let p=0;
+      const mo = h => h>0?'H':h<0?'A':'D';
+      if(mo(tip.home-tip.away)===mo(act.home-act.away)) p+=2;
+      if(parseInt(tip.home)===parseInt(act.home)) p+=1;
+      if(parseInt(tip.away)===parseInt(act.away)) p+=1;
+      return p;
+    })() : 0;
+    return { name: u.displayName, pts, total: u.total || 0, fulltreff: u.fulltreff || 0 };
+  }).sort((a,b) => b.total - a.total);
+
+  // Check if this is the last match in the group
+  const groupMatches = GROUP_MATCHES.filter(m => m.group === match.group);
+  const playedInGroup = groupMatches.filter(m => results[m.id]?.home !== undefined).length;
+  const isLastInGroup = playedInGroup === groupMatches.length;
+
+  // Group order scoring context if last in group
+  let groupOrderContext = '';
+  if (isLastInGroup) {
+    const grpResults = results[`grp_${match.group}`];
+    if (grpResults) {
+      const grpScores = users.map(u => {
+        const tip = u.groupOrders?.[match.group] || [];
+        let pts = 0;
+        tip.forEach((team, i) => { if (team && team === grpResults[i]) pts += 5; });
+        return { name: u.displayName, grpPts: pts };
+      }).filter(u => u.grpPts > 0);
+      if (grpScores.length > 0) {
+        groupOrderContext = `\n\nDette var siste kamp i gruppe ${match.group}. Gruppeposisjonstips (5p per riktig plass, maks 20p): ${grpScores.map(u=>`${u.name} fikk ${u.grpPts}p`).join(', ')}.`;
+      }
+    }
+  }
+
+  const prompt = `${expert.personality}
+
+Du skal skrive et KORT sammendrag (2-4 setninger) om hvordan kampen ${match.home} ${act.home}–${act.away} ${match.away} påvirket tippekonkurransen. 
+
+Poengoversikt for denne kampen:
+${scored.map(u => `${u.name}: ${u.pts}p på kampen (totalt ${u.total}p, ${u.fulltreff} fulltreff)`).join('\n')}
+
+Nåværende rekkefølge: ${scored.map((u,i)=>`${i+1}. ${u.name}`).join(', ')}.${groupOrderContext}
+
+Skriv som deg selv – med din personlighet og dialekt. Hold deg til tippekonkurransen, ikke selve fotballen. Ikke bruk hermetegn.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await response.json();
+    const text = data.content?.[0]?.text;
+    if (!text) return null;
+    return { text, botId: expert.id, botName: expert.name };
+  } catch(e) {
+    console.error('Bot summary error:', e);
+    return null;
+  }
+}
+
+function BotSummaryTrigger({ matchId, match, results, users, summaries }) {
+  const [loading, setLoading] = useState(false);
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const result = await generateBotMatchSummary(match, results, users, summaries);
+      if (result) await setMatchBotSummary(matchId, result.text, result.botId, result.botName);
+    } finally {
+      setLoading(false);
+    }
+  };
+  if (!process.env.REACT_APP_ANTHROPIC_KEY) return null;
+  return (
+    <button style={C.botSummaryBtn} onClick={handleGenerate} disabled={loading}>
+      {loading ? '⟳ Genererer…' : '🤖 Generer ekspertkommentar'}
+    </button>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════════════════════════════════════
@@ -466,14 +573,14 @@ function Dashboard({ me, phase, onShowTips }) {
           </div>
         );
       })()}
-      <div style={isMobile ? {display:'flex',flexDirection:'column',gap:16} : {display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,alignItems:'start'}}>
+      <div style={isMobile ? C.dashGrid3Mobile : C.dashGrid3}>
       {/* Poengtabell */}
-      <div style={C.card}>
+      <div style={{ ...C.card, ...C.cardStretch }}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Poengtabell</span>
           <span style={{ ...C.badge, background: 'rgba(255,215,0,.1)', color: YEL, border: '1px solid rgba(255,215,0,.2)' }}>LIVE</span>
         </div>
-        <div style={{ ...C.cardBody, maxHeight: 420, overflowY: 'auto' }}>
+        <div style={C.cardBodyScroll}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
           {users.map((r, i) => {
             const tipsLocked = !OPEN_PHASES.has(phase);
@@ -484,7 +591,7 @@ function Dashboard({ me, phase, onShowTips }) {
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
                 {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
-                {!canView && <span style={{ marginLeft:6, fontSize:11, color:'rgba(255,255,255,.25)' }}>🔒</span>}
+                {!canView && <span style={C.lbLockIcon}>🔒</span>}
               </span>
               <div style={{display:'flex',alignItems:'center',gap:6}}>
                 {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
@@ -500,7 +607,7 @@ function Dashboard({ me, phase, onShowTips }) {
       </div>
 
       {/* Chat */}
-      <div style={C.card}>
+      <div style={{ ...C.card, ...C.cardStretch }}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -508,7 +615,7 @@ function Dashboard({ me, phase, onShowTips }) {
             <button onClick={() => setChatFullscreen(f => !f)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
-        <div style={C.chatBox} ref={chatBoxRef}>
+        <div style={{ ...C.chatBox, flex:1 }} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => {
             const mine = m.user === me.displayName;
@@ -561,31 +668,31 @@ function Dashboard({ me, phase, onShowTips }) {
       </div>
 
       {/* Kamper */}
-      <div style={C.card}>
+      <div style={{ ...C.card, ...C.cardStretch }}>
         <div style={C.cardHeader}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
-          <span style={{ fontSize: 12, color: '#6070a0', fontFamily: "'Fira Code',monospace" }}>Klikk for å skrive oppsummering</span>
         </div>
         {finishedMatches.length === 0 && (
           <p style={{ color: '#4a5a80', textAlign: 'center', padding: 24, fontSize: 13 }}>
             Ingen kampresultater ennå – admin legger inn etter kampene.
           </p>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
+        <div style={C.cardMatchList}>
           {finishedMatches.map(m => {
             const r = results[m.id];
             const sum = summaries[m.id];
             const isEditing = editingSummary === m.id;
             return (
-              <div key={m.id} style={C.matchCard}>
+              <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0 }}>
                 <div style={C.matchTeams}>
                   <span style={C.matchTeam}><Flag team={m.home} /> {m.home}</span>
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
                   <span style={{ ...C.matchTeam, textAlign: 'right' }}>{m.away} <Flag team={m.away} /></span>
                 </div>
                 <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
-                {sum ? (
-                  <div>
+                {/* Spillers kampreferat */}
+                {sum?.text ? (
+                  <div style={{ marginTop:6 }}>
                     <div style={C.matchSummaryText}>{sum.text}</div>
                     <div style={C.matchSummaryAuthor}>✍️ {sum.author}</div>
                   </div>
@@ -593,7 +700,7 @@ function Dashboard({ me, phase, onShowTips }) {
                   <div style={{ marginTop: 8 }}>
                     <textarea style={{ ...C.ta, fontSize: 12, marginBottom: 6 }} rows={3}
                       value={summaryText} onChange={e => setSummaryText(e.target.value)}
-                      placeholder="Skriv en kort oppsummering…" />
+                      placeholder="Skriv et kort kampreferat…" />
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button style={{ ...C.btnGold, padding: '6px 14px', fontSize: 11 }} onClick={() => saveSummary(m.id)}>Lagre</button>
                       <button style={{ ...C.btnSecondary, padding: '6px 14px', fontSize: 11 }} onClick={() => setEditingSummary(null)}>Avbryt</button>
@@ -601,8 +708,17 @@ function Dashboard({ me, phase, onShowTips }) {
                   </div>
                 ) : (
                   <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>
-                    ✍️ Skriv oppsummering
+                    ✍️ Skriv kampreferat
                   </button>
+                )}
+                {/* Bot-sammendrag */}
+                {sum?.botText ? (
+                  <div style={C.botSummaryBox}>
+                    <div style={C.botSummaryText}>{sum.botText}</div>
+                    <div style={C.botSummaryAuthor}>🤖 {sum.botName}</div>
+                  </div>
+                ) : (
+                  <BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} />
                 )}
               </div>
             );
@@ -720,7 +836,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
           </div>
           <span style={{...C.secH,marginTop:16}}>Kamptips</span>
           {selected.botSource && (
-            <div style={{marginBottom:10,padding:'6px 12px',background:'rgba(255,215,0,.07)',border:'1px solid rgba(255,215,0,.2)',borderRadius:8,fontSize:12,color:'rgba(255,215,0,.8)'}}>
+            <div style={C.botBanner}>
               🤖 Tips generert av <strong>{PANEL_EXPERTS.find(e=>e.id===selected.botSource)?.name || selected.botSource}</strong>
             </div>
           )}
@@ -777,7 +893,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
             <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
               {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
-              {!canView && <span style={{ marginLeft:6, fontSize:11, color:'rgba(255,255,255,.25)' }}>🔒</span>}
+              {!canView && <span style={C.lbLockIcon}>🔒</span>}
             </span>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
@@ -870,7 +986,7 @@ function TipsForm({ me, phase }) {
       </div>
       <div style={C.cardBody}>
         {botSource && (
-          <div style={{marginBottom:12,padding:'8px 14px',background:'rgba(255,215,0,.07)',border:'1px solid rgba(255,215,0,.2)',borderRadius:8,fontSize:12,color:'rgba(255,215,0,.8)'}}>
+          <div style={C.botBanner}>
             🤖 Disse tipsene ble generert av <strong>{PANEL_EXPERTS.find(e=>e.id===botSource)?.name || botSource}</strong>
           </div>
         )}
@@ -995,7 +1111,7 @@ function TipsForm({ me, phase }) {
         <button style={{ ...C.btnGold, width: '100%', marginTop: 16, opacity: dirty ? 1 : .5 }} onClick={save}>
           {saved ? '✅ Lagret!' : '💾 Lagre mine tips'}
         </button>
-        <button style={{ ...C.btnSecondary, width: '100%', marginTop: 8, color: '#f87171', borderColor: 'rgba(248,113,113,.3)' }} onClick={resetTips}>
+        <button style={{ ...C.btnDanger, width: '100%', marginTop: 8 }} onClick={resetTips}>
           🗑️ Nullstill tips
         </button>
         {dirty && <p style={{ color: '#f59e0b', fontSize: 11, textAlign: 'center', marginTop: 6, fontFamily: "'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
@@ -1204,7 +1320,7 @@ function AdminPanel() {
         <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#ff9966' }} onClick={() => generateAllBotTips(true)} disabled={generatingBots}>
           🔄 Tving regenerer
         </button>
-        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#f87171', borderColor:'rgba(248,113,113,.3)' }} onClick={resetAllResults}>
+        <button style={C.btnDanger} onClick={resetAllResults}>
           🗑️ Nullstill resultater
         </button>
       </div>
