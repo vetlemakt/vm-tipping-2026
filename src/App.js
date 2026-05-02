@@ -1763,6 +1763,8 @@ VIKTIG – ALLTID FØLG DISSE REGLENE:
 3. Du snakker KUN på vegne av deg selv. Du skal IKKE svare som eller sitere andre eksperter i panelet med kolon-format. Ikke skriv "Ragnhild: ..." eller "Odd: ..." osv.
 4. Hvis meldingen nevner andre eksperter, kan du si din EGEN mening om hva de ville trodd, men ikke late som du er dem.
 `;
+
+async function chatWithExpert(expert, message, history) {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
   // Maintain running conversation history per expert
   if (!expertChatHistory[expert.id]) expertChatHistory[expert.id] = [];
