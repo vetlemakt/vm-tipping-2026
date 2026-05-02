@@ -929,6 +929,11 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected }) {
 }
 
 // ── Render tipped score with color-coded correct parts ────────────────
+function matchOutcome(h, a) {
+  const hi = parseInt(h), ai = parseInt(a);
+  if (isNaN(hi) || isNaN(ai)) return null;
+  return hi > ai ? 'H' : hi < ai ? 'A' : 'D';
+}
 function renderTipScore(tip, act) {
   const hasAct = act && act.home !== undefined && act.away !== undefined;
   const hasTip = tip && tip.home !== undefined && tip.away !== undefined;
