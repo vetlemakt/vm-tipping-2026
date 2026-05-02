@@ -311,16 +311,11 @@ function renderChatText(text) {
 }
 
 
-// Format fulltreff lightning bolts - red for groups of 10
+// Format fulltreff as ⚡×N
 function renderFulltreff(count) {
   if (!count || count === 0) return null;
-  const trophies = Math.floor(count / 10);
-  const balls = count % 10;
   return (
-    <span style={{display:'flex',alignItems:'center',gap:1,flexWrap:'nowrap',lineHeight:1}}>
-      {Array.from({length:trophies}).map((_,i) => <span key={'t'+i} style={{fontSize:14}}>🏆</span>)}
-      {Array.from({length:balls}).map((_,i) => <span key={'b'+i} style={{fontSize:12}}>⚽</span>)}
-    </span>
+    <span style={{fontSize:12,color:'#FFD700',fontWeight:700,whiteSpace:'nowrap'}}>⚡×{count}</span>
   );
 }
 
@@ -752,11 +747,7 @@ function Leaderboard({ me }) {
               {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
             </span>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              {(r.fulltreff||0) > 0 && (
-                isMobile
-                  ? <span style={{fontSize:12,color:'#FFD700'}}>⚡×{r.fulltreff}</span>
-                  : renderFulltreff(r.fulltreff)
-              )}
+              {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
               <div style={{ textAlign: 'right' }}>
                 <div style={C.lbPts}>{r.total}</div>
                 <div style={C.lbPtsL}>poeng</div>
@@ -2070,9 +2061,24 @@ async function fetchAndUpdateResults() {
 //  ROOT APP
 // ══════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vm_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
   const [tab, setTab] = useState('dashboard');
   const [phase, setPhaseState] = useState('pre');
+
+  const handleLogin = u => {
+    try { localStorage.setItem('vm_user', JSON.stringify(u)); } catch {}
+    setUser(u);
+    setTab('dashboard');
+  };
+  const handleLogout = () => {
+    try { localStorage.removeItem('vm_user'); } catch {}
+    setUser(null);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -2106,10 +2112,10 @@ export default function App() {
     return () => clearInterval(iv);
   }, [user]); // eslint-disable-line
 
-  if (!user) return <AuthScreen onLogin={u => { setUser(u); setTab('dashboard'); }} />;
+  if (!user) return <AuthScreen onLogin={handleLogin} />;
   return (
     <div style={C.app}>
-      <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={() => setUser(null)} />
+      <Banner user={user} tab={tab} setTab={setTab} phase={phase} onLogout={handleLogout} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} />}
         {tab === 'leaderboard' && <Leaderboard me={user} />}
