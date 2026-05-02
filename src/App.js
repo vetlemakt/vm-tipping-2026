@@ -2426,14 +2426,19 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
         cursor: adminMessage ? 'pointer' : 'default',
       }}>
       {adminMessage && phase !== 'static' ? (
-        <div style={{ overflow: 'hidden', margin: '0 -14px' }}>
+        <div style={{
+          overflow: 'hidden',
+          margin: '0 -14px',
+          maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
+        }}>
           <span
             key={phase + repeat}
             onAnimationEnd={() => setPhase('pause')}
             style={{
               fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif",
               fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-block',
-              paddingLeft: 14, paddingRight: 14,
+              padding: '0 20px',
               animation: 'tickerScroll 12s linear forwards',
             }}>
             📢 {adminMessage}
@@ -2491,7 +2496,7 @@ export default function App() {
 
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = '@keyframes tickerScroll { 0% { transform: translateX(60%); } 100% { transform: translateX(-110%); } }';
+    style.textContent = '@keyframes tickerScroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }';
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
