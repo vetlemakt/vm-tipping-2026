@@ -2418,25 +2418,26 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
       style={{
         position: 'fixed', bottom: 28, right: 12, zIndex: 500,
         background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
+        backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',
         border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,.5)',
         padding: '8px 14px', minWidth: 160, maxWidth: 220,
         overflow: 'hidden',
         cursor: adminMessage ? 'pointer' : 'default',
-        backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',
       }}>
       {adminMessage && phase !== 'static' ? (
-        <span
-          key={phase + repeat}
-          onAnimationEnd={() => setPhase('pause')}
-          style={{
-            fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif",
-            fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-block',
-            padding: '0 4px',
-            animation: 'tickerScroll 12s linear forwards',
-          }}>
-          📢 {adminMessage}
-        </span>
+        <div style={{ margin: '0 -14px', padding: '0 14px', overflow: 'hidden' }}>
+          <span
+            key={phase + repeat}
+            onAnimationEnd={() => setPhase('pause')}
+            style={{
+              fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif",
+              fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-block',
+              animation: 'tickerScroll 12s linear forwards',
+            }}>
+            📢 {adminMessage}
+          </span>
+        </div>
       ) : (
         <div style={{ fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 0.5, textAlign: 'center' }}>
           {displayText}
