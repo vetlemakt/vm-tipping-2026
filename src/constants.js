@@ -20,22 +20,22 @@ export const GROUPS = {
 export const ALL_TEAMS = [...new Set(Object.values(GROUPS).flat())].sort();
 
 export const STADIUMS = {
-  azteca:       { name: 'Estadio Azteca',              city: 'Mexico City',              country: 'Mexico',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Azteca_Interior_2009.jpg/640px-Azteca_Interior_2009.jpg' },
-  akron:        { name: 'Estadio Akron',               city: 'Zapopan (Guadalajara)',    country: 'Mexico',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Estadio_Akron_panorama.jpg/640px-Estadio_Akron_panorama.jpg' },
-  bbva:         { name: 'Estadio BBVA',                city: 'Monterrey',                country: 'Mexico',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Estadio_BBVA_Bancomer.jpg/640px-Estadio_BBVA_Bancomer.jpg' },
-  bmo:          { name: 'BMO Field',                   city: 'Toronto',                  country: 'Canada',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/BMO_Field_September_2016.jpg/640px-BMO_Field_September_2016.jpg' },
-  bcplace:      { name: 'BC Place',                    city: 'Vancouver',                country: 'Canada',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/BC_Place_Vancouver.jpg/640px-BC_Place_Vancouver.jpg' },
-  sofi:         { name: 'SoFi Stadium',                city: 'Inglewood (Los Angeles)',  country: 'USA',     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SoFi_Stadium_2020.jpg/640px-SoFi_Stadium_2020.jpg' },
-  levis:        { name: "Levi's Stadium",              city: 'Santa Clara (San Francisco)', country: 'USA',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Levi%27s_Stadium_from_the_north.jpg/640px-Levi%27s_Stadium_from_the_north.jpg' },
-  metlife:      { name: 'MetLife Stadium',             city: 'East Rutherford (New York)', country: 'USA',   img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/MetLife_Stadium_-_New_Jersey.jpg/640px-MetLife_Stadium_-_New_Jersey.jpg' },
-  gillette:     { name: 'Gillette Stadium',            city: 'Foxborough (Boston)',       country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Gillette_Stadium_at_Night.jpg/640px-Gillette_Stadium_at_Night.jpg' },
-  att:          { name: 'AT&T Stadium',               city: 'Arlington (Dallas)',         country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Cowboys_Stadium_Exterior.jpg/640px-Cowboys_Stadium_Exterior.jpg' },
-  nrg:          { name: 'NRG Stadium',                city: 'Houston',                    country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/NRG_Stadium_Houston.jpg/640px-NRG_Stadium_Houston.jpg' },
-  linc:         { name: 'Lincoln Financial Field',    city: 'Philadelphia',               country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Lincoln_Financial_Field_2014.jpg/640px-Lincoln_Financial_Field_2014.jpg' },
-  mercedesbenz: { name: 'Mercedes-Benz Stadium',      city: 'Atlanta',                    country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Mercedes-Benz_Stadium_interior.jpg/640px-Mercedes-Benz_Stadium_interior.jpg' },
-  lumen:        { name: 'Lumen Field',                city: 'Seattle',                    country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Lumen_Field_2021.jpg/640px-Lumen_Field_2021.jpg' },
-  hardrock:     { name: 'Hard Rock Stadium',          city: 'Miami Gardens (Miami)',       country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Hard_Rock_Stadium_2021.jpg/640px-Hard_Rock_Stadium_2021.jpg' },
-  arrowhead:    { name: 'Arrowhead Stadium',          city: 'Kansas City',                country: 'USA',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Arrowhead_stadium.jpg/640px-Arrowhead_stadium.jpg' },
+  azteca:       { name: 'Estadio Azteca',              city: 'Mexico City',              country: 'Mexico',  img: '/02_Mexico_City_Estadio_Azteca.jpg' },
+  akron:        { name: 'Estadio Akron',               city: 'Zapopan (Guadalajara)',    country: 'Mexico',  img: '/16_Guadalajara_Stadium.jpg' },
+  bbva:         { name: 'Estadio BBVA',                city: 'Monterrey',                country: 'Mexico',  img: '/15_Monterrey_Estadio_BBVA.jpg' },
+  bmo:          { name: 'BMO Field',                   city: 'Toronto',                  country: 'Canada',  img: '/01_Toronto_BMO_Field.jpg' },
+  bcplace:      { name: 'BC Place',                    city: 'Vancouver',                country: 'Canada',  img: '/14_Vancouver_BC_Place.jpg' },
+  sofi:         { name: 'SoFi Stadium',                city: 'Inglewood (Los Angeles)',  country: 'USA',     img: '/04_Los_Angeles_SoFi_Stadium.jpg' },
+  levis:        { name: "Levi's Stadium",              city: 'Santa Clara (San Francisco)', country: 'USA',  img: '/09_San_Francisco_Levis_Stadium.jpg' },
+  metlife:      { name: 'MetLife Stadium',             city: 'East Rutherford (New York)', country: 'USA',   img: '/03_New_York_MetLife_Stadium.jpg' },
+  gillette:     { name: 'Gillette Stadium',            city: 'Foxborough (Boston)',       country: 'USA',    img: '/12_Boston_Gillette_Stadium.jpg' },
+  att:          { name: 'AT&T Stadium',                city: 'Arlington (Dallas)',        country: 'USA',    img: '/07_Dallas_ATT_Stadium.jpg' },
+  nrg:          { name: 'NRG Stadium',                 city: 'Houston',                  country: 'USA',    img: '/08_Houston_NRG_Stadium.jpg' },
+  linc:         { name: 'Lincoln Financial Field',     city: 'Philadelphia',             country: 'USA',    img: '/11_Philadelphia_Lincoln_Financial_Field.jpg' },
+  mercedesbenz: { name: 'Mercedes-Benz Stadium',       city: 'Atlanta',                  country: 'USA',    img: '/05_Atlanta_Mercedes-Benz_Stadium.jpg' },
+  lumen:        { name: 'Lumen Field',                 city: 'Seattle',                  country: 'USA',    img: '/10_Seattle_Lumen_Field.jpg' },
+  hardrock:     { name: 'Hard Rock Stadium',           city: 'Miami Gardens (Miami)',    country: 'USA',    img: '/13_Miami_Hard_Rock_Stadium.jpg' },
+  arrowhead:    { name: 'Arrowhead Stadium',           city: 'Kansas City',              country: 'USA',    img: '/06_Kansas_City_Arrowhead_Stadium.jpg' },
 };
 
 // All times in CEST (Central European Summer Time = ET + 6h)
