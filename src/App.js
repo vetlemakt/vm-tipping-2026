@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   getUser, getAllUsers, createUser, updateUser,
   getResults, setResults, getPhase, setPhase,
@@ -872,7 +873,7 @@ function renderPtsBadge(pts) {
 function MatchInfoPopup({ match, onClose }) {
   const s = STADIUMS[match.stadium] || {};
   const fmtD = d => { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}.${m}.${y}`; };
-  return (
+  return createPortal(
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
       <div onClick={e => e.stopPropagation()} style={{
@@ -901,7 +902,7 @@ function MatchInfoPopup({ match, onClose }) {
           </div>
         </div>
       </div>
-    </>
+    </>, document.body
   );
 }
 
@@ -919,7 +920,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
     tipOrder.forEach((t, i) => { if (t && t === actOrder[i]) totalGrpPts += 5; });
   }
 
-  return (
+  return createPortal(
     <>
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
       <div onClick={e => e.stopPropagation()} style={{
@@ -960,7 +961,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
         )}
 
       </div>
-    </>
+    </>, document.body
   );
 }
 
