@@ -2449,69 +2449,6 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
 // ══════════════════════════════════════════════════════════════════════
 //  ADMIN MESSAGE TICKER (in banner)
 // ══════════════════════════════════════════════════════════════════════
-function AdminMessageTicker({ message, onClick }) {
-  const [phase, setPhase] = useState('scroll'); // 'scroll' | 'pause' | 'static'
-  const [repeat, setRepeat] = useState(0);
-  const animRef = useRef(null);
-
-  useEffect(() => {
-    if (!message) return;
-    setPhase('scroll');
-    setRepeat(0);
-  }, [message]);
-
-  useEffect(() => {
-    if (!message || phase === 'static') return;
-    if (phase === 'scroll') {
-      // After animation ends (handled by onAnimationEnd)
-      return;
-    }
-    if (phase === 'pause') {
-      const t = setTimeout(() => {
-        if (repeat < 1) {
-          setRepeat(r => r + 1);
-          setPhase('scroll');
-        } else {
-          setPhase('static');
-        }
-      }, 5000);
-      return () => clearTimeout(t);
-    }
-  }, [phase, repeat, message]);
-
-  if (!message) return null;
-
-  return (
-    <div onClick={onClick} style={{
-      flex: 1, height: 28, overflow: 'hidden', cursor: 'pointer',
-      display: 'flex', alignItems: 'center',
-      background: 'rgba(255,215,0,.08)',
-      border: '1px solid rgba(255,215,0,.2)',
-      borderRadius: 6,
-      padding: '0 10px',
-      maxWidth: 420,
-    }}>
-      {phase === 'static' ? (
-        <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 600, whiteSpace: 'nowrap' }}>
-          📢 Les melding fra admin
-        </span>
-      ) : (
-        <span
-          ref={animRef}
-          key={phase + repeat}
-          onAnimationEnd={() => setPhase('pause')}
-          style={{
-            fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif",
-            fontWeight: 600, whiteSpace: 'nowrap',
-            display: 'inline-block',
-            animation: 'tickerScroll 12s linear forwards',
-          }}>
-          📢 {message}
-        </span>
-      )}
-    </div>
-  );
-}
 
 function AdminMessagePopup({ message, onClose }) {
   if (!message) return null;
