@@ -1584,7 +1584,7 @@ async function chatWithExpert(expert, message, history) {
     hendrik: ['Hoi! Dennis Bergkamp var jo fantastisk, ikke sant? Rintje Ritsma spilte jo også litt, tror jeg.', 'Ja, ja, ik ben hier. Jeg hører på DJ Bobo og tenker på fotball. Goed, goed.', 'Nederlandsk fotball er jo det beste. Eller, hva vet jeg egentlig? Jeg har ikke vært ute på lenge.'],
     kimlevi: ['Kem faen vet, æ har jo bare sett én kamp. Charizard er uansett verdt mer enn dette.', 'Jævla spørsmål! Men æ tipper på magefølelsen, den er sjeldent feil på sjøen.', 'Mor sier jeg burde bry meg mer om fotball. Men Pokémon-kortene gir bedre avkastning.'],
     bengt: ['Hei hei! Maradona hadde jo gjort det bra her, tror jeg! Hva mener du?', 'Nei, dette minner meg om da Zico spilte i -82. Fantastisk tider! Hva spurte du om igjen?', 'Jeg scoret ti mål mot Rosenborg som keeper, så jeg vet litt om fotball, jeg!'],
-    odd: ['Nei, nei, nei. Brasil jukse' aillfall, det veit æ. Æ ska' hent' leverposteien å tenk på det.', 'Nei, nei, nei. Kvar'n som hæll ha' snø om vinteren e' te' å stoil på. Det e' min filosofi, det.', 'Nei, nei, nei. Fotball e' ein bygreie, men æ følge' med æ, frå Oppdal. Reffrey dømme' aillfall urettferdig.'],
+    odd: [`Nei, nei, nei. Brasil jukse' aillfall, det veit æ. Æ ska' hent' leverposteien å tenk på det.`, `Nei, nei, nei. Kvar'n som hæll ha' snø om vinteren e' te' å stoil på. Det e' min filosofi, det.`, `Nei, nei, nei. Fotball e' ein bygreie, men æ følge' med æ, frå Oppdal. Reffrey dømme' aillfall urettferdig.`],
   };
   // Try API first
   if (apiKey) {
