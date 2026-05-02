@@ -871,13 +871,11 @@ function renderPtsBadge(pts) {
 // ══════════════════════════════════════════════════════════════════════
 function MatchInfoPopup({ match, onClose, pos }) {
   const pw = 300;
-  const ph = 320;
   let top, left;
   if (pos) {
-    // Center horizontally on click, appear above or below
     left = Math.min(Math.max(pos.x - pw/2, 8), window.innerWidth - pw - 8);
-    top  = pos.y - ph - 8;
-    if (top < 8) top = pos.y + 8; // flip below if too close to top
+    top  = Math.min(pos.y + 8, window.innerHeight - 340);
+    if (top < 8) top = 8;
   }
   const s = STADIUMS[match.stadium] || {};
   const fmtD = d => { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}.${m}.${y}`; };
@@ -933,8 +931,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose, pos }) 
   let gtop, gleft;
   if (pos) {
     gleft = Math.min(Math.max(pos.x - pw/2, 8), window.innerWidth - pw - 8);
-    gtop  = pos.y - 8;
-    if (gtop + 360 > window.innerHeight) gtop = pos.y - 360;
+    gtop  = Math.min(pos.y + 8, window.innerHeight - 360);
     if (gtop < 8) gtop = 8;
   }
   return (
@@ -1122,7 +1119,7 @@ function TipsForm({ me, phase, viewUser }) {
           <div style={C.gTabs}>
             {Object.keys(GROUPS).map(g => (
               <button key={g} style={{ ...C.gTab }}
-                onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setGrpPopup(g); setGrpPos({x: r.left + r.width/2, y: r.top}); }}>
+                onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setGrpPopup(g); setGrpPos({x: r.left + r.width/2, y: r.bottom}); }}>
                 Gr.{g}
               </button>
             ))}
@@ -1146,7 +1143,7 @@ function TipsForm({ me, phase, viewUser }) {
               const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
               return (
                 <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px'}}>
-                  <div onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMatchPopup(m); setMatchPos({x: r.left + r.width/2, y: r.top}); }}
+                  <div onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMatchPopup(m); setMatchPos({x: r.left + r.width/2, y: r.bottom}); }}
                     style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.1)'}
                     onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
