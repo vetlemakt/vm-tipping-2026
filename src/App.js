@@ -876,8 +876,10 @@ function MatchInfoPopup({ match, onClose }) {
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899, background:'rgba(0,0,0,.55)', backdropFilter:'blur(3px)' }} />
       <div onClick={e => e.stopPropagation()} style={{
-        position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
-        zIndex:900, width:300, background:'rgba(13,18,48,.97)',
+        position:'fixed', inset:0, zIndex:900, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none',
+      }}>
+      <div style={{
+        pointerEvents:'all', width:300, background:'rgba(13,18,48,.97)',
         border:'2px solid rgba(255,215,0,.3)', borderRadius:14,
         overflow:'hidden', boxShadow:'0 24px 64px rgba(0,0,0,.8)',
       }}>
@@ -900,6 +902,7 @@ function MatchInfoPopup({ match, onClose }) {
           </div>
         </div>
       </div>
+      </div>
     </>
   );
 }
@@ -919,10 +922,11 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, anchorRect, onCl
   }
 
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899, background:'rgba(0,0,0,.55)', backdropFilter:'blur(3px)' }}>
+    <>
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899, background:'rgba(0,0,0,.55)', backdropFilter:'blur(3px)' }} />
+    <div style={{ position:'fixed', inset:0, zIndex:900, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
-        zIndex:900, background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.3)',
+        pointerEvents:'all', background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.3)',
         borderRadius:16, padding:24, minWidth:260, maxWidth:340, width:'90%',
         boxShadow:'0 24px 64px rgba(0,0,0,.8)',
       }}>
@@ -958,6 +962,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, anchorRect, onCl
 
       </div>
     </div>
+    </>
   );
 }
 
@@ -1138,7 +1143,7 @@ function TipsForm({ me, phase, viewUser }) {
                     display:'flex', flexDirection:'column', alignItems:'center', gap:1,
                     background:'rgba(255,255,255,.08)', borderRadius:8,
                     border: superbonus ? '1px solid #FFD700' : '1px solid rgba(255,255,255,.15)',
-                    padding:'4px 8px', minWidth:70,
+                    padding:'2px 8px', minWidth:70,
                   }}>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!grpOk}
@@ -1191,7 +1196,7 @@ function TipsForm({ me, phase, viewUser }) {
                       display:'flex', flexDirection:'column', alignItems:'center', gap:1,
                       background:'rgba(255,255,255,.08)', borderRadius:8,
                       border: superbonus ? '1px solid #FFD700' : '1px solid rgba(255,255,255,.15)',
-                      padding:'4px 8px', minWidth:70,
+                      padding:'2px 8px', minWidth:70,
                     }}>
                       <div style={{display:'flex',alignItems:'center',gap:4}}>
                         <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:koOk?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!koOk}
