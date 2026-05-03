@@ -4,7 +4,7 @@ import {
   getUser, getAllUsers, createUser, updateUser,
   getResults, setResults, getPhase, setPhase,
   getCardStats, setCardStats,
-  subscribeChatMessages, sendChatMessage,
+  subscribeChatMessages, sendChatMessage, deleteChatMessage,
   subscribePhase, subscribeResults,
   updatePresence, subscribeOnlineUsers,
   db,
@@ -492,6 +492,37 @@ function BotSummaryTrigger({ matchId, match, results, users, summaries }) {
   );
 }
 
+// Compress image to max ~250KB before storing in Firestore
+function compressImage(file, maxKB = 250) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        // Scale down if too large – max 1200px wide
+        const maxW = 1200;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        // Try quality 0.8 first, then reduce if still too big
+        let quality = 0.8;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length > maxKB * 1024 * 1.37 && quality > 0.2) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════════════════════════════════════
@@ -662,6 +693,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 <div style={{display:'flex',gap:8,alignItems:'center',justifyContent: mine?'flex-end':'flex-start'}}>
                   <span style={{...C.chatUser,color: mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
                   <span style={C.chatTime}>{fmt(m.ts)}</span>
+                  {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
                 </div>
               </div>
             );
@@ -670,11 +702,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         <div style={C.chatInputRow}>
           <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}} title="Last opp bilde">
             🖼️
-            <input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={e=>{
+            <input type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{
               const file=e.target.files[0]; if(!file)return;
-              const reader=new FileReader();
-              reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
-              reader.readAsDataURL(file);
+              const dataUrl = await compressImage(file);
+              sendChatMessage(me.displayName,'',dataUrl);
               e.target.value='';
             }}/>
           </label>
@@ -682,16 +713,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
             placeholder="Skriv melding… (lim inn bilde med Ctrl+V)"
-            onPaste={e=>{
+            onPaste={async e=>{
               const items=e.clipboardData?.items;
               if(!items)return;
               for(let item of items){
                 if(item.type.startsWith('image/')){
                   e.preventDefault();
                   const file=item.getAsFile();
-                  const reader=new FileReader();
-                  reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
-                  reader.readAsDataURL(file);
+                  const dataUrl = await compressImage(file);
+                  sendChatMessage(me.displayName,'',dataUrl);
                   return;
                 }
               }
@@ -2447,6 +2477,7 @@ function ChatPage({ me }) {
               <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
                 <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
                 <span style={C.chatTime}>{fmt(m.ts)}</span>
+                {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
               </div>
             </div>
           );
@@ -2454,26 +2485,26 @@ function ChatPage({ me }) {
       </div>
       <div style={C.chatInputRow}>
         <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}}>
-          🖼️<input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={e=>{
+          🖼️<input type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{
             const file=e.target.files[0];if(!file)return;
-            const reader=new FileReader();
-            reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
-            reader.readAsDataURL(file);e.target.value='';
+            const dataUrl = await compressImage(file);
+            sendChatMessage(me.displayName,'',dataUrl);
+            e.target.value='';
           }}/>
         </label>
         <input style={{...C.inp,marginBottom:0,flex:1,fontSize:13,padding:'8px 12px'}}
           value={input} onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>e.key==='Enter'&&sendMsg()}
           placeholder="Skriv melding… (lim inn bilde med Ctrl+V)"
-          onPaste={e=>{
+          onPaste={async e=>{
             const items=e.clipboardData?.items;if(!items)return;
             for(let item of items){
               if(item.type.startsWith('image/')){
                 e.preventDefault();
                 const file=item.getAsFile();
-                const reader=new FileReader();
-                reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);
-                reader.readAsDataURL(file);return;
+                const dataUrl = await compressImage(file);
+                sendChatMessage(me.displayName,'',dataUrl);
+                return;
               }
             }
           }}

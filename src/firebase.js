@@ -99,6 +99,11 @@ export async function updatePresence(username, displayName) {
   await setDoc(doc(db, 'presence', username), { ts: Date.now(), displayName: displayName || username });
 }
 
+export async function deleteChatMessage(id) {
+  const { deleteDoc, doc: fdoc } = await import('firebase/firestore');
+  await deleteDoc(fdoc(db, 'chat', id));
+}
+
 export function subscribeOnlineUsers(callback) {
   return onSnapshot(collection(db, 'presence'), snap => {
     const now = Date.now();
