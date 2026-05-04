@@ -534,11 +534,6 @@ function compressImage(file, maxKB = 250) {
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  QUIZ COMPONENTS
-// ══════════════════════════════════════════════════════════════════════
-const POSITIONS = { GK:'Målvakt', DF:'Forsvar', MF:'Midtbane', FW:'Angrep' };
-
 function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   const [imgUrl, setImgUrl] = useState(null);
   const teamColor = {
@@ -562,7 +557,6 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   }, [player.name]);
 
   const w = compact ? 100 : 140;
-  const h = compact ? 140 : 196;
   const imgH = compact ? 84 : 120;
   const nameBarH = compact ? 22 : 28;
   const footerH = compact ? 14 : 18;
