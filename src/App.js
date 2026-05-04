@@ -551,59 +551,77 @@ function compressImage(file, maxKB = 250) {
 // ══════════════════════════════════════════════════════════════════════
 const POSITIONS = { GK:'Målvakt', DF:'Forsvar', MF:'Midtbane', FW:'Angrep' };
 
-function PaniniCard({ player, blur }) {
-  const YEL = '#FFD700';
+function PaniniCard({ player, blur, showName }) {
+  const [imgUrl, setImgUrl] = useState(null);
   const teamColor = {
     'Brasil':'#009c3b','Italia':'#003087','Frankrike':'#002395',
-    'Spania':'#AA151B','Vest-Tyskland':'#000000','Tyskland':'#000000',
+    'Spania':'#AA151B','Vest-Tyskland':'#000000','Tyskland':'#1a1a1a',
     'Argentina':'#74ACDF','Nederland':'#FF6600','England':'#003087',
-    'Portugal':'#006600','Kroatia':'#FF0000','Belgia':'#000000',
+    'Portugal':'#006600','Kroatia':'#FF0000','Belgia':'#1a1a1a',
+    'Romania':'#002B7F','Bulgaria':'#00966E','Kamerun':'#007A5E',
+    'Colombia':'#FCD116','Russland':'#0032A0','Danmark':'#C60C30',
+    'USA':'#002868','Uruguay':'#75AADB','Sør-Korea':'#003478',
+    'Mexico':'#006847','Skottland':'#003F87','Ghana':'#006B3F',
+    'Elfenbenskysten':'#F77F00','Egypt':'#C8102E','Marokko':'#C1272D',
   }[player.country] || '#1a2a5e';
+
+  useEffect(() => {
+    // Fetch Wikipedia thumbnail via REST API
+    const name = player.name.replace(/ /g, '_');
+    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`)
+      .then(r => r.json())
+      .then(d => { if (d.thumbnail?.source) setImgUrl(d.thumbnail.source); })
+      .catch(() => {});
+  }, [player.name]);
+
+  const lastName = player.name.split(' ').pop();
 
   return (
     <div style={{
-      width: 100, height: 130, borderRadius: 8, overflow: 'hidden',
-      border: `2px solid ${YEL}`, boxShadow: '0 4px 16px rgba(0,0,0,.6)',
+      width: 100, height: 140, borderRadius: 8, overflow: 'hidden',
+      border: `2px solid #FFD700`, boxShadow: '0 4px 16px rgba(0,0,0,.6)',
       background: '#f5e6c0', flexShrink: 0, position: 'relative',
       fontFamily: "'Kanit',sans-serif",
     }}>
-      {/* Header strip */}
-      <div style={{ background: teamColor, padding: '3px 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 7, color: YEL, fontWeight: 800, letterSpacing: 1 }}>{player.country.toUpperCase().slice(0,3)}</span>
+      {/* Header */}
+      <div style={{ background: teamColor, padding: '3px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 20 }}>
+        <span style={{ fontSize: 8, color: '#FFD700', fontWeight: 800, letterSpacing: 1 }}>
+          {player.country.slice(0,3).toUpperCase()}
+        </span>
         <span style={{ fontSize: 8, color: '#fff', fontWeight: 700 }}>#{player.num}</span>
       </div>
       {/* Photo area */}
-      <div style={{ height: 72, background: `linear-gradient(160deg, ${teamColor}44, #c8b99044)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-        {/* Silhouette svg */}
-        <svg viewBox="0 0 60 80" width="60" height="80" style={{ opacity: 0.35 }}>
-          <ellipse cx="30" cy="18" rx="12" ry="14" fill="#555"/>
-          <path d="M10 80 Q12 45 30 42 Q48 45 50 80Z" fill="#555"/>
-          <path d="M10 80 Q5 60 8 50 L18 54Z" fill="#555"/>
-          <path d="M50 80 Q55 60 52 50 L42 54Z" fill="#555"/>
-        </svg>
-        {/* Year badge */}
-        <div style={{ position:'absolute', top:4, right:4, background:'rgba(0,0,0,.6)', color:YEL, fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:3 }}>
-          {player.year}
-        </div>
+      <div style={{ height: 76, background: `linear-gradient(180deg, ${teamColor}55 0%, #c8b99033 100%)`, position: 'relative', overflow: 'hidden' }}>
+        {imgUrl ? (
+          <img src={imgUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg viewBox="0 0 60 80" width="52" height="70" style={{ opacity: 0.3 }}>
+              <ellipse cx="30" cy="18" rx="12" ry="14" fill="#555"/>
+              <path d="M10 80 Q12 45 30 42 Q48 45 50 80Z" fill="#555"/>
+              <path d="M10 80 Q5 60 8 50 L18 54Z" fill="#555"/>
+              <path d="M50 80 Q55 60 52 50 L42 54Z" fill="#555"/>
+            </svg>
+          </div>
+        )}
+        {/* VM logo top-left */}
+        <img src="/vm-logo.png" alt="VM" style={{ position:'absolute', top:2, left:2, width:22, height:22, objectFit:'contain', mixBlendMode:'multiply', opacity:0.85 }} />
       </div>
-      {/* Name area */}
-      <div style={{ background: teamColor, padding: '3px 5px', textAlign: 'center' }}>
-        {blur ? (
-          <div style={{ height: 12, background: 'rgba(255,255,255,.15)', borderRadius: 3, margin: '0 8px' }} />
+      {/* Name bar */}
+      <div style={{ background: teamColor, padding: '3px 6px', textAlign: 'center', height: 22, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        {blur && !showName ? (
+          <div style={{ height: 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
         ) : (
           <span style={{ fontSize: 9, color: '#fff', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-            {player.name.split(' ').pop()}
+            {lastName}
           </span>
         )}
       </div>
-      {/* Position */}
-      <div style={{ background: '#f0d080', padding: '2px 5px', textAlign: 'center', display: 'flex', justifyContent: 'space-between' }}>
+      {/* Footer */}
+      <div style={{ background: '#f0d080', padding: '2px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 18 }}>
         <span style={{ fontSize: 7, color: '#333', fontWeight: 700 }}>{POSITIONS[player.pos]}</span>
-        <span style={{ fontSize: 7, color: '#333' }}>VM {player.year}</span>
-      </div>
-      {/* Panini logo */}
-      <div style={{ background: '#fff', padding: '1px 5px', textAlign: 'center' }}>
-        <span style={{ fontSize: 7, color: '#c00', fontWeight: 800, fontStyle: 'italic', letterSpacing: 1 }}>PANINI</span>
+        <span style={{ fontSize: 7, color: '#c00', fontWeight: 800, fontStyle: 'italic' }}>PANINI</span>
+        <span style={{ fontSize: 7, color: '#555' }}>VM {player.year}</span>
       </div>
     </div>
   );
@@ -638,7 +656,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
           Hvem er dette? • VM {player.year}
         </div>
         <div style={{ display:'flex', justifyContent:'center', marginBottom:18 }}>
-          <PaniniCard player={player} blur={!answered} />
+          <PaniniCard player={player} blur={!answered} showName={!!answered} />
         </div>
         {options.map(opt => {
           const isCorrect = opt === player.name;
@@ -677,58 +695,37 @@ function QuizWidget({ username }) {
   const [showPopup, setShowPopup] = useState(false);
   const [myAnswer, setMyAnswer] = useState(null);
   const [scores, setScores] = useState({});
-  const [preScores, setPreScores] = useState({});
 
   useEffect(() => {
     getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
-    getQuizLeaderboard(true).then(setScores);
-    if (!scoring) getQuizLeaderboard(false).then(setPreScores);
+    getQuizLeaderboard(scoring).then(setScores);
   }, [username, player.id, scoring]);
 
-  const table = scoring ? scores : preScores;
-  const sorted = Object.entries(table).sort((a,b) => b[1]-a[1]).slice(0,5);
-  const myScore = table[username] || 0;
+  const myScore = scores[username] || 0;
 
   return (
     <>
-      <div onClick={() => setShowPopup(true)} style={{ ...C.statWidget, cursor:'pointer', minWidth:110 }}
+      <div onClick={() => setShowPopup(true)} style={{ ...C.statWidget, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, minWidth:110 }}
         onMouseEnter={e => e.currentTarget.style.background='rgba(255,215,0,.1)'}
         onMouseLeave={e => e.currentTarget.style.background=''}>
-        <div style={{ fontSize:10, color:'#FFD700', fontFamily:"'Fira Code',monospace", textAlign:'center', marginBottom:4, letterSpacing:0.5 }}>
+        <div style={{ fontSize:10, color:'#FFD700', fontFamily:"'Fira Code',monospace", fontWeight:700, letterSpacing:1 }}>
           {scoring ? 'QUIZ' : 'FØR-VM QUIZ'}
         </div>
-        <div style={{ display:'flex', justifyContent:'center', marginBottom:4 }}>
-          <PaniniCard player={player} blur={!myAnswer} />
+        <div style={{ display:'flex', justifyContent:'center' }}>
+          <PaniniCard player={player} blur={!myAnswer} showName={!!myAnswer} />
         </div>
-        <div style={{ ...C.statLabel, textAlign:'center' }}>
+        <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textAlign:'center' }}>
           {myAnswer ? (myAnswer.correct ? '✅ Riktig!' : '❌ Feil') : '🃏 Gjett!'}
         </div>
-        {scoring && (
-          <div style={{ fontSize:10, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace", textAlign:'center', marginTop:2 }}>
-            {myScore} rette
-          </div>
-        )}
-        {!scoring && (
-          <div style={{ fontSize:9, color:'rgba(255,255,255,.35)', textAlign:'center', marginTop:2 }}>
-            Poeng teller fra VM-start
-          </div>
-        )}
-        {sorted.length > 0 && (
-          <div style={{ marginTop:6, borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:4 }}>
-            {sorted.map(([user,pts],i) => (
-              <div key={user} style={{ display:'flex', justifyContent:'space-between', fontSize:9, color: user===username?'#FFD700':'rgba(255,255,255,.5)', padding:'1px 0' }}>
-                <span>{i+1}. {user}</span><span>{pts}✓</span>
-              </div>
-            ))}
-          </div>
+        {scoring && myScore > 0 && (
+          <div style={{ fontSize:9, color:'rgba(255,215,0,.5)', fontFamily:"'Fira Code',monospace" }}>{myScore} rette</div>
         )}
       </div>
       {showPopup && (
         <QuizPopup player={player} username={username} onClose={() => setShowPopup(false)}
           onAnswered={() => {
             getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
-            getQuizLeaderboard(true).then(setScores);
-            if (!scoring) getQuizLeaderboard(false).then(setPreScores);
+            getQuizLeaderboard(scoring).then(setScores);
           }} />
       )}
     </>
