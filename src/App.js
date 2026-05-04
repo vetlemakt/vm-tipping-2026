@@ -539,22 +539,21 @@ function compressImage(file, maxKB = 250) {
 // ══════════════════════════════════════════════════════════════════════
 const POSITIONS = { GK:'Målvakt', DF:'Forsvar', MF:'Midtbane', FW:'Angrep' };
 
-function PaniniCard({ player, blur, showName }) {
+function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   const [imgUrl, setImgUrl] = useState(null);
   const teamColor = {
     'Brasil':'#009c3b','Italia':'#003087','Frankrike':'#002395',
-    'Spania':'#AA151B','Vest-Tyskland':'#000000','Tyskland':'#1a1a1a',
-    'Argentina':'#74ACDF','Nederland':'#FF6600','England':'#003087',
-    'Portugal':'#006600','Kroatia':'#FF0000','Belgia':'#1a1a1a',
+    'Spania':'#AA151B','Vest-Tyskland':'#1a1a1a','Tyskland':'#1a1a1a',
+    'Argentina':'#74ACDF','Nederland':'#c45000','England':'#003087',
+    'Portugal':'#006600','Kroatia':'#b00000','Belgia':'#1a1a1a',
     'Romania':'#002B7F','Bulgaria':'#00966E','Kamerun':'#007A5E',
-    'Colombia':'#FCD116','Russland':'#0032A0','Danmark':'#C60C30',
-    'USA':'#002868','Uruguay':'#75AADB','Sør-Korea':'#003478',
+    'Colombia':'#b08a00','Russland':'#0032A0','Danmark':'#C60C30',
+    'USA':'#002868','Uruguay':'#5588bb','Sør-Korea':'#003478',
     'Mexico':'#006847','Skottland':'#003F87','Ghana':'#006B3F',
-    'Elfenbenskysten':'#F77F00','Egypt':'#C8102E','Marokko':'#C1272D',
+    'Elfenbenskysten':'#c05500','Egypt':'#C8102E','Marokko':'#C1272D',
   }[player.country] || '#1a2a5e';
 
   useEffect(() => {
-    // Fetch Wikipedia thumbnail via REST API
     const name = player.name.replace(/ /g, '_');
     fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`)
       .then(r => r.json())
@@ -562,29 +561,27 @@ function PaniniCard({ player, blur, showName }) {
       .catch(() => {});
   }, [player.name]);
 
-  const lastName = player.name.split(' ').pop();
+  const w = compact ? 100 : 140;
+  const h = compact ? 140 : 196;
+  const imgH = compact ? 84 : 120;
+  const nameBarH = compact ? 22 : 28;
+  const footerH = compact ? 14 : 18;
+  const flag = FLAGS[player.country] || '';
 
   return (
     <div style={{
-      width: 100, height: 140, borderRadius: 8, overflow: 'hidden',
-      border: `2px solid #FFD700`, boxShadow: '0 4px 16px rgba(0,0,0,.6)',
+      width: w, borderRadius: 8, overflow: 'hidden',
+      border: `1.5px solid #FFD700`, boxShadow: '0 4px 16px rgba(0,0,0,.6)',
       background: '#f5e6c0', flexShrink: 0, position: 'relative',
       fontFamily: "'Kanit',sans-serif",
     }}>
-      {/* Header */}
-      <div style={{ background: teamColor, padding: '3px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 20 }}>
-        <span style={{ fontSize: 8, color: '#FFD700', fontWeight: 800, letterSpacing: 1 }}>
-          {player.country.slice(0,3).toUpperCase()}
-        </span>
-        <span style={{ fontSize: 8, color: '#fff', fontWeight: 700 }}>#{player.num}</span>
-      </div>
       {/* Photo area */}
-      <div style={{ height: 76, background: `linear-gradient(180deg, ${teamColor}55 0%, #c8b99033 100%)`, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ height: imgH, background: `linear-gradient(180deg, ${teamColor}66 0%, #c8b99033 100%)`, position: 'relative', overflow: 'hidden' }}>
         {imgUrl ? (
           <img src={imgUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg viewBox="0 0 60 80" width="52" height="70" style={{ opacity: 0.3 }}>
+            <svg viewBox="0 0 60 80" width={w*0.5} height={imgH*0.85} style={{ opacity: 0.3 }}>
               <ellipse cx="30" cy="18" rx="12" ry="14" fill="#555"/>
               <path d="M10 80 Q12 45 30 42 Q48 45 50 80Z" fill="#555"/>
               <path d="M10 80 Q5 60 8 50 L18 54Z" fill="#555"/>
@@ -593,23 +590,31 @@ function PaniniCard({ player, blur, showName }) {
           </div>
         )}
         {/* VM logo top-left */}
-        <img src="/vm-logo.png" alt="VM" style={{ position:'absolute', top:2, left:2, width:28, height:28, objectFit:'contain', opacity:1, filter:'drop-shadow(0 1px 2px rgba(0,0,0,.5))' }} />
+        <img src="/vm-logo.png" alt="VM" style={{ position:'absolute', top:3, left:3, width:28, height:28, objectFit:'contain', opacity:1, filter:'drop-shadow(0 1px 3px rgba(0,0,0,.6))' }} />
+        {/* Year top-right */}
+        <div style={{ position:'absolute', top:4, right:5, background:'rgba(0,0,0,.65)', color:'#FFD700', fontSize: compact?8:9, fontWeight:800, padding:'1px 5px', borderRadius:4, letterSpacing:0.5 }}>
+          VM {player.year}
+        </div>
       </div>
       {/* Name bar */}
-      <div style={{ background: teamColor, padding: '3px 6px', textAlign: 'center', height: 22, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        {blur && !showName ? (
-          <div style={{ height: 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
-        ) : (
-          <span style={{ fontSize: 9, color: '#fff', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-            {lastName}
+      <div style={{ background: teamColor, height: nameBarH, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 6px' }}>
+        {quizLabel ? (
+          <span style={{ fontSize: compact?7:9, color: '#FFD700', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', textAlign:'center' }}>
+            {quizLabel}
           </span>
-        )}
+        ) : blur && !showName ? (
+          <div style={{ height: compact?8:10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
+        ) : showName ? (
+          <span style={{ fontSize: compact?8:10, color: '#FFD700', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', textAlign:'center' }}>
+            {player.name}
+          </span>
+        ) : null}
       </div>
       {/* Footer */}
-      <div style={{ background: '#f0d080', padding: '2px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 18 }}>
-        <span style={{ fontSize: 7, color: '#333', fontWeight: 700 }}>{POSITIONS[player.pos]}</span>
-        <span style={{ fontSize: 7, color: '#c00', fontWeight: 800, fontStyle: 'italic' }}>PANINI</span>
-        <span style={{ fontSize: 7, color: '#555' }}>VM {player.year}</span>
+      <div style={{ background: '#f0d080', height: footerH, display: 'flex', alignItems:'center', justifyContent: 'space-between', padding:'0 6px' }}>
+        <span style={{ fontSize: compact?6:7, color: '#c00', fontWeight: 800, fontStyle: 'italic', letterSpacing:1 }}>PANINI</span>
+        <span style={{ fontSize: compact?7:8 }}>{flag}</span>
+        <span style={{ fontSize: compact?6:7, color: '#555', fontWeight:700 }}>{player.country.slice(0,3).toUpperCase()}</span>
       </div>
     </div>
   );
@@ -661,7 +666,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
           return (
             <button key={opt} onClick={() => handleAnswer(opt)}
               style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', background:bg, border, borderRadius:8, padding:'10px 14px', marginBottom:8, cursor: answered ? 'default' : 'pointer', fontFamily:"'Kanit',sans-serif", fontSize:13, color: answered && isCorrect ? '#FFD700' : '#e8edf8', fontWeight: answered && isCorrect ? 700 : 400, textAlign:'left' }}>
-              <span>{opt.split(' ').pop()}</span>
+              <span>{opt}</span>
               {icon && <span>{icon}</span>}
             </button>
           );
@@ -687,16 +692,13 @@ function QuizWidget({ username }) {
     getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
   }, [username, player.id]);
 
+  // A version of PaniniCard where name bar shows quiz label instead of name
+  const quizLabel = scoring ? 'VM-QUIZ' : 'FØR-VM-QUIZ';
+
   return (
     <>
-      <div onClick={() => setShowPopup(true)} style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 }}>
-        {/* Mini Panini card as the "number" */}
-        <div style={{ transform:'scale(0.72)', transformOrigin:'top center', height:100 }}>
-          <PaniniCard player={player} blur={!myAnswer} showName={!!myAnswer} />
-        </div>
-        <div style={C.statLabel}>
-          {scoring ? 'QUIZ' : 'FØR-VM QUIZ'}
-        </div>
+      <div onClick={() => setShowPopup(true)} style={{ cursor:'pointer', flexShrink:0 }}>
+        <PaniniCard player={player} blur={!myAnswer} showName={!!myAnswer} quizLabel={!myAnswer ? quizLabel : undefined} compact />
       </div>
       {showPopup && (
         <QuizPopup player={player} username={username} onClose={() => setShowPopup(false)}
@@ -815,28 +817,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           { num: finishedCount, label: isMobile ? 'Kamper' : 'Spilte kamper' },
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
-        // Insert quiz in the middle
-        const quizBox = (
-          <div key="quiz" onClick={() => {}} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile, cursor:'pointer' } : { ...C.statWidget, cursor:'pointer' }}>
-            <QuizWidget username={me.username} />
-          </div>
-        );
-        const mid = Math.floor(stats.length / 2);
         return (
-          <div style={isMobile ? C.statsRowMobile : C.statsRowDesktop}>
-            {stats.slice(0, mid).map(({ num, label }) => (
+          <div style={{ ...(isMobile ? C.statsRowMobile : C.statsRowDesktop), alignItems:'stretch' }}>
+            {stats.map(({ num, label }) => (
               <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
                 <div style={C.statNum}>{num}</div>
                 <div style={C.statLabel}>{label}</div>
               </div>
             ))}
-            {quizBox}
-            {stats.slice(mid).map(({ num, label }) => (
-              <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
-                <div style={C.statNum}>{num}</div>
-                <div style={C.statLabel}>{label}</div>
-              </div>
-            ))}
+            <QuizWidget username={me.username} />
           </div>
         );
       })()}

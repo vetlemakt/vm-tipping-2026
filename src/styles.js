@@ -229,6 +229,10 @@ export const C = {
     padding: '14px 12px',
     textAlign: 'center',
     boxShadow: '0 4px 16px rgba(0,0,0,.2)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statNum: {
     fontFamily: "'Kanit', sans-serif",
