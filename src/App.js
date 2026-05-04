@@ -534,6 +534,13 @@ function compressImage(file, maxKB = 250) {
   });
 }
 
+// VM host info per year for badge
+const VM_HOST = {
+  1982:{host:'ESP'},1986:{host:'MEX'},1990:{host:'ITA'},1994:{host:'USA'},
+  1998:{host:'FRA'},2002:{host:'KOR/JPN'},2006:{host:'GER'},2010:{host:'RSA'},
+  2014:{host:'BRA'},2018:{host:'RUS'},2022:{host:'QAT'},2026:{host:'USA/CAN/MEX'},
+};
+
 function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   const [imgUrl, setImgUrl] = useState(null);
   const teamColor = {
@@ -557,8 +564,8 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   }, [player.name]);
 
   const w = compact ? 100 : 140;
-  const imgH = compact ? 84 : 120;
-  const nameBarH = compact ? 22 : 28;
+  const imgH = compact ? 96 : 132;
+  const nameBarH = compact ? 20 : 26;
   const footerH = compact ? 14 : 18;
   const flag = FLAGS[player.country] || '';
 
@@ -569,13 +576,13 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
       background: '#f5e6c0', flexShrink: 0, position: 'relative',
       fontFamily: "'Kanit',sans-serif",
     }}>
-      {/* Photo area */}
-      <div style={{ height: imgH, background: `linear-gradient(180deg, ${teamColor}66 0%, #c8b99033 100%)`, position: 'relative', overflow: 'hidden' }}>
+      {/* Photo area – no separate top bar */}
+      <div style={{ height: imgH, background: `linear-gradient(180deg, ${teamColor}55 0%, #c8b99033 100%)`, position: 'relative', overflow: 'hidden' }}>
         {imgUrl ? (
           <img src={imgUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg viewBox="0 0 60 80" width={w*0.5} height={imgH*0.85} style={{ opacity: 0.3 }}>
+            <svg viewBox="0 0 60 80" width={w*0.5} height={imgH*0.8} style={{ opacity: 0.25 }}>
               <ellipse cx="30" cy="18" rx="12" ry="14" fill="#555"/>
               <path d="M10 80 Q12 45 30 42 Q48 45 50 80Z" fill="#555"/>
               <path d="M10 80 Q5 60 8 50 L18 54Z" fill="#555"/>
@@ -583,11 +590,22 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
             </svg>
           </div>
         )}
-        {/* VM logo top-left */}
-        <img src="/vm-logo.png" alt="VM" style={{ position:'absolute', top:3, left:3, width:28, height:28, objectFit:'contain', opacity:1, filter:'drop-shadow(0 1px 3px rgba(0,0,0,.6))' }} />
-        {/* Year top-right */}
-        <div style={{ position:'absolute', top:4, right:5, background:'rgba(0,0,0,.65)', color:'#FFD700', fontSize: compact?8:9, fontWeight:800, padding:'1px 5px', borderRadius:4, letterSpacing:0.5 }}>
-          VM {player.year}
+        {/* Top-left: logo + VM year */}
+        <div style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3,
+          background:'rgba(0,24,72,.88)', borderRadius:5, padding:'2px 5px' }}>
+          <img src="/vm-logo.png" alt="VM" style={{ width:compact?13:17, height:compact?13:17, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,.5))' }} />
+          <span style={{ fontSize:compact?7:8, color:'#fff', fontWeight:800, letterSpacing:0.3, whiteSpace:'nowrap' }}>VM {player.year}</span>
+        </div>
+        {/* Top-right: shirt number */}
+        <div style={{ position:'absolute', top:4, right:5,
+          background:'rgba(0,0,0,.55)', color:'#FFD700', fontSize:compact?7:8, fontWeight:800, padding:'1px 5px', borderRadius:4 }}>
+          #{player.num}
+        </div>
+        {/* Bottom-right: country code + flag */}
+        <div style={{ position:'absolute', bottom:4, right:5, display:'flex', alignItems:'center', gap:3,
+          background:'rgba(0,0,0,.65)', borderRadius:5, padding:'2px 6px' }}>
+          <span style={{ fontSize:compact?7:8, color:'#fff', fontWeight:800, letterSpacing:1 }}>{player.country.slice(0,3).toUpperCase()}</span>
+          <span style={{ fontSize:compact?10:12 }}>{flag}</span>
         </div>
       </div>
       {/* Name bar */}
@@ -605,10 +623,9 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
         ) : null}
       </div>
       {/* Footer */}
-      <div style={{ background: '#f0d080', height: footerH, display: 'flex', alignItems:'center', justifyContent: 'space-between', padding:'0 6px' }}>
-        <span style={{ fontSize: compact?6:7, color: '#c00', fontWeight: 800, fontStyle: 'italic', letterSpacing:1 }}>PANINI</span>
-        <span style={{ fontSize: compact?7:8 }}>{flag}</span>
-        <span style={{ fontSize: compact?6:7, color: '#555', fontWeight:700 }}>{player.country.slice(0,3).toUpperCase()}</span>
+      <div style={{ background:'#f0d080', height:footerH, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 6px' }}>
+        <span style={{ fontSize:compact?6:7, color:'#c00', fontWeight:800, fontStyle:'italic', letterSpacing:1 }}>PANINI</span>
+        <span style={{ fontSize:compact?6:7, color:'#555', fontWeight:700, letterSpacing:0.3 }}>FIFA WORLD CUP</span>
       </div>
     </div>
   );
@@ -805,8 +822,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           const r = results[m.id];
           return r?.home !== undefined ? s + (r.home||0) + (r.away||0) : s;
         }, 0);
+        const myPts = users.find(u => u.id === me.username)?.total || 0;
         const stats = [
           { num: myRank ? `#${myRank}` : '–', label: isMobile ? 'Plass' : 'Din plassering' },
+          { num: myPts, label: isMobile ? 'Poeng' : 'Dine poeng' },
           { num: users.length, label: 'Deltakere' },
           { num: finishedCount, label: isMobile ? 'Kamper' : 'Spilte kamper' },
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
