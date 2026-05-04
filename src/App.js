@@ -11,6 +11,7 @@ import {
 } from './firebase';
 import { doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
+import { getTodaysPlayer, shuffle } from './quizPlayers';
 import {
   INVITE_CODE, ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
@@ -84,7 +85,28 @@ async function deleteMatchSummary(matchId) {
   await deleteDoc(doc(db, 'summaries', matchId));
 }
 
-async function setMatchSummary(matchId, text, author) {
+async function getQuizAnswer(username, playerId) {
+  const snap = await getDoc(doc(db, 'quiz', `${username}_${playerId}`));
+  return snap.exists() ? snap.data() : null;
+}
+async function setQuizAnswer(username, playerId, answer, correct) {
+  await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now() });
+}
+async function getQuizLeaderboard() {
+  const { getDocs: gd, collection: col, query: q, where: w, orderBy: ob } = await import('firebase/firestore');
+  const snap = await gd(col(db, 'quiz'));
+  const scores = {};
+  snap.docs.forEach(d => {
+    const data = d.data();
+    if (data.correct) {
+      const user = d.id.split('_')[0];
+      scores[user] = (scores[user] || 0) + 1;
+    }
+  });
+  return scores;
+}
+
+
   const snap = await getDoc(doc(db, 'summaries', matchId));
   const existing = snap.exists() ? snap.data() : {};
   await setDoc(doc(db, 'summaries', matchId), { ...existing, text, author, ts: Date.now() });
@@ -525,6 +547,180 @@ function compressImage(file, maxKB = 250) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+//  QUIZ COMPONENTS
+// ══════════════════════════════════════════════════════════════════════
+const POSITIONS = { GK:'Målvakt', DF:'Forsvar', MF:'Midtbane', FW:'Angrep' };
+
+function PaniniCard({ player, blur }) {
+  const YEL = '#FFD700';
+  const teamColor = {
+    'Brasil':'#009c3b','Italia':'#003087','Frankrike':'#002395',
+    'Spania':'#AA151B','Vest-Tyskland':'#000000','Tyskland':'#000000',
+    'Argentina':'#74ACDF','Nederland':'#FF6600','England':'#003087',
+    'Portugal':'#006600','Kroatia':'#FF0000','Belgia':'#000000',
+  }[player.country] || '#1a2a5e';
+
+  return (
+    <div style={{
+      width: 100, height: 130, borderRadius: 8, overflow: 'hidden',
+      border: `2px solid ${YEL}`, boxShadow: '0 4px 16px rgba(0,0,0,.6)',
+      background: '#f5e6c0', flexShrink: 0, position: 'relative',
+      fontFamily: "'Kanit',sans-serif",
+    }}>
+      {/* Header strip */}
+      <div style={{ background: teamColor, padding: '3px 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 7, color: YEL, fontWeight: 800, letterSpacing: 1 }}>{player.country.toUpperCase().slice(0,3)}</span>
+        <span style={{ fontSize: 8, color: '#fff', fontWeight: 700 }}>#{player.num}</span>
+      </div>
+      {/* Photo area */}
+      <div style={{ height: 72, background: `linear-gradient(160deg, ${teamColor}44, #c8b99044)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+        {/* Silhouette svg */}
+        <svg viewBox="0 0 60 80" width="60" height="80" style={{ opacity: 0.35 }}>
+          <ellipse cx="30" cy="18" rx="12" ry="14" fill="#555"/>
+          <path d="M10 80 Q12 45 30 42 Q48 45 50 80Z" fill="#555"/>
+          <path d="M10 80 Q5 60 8 50 L18 54Z" fill="#555"/>
+          <path d="M50 80 Q55 60 52 50 L42 54Z" fill="#555"/>
+        </svg>
+        {/* Year badge */}
+        <div style={{ position:'absolute', top:4, right:4, background:'rgba(0,0,0,.6)', color:YEL, fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:3 }}>
+          {player.year}
+        </div>
+      </div>
+      {/* Name area */}
+      <div style={{ background: teamColor, padding: '3px 5px', textAlign: 'center' }}>
+        {blur ? (
+          <div style={{ height: 12, background: 'rgba(255,255,255,.15)', borderRadius: 3, margin: '0 8px' }} />
+        ) : (
+          <span style={{ fontSize: 9, color: '#fff', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            {player.name.split(' ').pop()}
+          </span>
+        )}
+      </div>
+      {/* Position */}
+      <div style={{ background: '#f0d080', padding: '2px 5px', textAlign: 'center', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 7, color: '#333', fontWeight: 700 }}>{POSITIONS[player.pos]}</span>
+        <span style={{ fontSize: 7, color: '#333' }}>VM {player.year}</span>
+      </div>
+      {/* Panini logo */}
+      <div style={{ background: '#fff', padding: '1px 5px', textAlign: 'center' }}>
+        <span style={{ fontSize: 7, color: '#c00', fontWeight: 800, fontStyle: 'italic', letterSpacing: 1 }}>PANINI</span>
+      </div>
+    </div>
+  );
+}
+
+function QuizPopup({ player, username, onClose, onAnswered }) {
+  const [answered, setAnswered] = useState(null);
+  const [options] = useState(() => shuffle([player.name, ...player.wrong]));
+
+  useEffect(() => {
+    getQuizAnswer(username, player.id).then(a => { if (a) setAnswered(a.answer); });
+  }, [username, player.id]);
+
+  const handleAnswer = async (choice) => {
+    if (answered) return;
+    const correct = choice === player.name;
+    setAnswered(choice);
+    await setQuizAnswer(username, player.id, choice, correct);
+    if (onAnswered) onAnswered(correct);
+  };
+
+  return createPortal(
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899, background:'rgba(0,0,0,.7)', backdropFilter:'blur(4px)' }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        position:'fixed', zIndex:900, width:320,
+        top:'50%', left:'50%', transform:'translate(-50%,-50%)',
+        background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.35)',
+        borderRadius:16, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,.8)',
+      }}>
+        <div style={{ fontSize:11, color:'rgba(255,215,0,.7)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:14, textAlign:'center' }}>
+          Hvem er dette? • VM {player.year}
+        </div>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:18 }}>
+          <PaniniCard player={player} blur={!answered} />
+        </div>
+        {options.map(opt => {
+          const isCorrect = opt === player.name;
+          const isChosen = opt === answered;
+          let bg = 'rgba(255,255,255,.06)';
+          let border = '1px solid rgba(255,255,255,.1)';
+          let icon = null;
+          if (answered) {
+            if (isCorrect) { bg = 'rgba(255,215,0,.1)'; border = '1px solid rgba(255,215,0,.4)'; }
+            if (isChosen && !isCorrect) { bg = 'rgba(239,68,68,.15)'; border = '1px solid rgba(239,68,68,.4)'; }
+            if (isChosen && isCorrect) icon = '✅';
+            else if (isChosen && !isCorrect) icon = '❌';
+          }
+          return (
+            <button key={opt} onClick={() => handleAnswer(opt)}
+              style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', background:bg, border, borderRadius:8, padding:'10px 14px', marginBottom:8, cursor: answered ? 'default' : 'pointer', fontFamily:"'Kanit',sans-serif", fontSize:13, color: answered && isCorrect ? '#FFD700' : '#e8edf8', fontWeight: answered && isCorrect ? 700 : 400, textAlign:'left' }}>
+              <span>{opt.split(' ').pop()}</span>
+              {icon && <span>{icon}</span>}
+            </button>
+          );
+        })}
+        {answered && (
+          <p style={{ fontSize:12, color:'rgba(255,255,255,.5)', textAlign:'center', marginTop:8 }}>
+            {answered === player.name ? '🎉 Riktig! ' : `❌ Feil. Det var ${player.name}. `}
+            Ny quiz kl. 06:00.
+          </p>
+        )}
+      </div>
+    </>, document.body
+  );
+}
+
+function QuizWidget({ username }) {
+  const player = getTodaysPlayer();
+  const [showPopup, setShowPopup] = useState(false);
+  const [myAnswer, setMyAnswer] = useState(null);
+  const [scores, setScores] = useState({});
+
+  useEffect(() => {
+    getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
+    getQuizLeaderboard().then(setScores);
+  }, [username, player.id]);
+
+  const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const myScore = scores[username] || 0;
+
+  return (
+    <>
+      <div onClick={() => setShowPopup(true)} style={{ ...C.statWidget, cursor:'pointer', position:'relative' }}
+        onMouseEnter={e => e.currentTarget.style.background='rgba(255,215,0,.1)'}
+        onMouseLeave={e => e.currentTarget.style.background=C.statWidget.background||'rgba(255,255,255,.05)'}>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:4 }}>
+          <PaniniCard player={player} blur={!myAnswer} />
+        </div>
+        <div style={{ ...C.statLabel, textAlign:'center' }}>
+          {myAnswer ? (myAnswer.correct ? '✅ Riktig!' : '❌ Feil') : 'Tap for quiz'}
+        </div>
+        <div style={{ fontSize:10, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace", textAlign:'center', marginTop:2 }}>
+          {myScore}p totalt
+        </div>
+        {sorted.length > 0 && (
+          <div style={{ marginTop:6, borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:4 }}>
+            {sorted.map(([user,pts],i) => (
+              <div key={user} style={{ display:'flex', justifyContent:'space-between', fontSize:9, color: user===username?'#FFD700':'rgba(255,255,255,.5)', padding:'1px 0' }}>
+                <span>{i+1}. {user}</span><span>{pts}p</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {showPopup && (
+        <QuizPopup player={player} username={username} onClose={() => setShowPopup(false)}
+          onAnswered={(correct) => {
+            setMyAnswer({ correct });
+            getQuizLeaderboard().then(setScores);
+          }} />
+      )}
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════════════════════════════════════
 function Dashboard({ me, phase, onShowTips, setTab }) {
@@ -643,6 +839,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 <div style={C.statLabel}>{label}</div>
               </div>
             ))}
+            <div style={isMobile ? { ...C.statWidgetMobile } : {}}>
+              <QuizWidget username={me.username} />
+            </div>
           </div>
         );
       })()}
@@ -1788,7 +1987,12 @@ function InfoPage() {
           <div>🟨 Riktig lag med mest kort: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
         </div>
 
-        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🔒 Tidsvindu</h3>
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🃏 Daglig Quiz</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>Gjett VM-spilleren fra Panini-kortet! Ny spiller hver dag kl. 06:00.</div>
+          <div style={{marginTop:4}}>🏆 Spilleren med flest rette svar ved slutten av finalen (19. juli 2026) tildeles <strong style={{color:'#FFD700'}}>0,5 ekstrapoeng</strong> i sammendraget.</div>
+          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Ved likt antall rette svar deles prisen. Bots teller ikke.</div>
+        </div>
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
           <div>• Alle tips leveres <strong style={{color:'#FFD700'}}>før</strong> gruppespillet starter</div>
           <div>• Sluttspill-tips kan endres mellom hver runde</div>
