@@ -9,7 +9,7 @@ import {
   updatePresence, subscribeOnlineUsers,
   db,
 } from './firebase';
-import { doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import { getTodaysPlayer, shuffle, isQuizScoring } from './quizPlayers';
 import {
