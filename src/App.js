@@ -541,8 +541,42 @@ const VM_HOST = {
   2014:{host:'BRA'},2018:{host:'RUS'},2022:{host:'QAT'},2026:{host:'USA/CAN/MEX'},
 };
 
+// ── VM-logo mapping per år ────────────────────────────────────────────
+// Legg logofilene i public/vm-logos/  (f.eks. public/vm-logos/1994.png)
+const VM_LOGO = {
+  1982: '/vm-logos/1982.png',
+  1986: '/vm-logos/1986.png',
+  1990: '/vm-logos/1990.png',
+  1994: '/vm-logos/1994.png',
+  1998: '/vm-logos/1998.png',
+  2002: '/vm-logos/2002.png',
+  2006: '/vm-logos/2006.png',
+  2010: '/vm-logos/2010.png',
+  2014: '/vm-logos/2014.png',
+  2018: '/vm-logos/2018.png',
+  2022: '/vm-logos/2022.png',
+  2026: '/vm-logos/2026.png',
+};
+
+// Vertsnasjon per VM-år – vises i topp-stripa
+const VM_HOST_NAME = {
+  1982: 'España 1982',
+  1986: 'Mexico 1986',
+  1990: 'Italia 1990',
+  1994: 'USA 1994',
+  1998: 'France 1998',
+  2002: 'Korea/Japan 2002',
+  2006: 'Germany 2006',
+  2010: 'South Africa 2010',
+  2014: 'Brasil 2014',
+  2018: 'Russia 2018',
+  2022: 'Qatar 2022',
+  2026: 'USA/CAN/MEX 2026',
+};
+
 function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   const [imgUrl, setImgUrl] = useState(null);
+
   const teamColor = {
     'Brasil':'#009c3b','Italia':'#003087','Frankrike':'#002395',
     'Spania':'#AA151B','Vest-Tyskland':'#1a1a1a','Tyskland':'#1a1a1a',
@@ -563,26 +597,80 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
       .catch(() => {});
   }, [player.name]);
 
-  const w = compact ? 100 : 140;
-  const imgH = compact ? 96 : 132;
-  const nameBarH = compact ? 20 : 26;
-  const footerH = compact ? 14 : 18;
-  const flag = FLAGS[player.country] || '';
+  const w        = compact ? 100 : 140;
+  const imgH     = compact ? 110 : 143;
+  const nameBarH = compact ? 20  : 26;
+  const stripeH  = compact ? 14  : 18;
+  const borderW  = compact ? 2.5 : 3;
+  const flag     = FLAGS[player.country] || '';
+
+  const vmLogoSrc  = VM_LOGO[player.year];
+  const vmHostName = VM_HOST_NAME[player.year] || `VM ${player.year}`;
 
   return (
     <div style={{
-      width: w, borderRadius: 8, overflow: 'hidden',
-      border: `1.5px solid #FFD700`, boxShadow: '0 4px 16px rgba(0,0,0,.6)',
-      background: '#f5e6c0', flexShrink: 0, position: 'relative',
+      width: w,
+      borderRadius: 8,
+      overflow: 'hidden',
+      border: `${borderW}px solid #f0d080`,
+      boxShadow: '0 4px 16px rgba(0,0,0,.6)',
+      background: '#f5e6c0',
+      flexShrink: 0,
+      position: 'relative',
       fontFamily: "'Kanit',sans-serif",
     }}>
-      {/* Photo area – no separate top bar */}
-      <div style={{ height: imgH, background: `linear-gradient(180deg, ${teamColor}55 0%, #c8b99033 100%)`, position: 'relative', overflow: 'hidden' }}>
+
+      {/* ── TOPP-STRIPE: vertsnavn til venstre, år-logo til høyre ── */}
+      <div style={{
+        background: '#f0d080',
+        height: stripeH,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: `0 ${compact ? 5 : 6}px`,
+      }}>
+        <span style={{
+          fontSize: compact ? 6 : 7,
+          color: '#8B0000',
+          fontWeight: 800,
+          fontStyle: 'italic',
+          letterSpacing: 0.3,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '65%',
+        }}>
+          {vmHostName}
+        </span>
+        {vmLogoSrc && (
+          <img
+            src={vmLogoSrc}
+            alt={`VM ${player.year}`}
+            style={{
+              height: compact ? 10 : 13,
+              width: 'auto',
+              objectFit: 'contain',
+            }}
+          />
+        )}
+      </div>
+
+      {/* ── FOTO-OMRÅDE ── */}
+      <div style={{
+        height: imgH,
+        background: `linear-gradient(180deg, ${teamColor}55 0%, #c8b99033 100%)`,
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
         {imgUrl ? (
-          <img src={imgUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+          <img
+            src={imgUrl}
+            alt={player.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
+          />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg viewBox="0 0 60 80" width={w*0.5} height={imgH*0.8} style={{ opacity: 0.25 }}>
+            <svg viewBox="0 0 60 80" width={w * 0.5} height={imgH * 0.8} style={{ opacity: 0.25 }}>
               <ellipse cx="30" cy="18" rx="12" ry="14" fill="#555"/>
               <path d="M10 80 Q12 45 30 42 Q48 45 50 80Z" fill="#555"/>
               <path d="M10 80 Q5 60 8 50 L18 54Z" fill="#555"/>
@@ -590,43 +678,108 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
             </svg>
           </div>
         )}
-        {/* Top-left: logo + VM year */}
-        <div style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3,
-          background:'rgba(0,24,72,.88)', borderRadius:5, padding:'2px 5px' }}>
-          <img src="/vm-logo.png" alt="VM" style={{ width:compact?13:17, height:compact?13:17, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,.5))' }} />
-          <span style={{ fontSize:compact?7:8, color:'#fff', fontWeight:800, letterSpacing:0.3, whiteSpace:'nowrap' }}>VM {player.year}</span>
+
+        {/* Øverst til venstre: generell vm-logo.png */}
+        <div style={{
+          position: 'absolute', top: 4, left: 4,
+          background: 'rgba(0,24,72,.88)',
+          borderRadius: 5,
+          padding: compact ? '2px 4px' : '2px 5px',
+          display: 'flex', alignItems: 'center',
+        }}>
+          <img
+            src="/vm-logo.png"
+            alt="VM"
+            style={{
+              width: compact ? 13 : 17,
+              height: compact ? 13 : 17,
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,.5))',
+            }}
+          />
         </div>
-        {/* Top-right: shirt number */}
-        <div style={{ position:'absolute', top:4, right:5,
-          background:'rgba(0,0,0,.55)', color:'#FFD700', fontSize:compact?7:8, fontWeight:800, padding:'1px 5px', borderRadius:4 }}>
+
+        {/* Øverst til høyre: draktnummer */}
+        <div style={{
+          position: 'absolute', top: 4, right: 5,
+          background: 'rgba(0,0,0,.55)',
+          color: '#FFD700',
+          fontSize: compact ? 7 : 8,
+          fontWeight: 800,
+          padding: '1px 5px',
+          borderRadius: 4,
+        }}>
           #{player.num}
         </div>
-        {/* Bottom-right: country code + flag */}
-        <div style={{ position:'absolute', bottom:4, right:5, display:'flex', alignItems:'center', gap:3,
-          background:'rgba(0,0,0,.65)', borderRadius:5, padding:'2px 6px' }}>
-          <span style={{ fontSize:compact?7:8, color:'#fff', fontWeight:800, letterSpacing:1 }}>{player.country.slice(0,3).toUpperCase()}</span>
-          <span style={{ fontSize:compact?10:12 }}>{flag}</span>
+
+        {/* Nede til høyre: landkode + flagg */}
+        <div style={{
+          position: 'absolute', bottom: 4, right: 5,
+          display: 'flex', alignItems: 'center', gap: 3,
+          background: 'rgba(0,0,0,.65)',
+          borderRadius: 5,
+          padding: '2px 6px',
+        }}>
+          <span style={{ fontSize: compact ? 7 : 8, color: '#fff', fontWeight: 800, letterSpacing: 1 }}>
+            {player.country.slice(0, 3).toUpperCase()}
+          </span>
+          <span style={{ fontSize: compact ? 10 : 12 }}>{flag}</span>
         </div>
       </div>
-      {/* Name bar */}
-      <div style={{ background: teamColor, height: nameBarH, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 6px' }}>
+
+      {/* ── NAVNEFELT ── */}
+      <div style={{
+        background: teamColor,
+        height: nameBarH,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 6px',
+      }}>
         {quizLabel ? (
-          <span style={{ fontSize: compact?7:9, color: '#FFD700', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', textAlign:'center' }}>
+          <span style={{
+            fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
+            letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center',
+          }}>
             {quizLabel}
           </span>
         ) : blur && !showName ? (
-          <div style={{ height: compact?8:10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
+          <div style={{ height: compact ? 8 : 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
         ) : showName ? (
-          <span style={{ fontSize: compact?8:10, color: '#FFD700', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', textAlign:'center' }}>
+          <span style={{
+            fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
+            letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center',
+          }}>
             {player.name}
           </span>
         ) : null}
       </div>
-      {/* Footer */}
-      <div style={{ background:'#f0d080', height:footerH, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 6px' }}>
-        <span style={{ fontSize:compact?6:7, color:'#c00', fontWeight:800, fontStyle:'italic', letterSpacing:1 }}>PANINI</span>
-        <span style={{ fontSize:compact?6:7, color:'#555', fontWeight:700, letterSpacing:0.3 }}>FIFA WORLD CUP</span>
+
+      {/* ── BUNN-STRIPE: PANINI til venstre, FIFA WORLD CUP til høyre ── */}
+      <div style={{
+        background: '#f0d080',
+        height: stripeH,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: `0 ${compact ? 5 : 6}px`,
+      }}>
+        <span style={{
+          fontSize: compact ? 5 : 6,
+          color: '#c00',
+          fontWeight: 800,
+          fontStyle: 'italic',
+          letterSpacing: 1,
+        }}>
+          PANINI
+        </span>
+        <span style={{
+          fontSize: compact ? 5 : 6,
+          color: '#555',
+          fontWeight: 700,
+        }}>
+          FIFA WORLD CUP
+        </span>
       </div>
+
     </div>
   );
 }
