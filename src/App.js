@@ -9,9 +9,9 @@ import {
   updatePresence, subscribeOnlineUsers,
   db,
 } from './firebase';
-import { doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, getDocs } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
-import { getTodaysPlayer, shuffle } from './quizPlayers';
+import { getTodaysPlayer, shuffle, isQuizScoring } from './quizPlayers';
 import {
   INVITE_CODE, ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
@@ -92,21 +92,27 @@ async function getQuizAnswer(username, playerId) {
 async function setQuizAnswer(username, playerId, answer, correct) {
   await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now() });
 }
-async function getQuizLeaderboard() {
-  const { getDocs: gd, collection: col, query: q, where: w, orderBy: ob } = await import('firebase/firestore');
-  const snap = await gd(col(db, 'quiz'));
+async function setQuizAnswer(username, playerId, answer, correct) {
+  const scoring = isQuizScoring();
+  await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now(), scoring });
+}
+async function getQuizLeaderboard(scoringOnly) {
+  const snap = await getDocs(collection(db, 'quiz'));
   const scores = {};
   snap.docs.forEach(d => {
     const data = d.data();
-    if (data.correct) {
-      const user = d.id.split('_')[0];
-      scores[user] = (scores[user] || 0) + 1;
-    }
+    if (!data.correct) return;
+    if (scoringOnly && !data.scoring) return;
+    const user = d.id.split('_')[0];
+    scores[user] = (scores[user] || 0) + 1;
   });
   return scores;
 }
+async function resetQuizScores() {
+  // In practice we rely on the scoring flag set at answer time – no action needed
+}
 
-
+async function setMatchSummary(matchId, text, author) {
   const snap = await getDoc(doc(db, 'summaries', matchId));
   const existing = snap.exists() ? snap.data() : {};
   await setDoc(doc(db, 'summaries', matchId), { ...existing, text, author, ts: Date.now() });
@@ -673,37 +679,51 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
 
 function QuizWidget({ username }) {
   const player = getTodaysPlayer();
+  const scoring = isQuizScoring();
   const [showPopup, setShowPopup] = useState(false);
   const [myAnswer, setMyAnswer] = useState(null);
   const [scores, setScores] = useState({});
+  const [preScores, setPreScores] = useState({});
 
   useEffect(() => {
     getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
-    getQuizLeaderboard().then(setScores);
-  }, [username, player.id]);
+    getQuizLeaderboard(true).then(setScores);
+    if (!scoring) getQuizLeaderboard(false).then(setPreScores);
+  }, [username, player.id, scoring]);
 
-  const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
-  const myScore = scores[username] || 0;
+  const table = scoring ? scores : preScores;
+  const sorted = Object.entries(table).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const myScore = table[username] || 0;
 
   return (
     <>
-      <div onClick={() => setShowPopup(true)} style={{ ...C.statWidget, cursor:'pointer', position:'relative' }}
+      <div onClick={() => setShowPopup(true)} style={{ ...C.statWidget, cursor:'pointer', minWidth:110 }}
         onMouseEnter={e => e.currentTarget.style.background='rgba(255,215,0,.1)'}
-        onMouseLeave={e => e.currentTarget.style.background=C.statWidget.background||'rgba(255,255,255,.05)'}>
+        onMouseLeave={e => e.currentTarget.style.background=''}>
+        <div style={{ fontSize:10, color:'#FFD700', fontFamily:"'Fira Code',monospace", textAlign:'center', marginBottom:4, letterSpacing:0.5 }}>
+          {scoring ? 'QUIZ' : 'FØR-VM QUIZ'}
+        </div>
         <div style={{ display:'flex', justifyContent:'center', marginBottom:4 }}>
           <PaniniCard player={player} blur={!myAnswer} />
         </div>
         <div style={{ ...C.statLabel, textAlign:'center' }}>
-          {myAnswer ? (myAnswer.correct ? '✅ Riktig!' : '❌ Feil') : 'Tap for quiz'}
+          {myAnswer ? (myAnswer.correct ? '✅ Riktig!' : '❌ Feil') : '🃏 Gjett!'}
         </div>
-        <div style={{ fontSize:10, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace", textAlign:'center', marginTop:2 }}>
-          {myScore}p totalt
-        </div>
+        {scoring && (
+          <div style={{ fontSize:10, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace", textAlign:'center', marginTop:2 }}>
+            {myScore} rette
+          </div>
+        )}
+        {!scoring && (
+          <div style={{ fontSize:9, color:'rgba(255,255,255,.35)', textAlign:'center', marginTop:2 }}>
+            Poeng teller fra VM-start
+          </div>
+        )}
         {sorted.length > 0 && (
           <div style={{ marginTop:6, borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:4 }}>
             {sorted.map(([user,pts],i) => (
               <div key={user} style={{ display:'flex', justifyContent:'space-between', fontSize:9, color: user===username?'#FFD700':'rgba(255,255,255,.5)', padding:'1px 0' }}>
-                <span>{i+1}. {user}</span><span>{pts}p</span>
+                <span>{i+1}. {user}</span><span>{pts}✓</span>
               </div>
             ))}
           </div>
@@ -711,9 +731,10 @@ function QuizWidget({ username }) {
       </div>
       {showPopup && (
         <QuizPopup player={player} username={username} onClose={() => setShowPopup(false)}
-          onAnswered={(correct) => {
-            setMyAnswer({ correct });
-            getQuizLeaderboard().then(setScores);
+          onAnswered={() => {
+            getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
+            getQuizLeaderboard(true).then(setScores);
+            if (!scoring) getQuizLeaderboard(false).then(setPreScores);
           }} />
       )}
     </>
