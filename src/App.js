@@ -93,12 +93,6 @@ async function setQuizAnswer(username, playerId, answer, correct) {
   const scoring = isQuizScoring();
   await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now(), scoring });
 }
-    const data = d.data();
-    if (!data.correct) return;
-    if (scoringOnly && !data.scoring) return;
-    const user = d.id.split('_')[0];
-    scores[user] = (scores[user] || 0) + 1;
-  });
 
 async function setMatchSummary(matchId, text, author) {
   const snap = await getDoc(doc(db, 'summaries', matchId));
