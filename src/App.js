@@ -556,12 +556,29 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
   const sendMsg = async () => {
     const t = input.trim(); if (!t) return;
-    // Don't let bots trigger other bots
     const senderIsBot = PANEL_EXPERTS.some(e => e.name === me.displayName);
     setInput('');
     await sendChatMessage(me.displayName, t, '');
+
+    // Prune to 40 messages
+    if (msgs.length >= 40) {
+      msgs.slice(0, msgs.length - 39).forEach(m => { if (m.id) deleteChatMessage(m.id); });
+    }
+
     if (senderIsBot) return;
-    // Check for @mentions - find ALL mentioned experts
+
+    // @funfact – random expert shares a VM fun fact
+    if (t.toLowerCase().includes('@funfact')) {
+      const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+      setTimeout(async () => {
+        const prompt = `${expert.personality}\n\nKom med én interessant funfact om fotball-VM (FIFA World Cup). Finn noe genuint interessant, overraskende eller morsomt – historisk statistikk, rekorder, kuriøse hendelser, underdog-historier. Presenter det som deg selv med din personlighet og dialekt. Maks 3 setninger.`;
+        const reply = await chatWithExpert(expert, prompt, []);
+        await sendChatMessage(expert.name, `🎲 Funfact: ${reply}`, '');
+      }, 800);
+      return;
+    }
+
+    // @mentions
     const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
     const mentionedExperts = [];
     mentionMatches.forEach(match => {
@@ -571,11 +588,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         e.firstName.toLowerCase().replace('-','') === mentioned ||
         e.id === mentioned
       );
-      if (expert && !mentionedExperts.find(e => e.id === expert.id)) {
-        mentionedExperts.push(expert);
-      }
+      if (expert && !mentionedExperts.find(e => e.id === expert.id)) mentionedExperts.push(expert);
     });
-    // Each expert replies in its own separate message, staggered
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
         const reply = await chatWithExpert(expert, t, []);
@@ -649,7 +663,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               onClick={() => canView && onShowTips && onShowTips(r)}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
-                {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
+                {r.displayName}
                 {!canView && <span style={C.lbLockIcon}>🔒</span>}
               </span>
               <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -875,7 +889,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
             <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
-              {r.displayName}{r.id === me.username && <span style={C.youTag}>deg</span>}
+              {r.displayName}
               {!canView && <span style={C.lbLockIcon}>🔒</span>}
             </span>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -2440,7 +2454,23 @@ function ChatPage({ me }) {
     const senderIsBot = PANEL_EXPERTS.some(e => e.name === me.displayName);
     setInput('');
     await sendChatMessage(me.displayName, t, '');
+
+    if (msgs.length >= 40) {
+      msgs.slice(0, msgs.length - 39).forEach(m => { if (m.id) deleteChatMessage(m.id); });
+    }
+
     if (senderIsBot) return;
+
+    if (t.toLowerCase().includes('@funfact')) {
+      const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+      setTimeout(async () => {
+        const prompt = `${expert.personality}\n\nKom med én interessant funfact om fotball-VM (FIFA World Cup). Finn noe genuint interessant, overraskende eller morsomt – historisk statistikk, rekorder, kuriøse hendelser, underdog-historier. Presenter det som deg selv med din personlighet og dialekt. Maks 3 setninger.`;
+        const reply = await chatWithExpert(expert, prompt, []);
+        await sendChatMessage(expert.name, `🎲 Funfact: ${reply}`, '');
+      }, 800);
+      return;
+    }
+
     const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
     const mentionedExperts = [];
     mentionMatches.forEach(match => {
@@ -2646,6 +2676,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   const [countdownLabel, setCountdownLabel] = useState('');
   const [phase, setPhase] = useState('scroll');
   const [repeat, setRepeat] = useState(0);
+  const [liveEvent, setLiveEvent] = useState(null); // {type,text,homeScored,...}
 
   useEffect(() => {
     const update = () => {
@@ -2660,6 +2691,20 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
     return () => clearInterval(iv);
   }, []);
 
+  // Poll live events every 30s
+  useEffect(() => {
+    const poll = async () => {
+      const ev = await fetchLiveEvents();
+      if (ev) { setLiveEvent(ev); return; }
+      const fin = await fetchFinishedMatch();
+      if (fin) { setLiveEvent(fin); return; }
+      setLiveEvent(null);
+    };
+    poll();
+    const iv = setInterval(poll, 30000);
+    return () => clearInterval(iv);
+  }, []);
+
   useEffect(() => { setPhase('scroll'); setRepeat(0); }, [adminMessage]);
   useEffect(() => {
     if (!adminMessage || phase === 'static') return;
@@ -2670,17 +2715,38 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   }, [phase, repeat, adminMessage]);
 
   const vmOver = VM_START <= Date.now();
-  const show = adminMessage || (!vmOver && countdownLabel);
+  // Priority: liveEvent > adminMessage > countdown
+  const show = liveEvent || adminMessage || (!vmOver && countdownLabel);
   if (!show) return null;
 
-  const displayText = adminMessage
-    ? (phase === 'static' ? '📢 Les melding fra admin' : null)
-    : `⏱ ${countdownLabel}`;
+  const w = isMobile ? 180 : 340;
+  const YEL = '#FFD700';
 
-  const w = isMobile ? 160 : 320;
+  // Render live event inline with yellow scoring team number
+  const renderLiveContent = () => {
+    if (!liveEvent) return null;
+    if (liveEvent.type === 'goal') {
+      const { shortHome, shortAway, homeGoals, awayGoals, homeScored, playerName, minute, suffix } = liveEvent;
+      return (
+        <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
+          <span style={{ color:'rgba(255,255,255,.8)' }}>{shortHome}-{shortAway} </span>
+          <span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.8)' }}>{homeGoals}</span>
+          <span style={{ color:'rgba(255,255,255,.5)' }}>-</span>
+          <span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.8)' }}>{awayGoals}</span>
+          <span style={{ color:'rgba(255,255,255,.6)', marginLeft:3 }}>– {playerName} '{minute}{suffix}</span>
+        </div>
+      );
+    }
+    // card or finished
+    return <div style={{ fontSize:11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, textAlign:'center', whiteSpace:'nowrap' }}>{liveEvent.text}</div>;
+  };
+
+  const displayText = !liveEvent && (adminMessage
+    ? (phase === 'static' ? '📢 Les melding fra admin' : null)
+    : `⏱ ${countdownLabel}`);
 
   return (
-    <div onClick={adminMessage ? onAdminMessageClick : undefined} style={{
+    <div onClick={adminMessage && !liveEvent ? onAdminMessageClick : undefined} style={{
       position: 'absolute',
       top: 5,
       left: '50%',
@@ -2689,29 +2755,32 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
       width: w,
       background: 'rgba(1,23,76,.95)',
       backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',
-      border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
+      border: `1px solid ${liveEvent ? 'rgba(74,222,128,.4)' : 'rgba(255,215,0,.25)'}`,
+      borderRadius: 12,
       boxShadow: '0 4px 20px rgba(0,0,0,.5)',
       padding: '5px 14px',
       overflow: 'hidden',
-      cursor: adminMessage ? 'pointer' : 'default',
+      cursor: adminMessage && !liveEvent ? 'pointer' : 'default',
       pointerEvents: 'all',
     }}>
-      {adminMessage && phase !== 'static' ? (
-        <div style={{
-          overflow: 'hidden', margin: '0 -14px',
-          maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
-        }}>
-          <span key={phase + repeat} onAnimationEnd={() => setPhase('pause')}
-            style={{ fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-block', padding: '0 20px', animation: 'tickerScroll 12s linear forwards' }}>
-            📢 {adminMessage}
-          </span>
-        </div>
-      ) : (
-        <div style={{ fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 0.5, textAlign: 'center' }}>
-          {displayText}
-        </div>
-      )}
+      {liveEvent ? renderLiveContent() :
+        adminMessage && phase !== 'static' ? (
+          <div style={{
+            overflow: 'hidden', margin: '0 -14px',
+            maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
+          }}>
+            <span key={phase + repeat} onAnimationEnd={() => setPhase('pause')}
+              style={{ fontSize: 11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', display:'inline-block', padding:'0 20px', animation:'tickerScroll 12s linear forwards' }}>
+              📢 {adminMessage}
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontSize:11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>
+            {displayText}
+          </div>
+        )
+      }
     </div>
   );
 }
@@ -2741,8 +2810,95 @@ function AdminMessagePopup({ message, onClose }) {
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  ROOT APP
+// ── Live match events ─────────────────────────────────────────────────
+async function fetchLiveEvents() {
+  const apiKey = process.env.REACT_APP_FOOTBALL_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      'https://v3.football.api-sports.io/fixtures?league=' + WC_2026_ID + '&season=2026&status=1H-2H-ET-P',
+      { headers: { 'x-apisports-key': apiKey } }
+    );
+    const data = await res.json();
+    if (!data.response?.length) return null;
+
+    const fixture = data.response[0];
+    const home = fixture.teams?.home?.name;
+    const away = fixture.teams?.away?.name;
+    const homeGoals = fixture.goals?.home ?? 0;
+    const awayGoals = fixture.goals?.away ?? 0;
+
+    const norHome = Object.keys(TEAM_NAME_MAP).find(k => TEAM_NAME_MAP[k] === home) || home;
+    const norAway = Object.keys(TEAM_NAME_MAP).find(k => TEAM_NAME_MAP[k] === away) || away;
+    const shortHome = TEAM_SHORT[norHome] || norHome.slice(0,3).toUpperCase();
+    const shortAway = TEAM_SHORT[norAway] || norAway.slice(0,3).toUpperCase();
+
+    const events = (fixture.events || []).slice(-1)[0]; // latest event
+    if (!events) return null;
+
+    const ev = events;
+    const evTeam = Object.keys(TEAM_NAME_MAP).find(k => TEAM_NAME_MAP[k] === ev.team?.name) || ev.team?.name;
+    const isHome = evTeam === norHome;
+    const min = ev.time?.elapsed;
+
+    if (ev.type === 'Goal') {
+      const sm = ev.detail === 'Own Goal' ? ' (s.m.)' : ev.detail === 'Penalty' ? ' (str.)' : '';
+      return {
+        type: 'goal',
+        text: `${shortHome}-${shortAway} ${homeGoals}-${awayGoals} – ${ev.player?.name || '?'} '${min}${sm}`,
+        homeScored: isHome,
+        homeGoals, awayGoals,
+        shortHome, shortAway,
+        playerName: ev.player?.name || '?',
+        minute: min,
+        suffix: sm,
+      };
+    } else if (ev.type === 'Card') {
+      const cardIcon = ev.detail?.includes('Yellow') ? '🟨' : '🟥';
+      return {
+        type: 'card',
+        text: `${cardIcon} ${ev.player?.name || '?'} '${min} (${isHome ? shortHome : shortAway})`,
+      };
+    } else if (ev.type === 'subst') {
+      return null; // skip substitutions
+    }
+    return null;
+  } catch(e) {
+    console.warn('Live events fetch error:', e);
+    return null;
+  }
+}
+
+async function fetchFinishedMatch() {
+  const apiKey = process.env.REACT_APP_FOOTBALL_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      'https://v3.football.api-sports.io/fixtures?league=' + WC_2026_ID + '&season=2026&status=FT-AET-PEN&last=1',
+      { headers: { 'x-apisports-key': apiKey } }
+    );
+    const data = await res.json();
+    if (!data.response?.length) return null;
+    const f = data.response[0];
+    const home = Object.keys(TEAM_NAME_MAP).find(k => TEAM_NAME_MAP[k] === f.teams?.home?.name) || f.teams?.home?.name;
+    const away = Object.keys(TEAM_NAME_MAP).find(k => TEAM_NAME_MAP[k] === f.teams?.away?.name) || f.teams?.away?.name;
+    const sh = TEAM_SHORT[home] || home?.slice(0,3).toUpperCase();
+    const sa = TEAM_SHORT[away] || away?.slice(0,3).toUpperCase();
+    const hg = f.goals?.home ?? 0, ag = f.goals?.away ?? 0;
+    const status = f.fixture?.status?.short;
+    let suffix = '';
+    if (status === 'AET') {
+      const pHome = f.score?.penalty?.home, pAway = f.score?.penalty?.away;
+      suffix = (pHome != null) ? ` (${pHome}-${pAway} e.s.)` : ` (${hg}-${ag} e.e.o.)`;
+    } else if (status === 'PEN') {
+      const pHome = f.score?.penalty?.home, pAway = f.score?.penalty?.away;
+      suffix = ` (${pHome}-${pAway} e.s.)`;
+    }
+    return { text: `Kamp slutt: ${sh}-${sa} ${hg}-${ag}${suffix}` };
+  } catch(e) { return null; }
+}
+
+
 // ══════════════════════════════════════════════════════════════════════
 export default function App() {
   const [user, setUser] = useState(() => {
