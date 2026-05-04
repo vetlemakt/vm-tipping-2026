@@ -583,7 +583,6 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
     'Elfenbenskysten':'#c05500','Egypt':'#C8102E','Marokko':'#C1272D',
   }[player.country] || '#1a2a5e';
 
-  // VM-vertsnasjon flagg-kode for topp-stripe
   const VM_HOST_FLAG = {
     1982:'es', 1986:'mx', 1990:'it', 1994:'us',
     1998:'fr', 2002:'kr', 2006:'de', 2010:'za',
@@ -598,15 +597,20 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
       .catch(() => {});
   }, [player.name]);
 
-  const w        = compact ? 100 : 140;
-  const imgH     = compact ? 110 : 143;
-  const nameBarH = compact ? 20  : 26;
-  const stripeH  = compact ? 14  : 18;
-  const borderW  = compact ? 2.5 : 3;
+  const w          = compact ? 100 : 140;
+  const imgH       = compact ? 110 : 143;
+  const nameBarH   = compact ? 20  : 26;
+  const stripeH    = compact ? 14  : 18;
+  const borderW    = compact ? 2.5 : 3;
+  const logoSize   = compact ? 26  : 36;   // vm-logo, hjørnet
+  const yearLogoSz = compact ? 20  : 28;   // år-spesifikk logo øverst til høyre
+  const flagH      = compact ? 11  : 13;   // landflagg nede til høyre
+  const numBottom  = compact ? 17  : 20;   // #nr posisjon over flagget
 
-  const vmLogoSrc   = VM_LOGO[player.year];
-  const vmHostName  = VM_HOST_NAME[player.year] || `VM ${player.year}`;
-  const hostFlagCode = VM_HOST_FLAG[player.year];
+  const vmLogoSrc      = VM_LOGO[player.year];
+  const yearLogoSrc    = `/vm-logos/${player.year}.png`;
+  const vmHostName     = VM_HOST_NAME[player.year] || `VM ${player.year}`;
+  const hostFlagCode   = VM_HOST_FLAG[player.year];
   const playerFlagCode = COUNTRY_CODES[player.country];
 
   return (
@@ -677,24 +681,35 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
           </div>
         )}
 
-        {/* vm-logo.png – løsrevet, ingen boks */}
-        {vmLogoSrc && (
-          <img
-            src="/vm-logo.png"
-            alt="VM"
-            style={{
-              position: 'absolute', top: 4, left: 4,
-              width: compact ? 15 : 20,
-              height: compact ? 15 : 20,
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 1px 3px rgba(0,0,0,.7))',
-            }}
-          />
-        )}
+        {/* vm-logo.png – stor, helt i hjørnet, 0px padding */}
+        <img
+          src="/vm-logo.png"
+          alt="VM"
+          style={{
+            position: 'absolute', top: 0, left: 0,
+            width: logoSize, height: logoSize,
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 1px 4px rgba(0,0,0,.7))',
+          }}
+        />
 
-        {/* Draktnummer øverst til høyre */}
+        {/* År-spesifikk VM-logo øverst til høyre */}
+        <img
+          src={yearLogoSrc}
+          alt={`VM ${player.year}`}
+          style={{
+            position: 'absolute', top: 4, right: 4,
+            width: yearLogoSz, height: yearLogoSz,
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,.6))',
+          }}
+        />
+
+        {/* #nummer – nede til høyre, rett over flagget */}
         <div style={{
-          position: 'absolute', top: 4, right: 5,
+          position: 'absolute',
+          bottom: flagH + 5,
+          right: 3,
           background: 'rgba(0,0,0,.55)',
           color: '#FFD700',
           fontSize: compact ? 7 : 8,
@@ -704,66 +719,50 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
         }}>
           #{player.num}
         </div>
-      </div>
 
-      {/* ── BLÅ LINJA: nummer venstre · navn midten · landflagg høyre ── */}
-      <div style={{
-        background: '#003087',
-        height: nameBarH,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 3px',
-      }}>
-        {/* Draktnummer – venstre, 3px padding, hvit, samme font/størrelse som navn */}
-        {quizLabel ? null : (
-          <span style={{
-            fontSize: compact ? 8 : 10,
-            color: '#fff',
-            fontWeight: 800,
-            letterSpacing: 0.5,
-            textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}>
-            #{player.num}
-          </span>
-        )}
-
-        {/* Navn / quiz-label / blur – midten */}
-        <div style={{ flex: 1, textAlign: 'center', overflow: 'hidden', padding: '0 2px' }}>
-          {quizLabel ? (
-            <span style={{
-              fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
-              letterSpacing: 1, textTransform: 'uppercase',
-            }}>
-              {quizLabel}
-            </span>
-          ) : blur && !showName ? (
-            <div style={{ height: compact ? 8 : 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%', margin: '0 auto' }} />
-          ) : showName ? (
-            <span style={{
-              fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
-              letterSpacing: 0.5, textTransform: 'uppercase',
-            }}>
-              {player.name}
-            </span>
-          ) : null}
-        </div>
-
-        {/* Spillerens landflagg – høyre, 3px padding */}
+        {/* Spillerens landflagg – nede til høyre */}
         {playerFlagCode && (
           <img
             src={`https://flagcdn.com/w40/${playerFlagCode}.png`}
             alt={player.country}
             style={{
-              height: compact ? 11 : 14,
+              position: 'absolute', bottom: 3, right: 3,
+              height: flagH,
               width: 'auto',
               objectFit: 'cover',
               borderRadius: 2,
-              flexShrink: 0,
             }}
           />
         )}
+      </div>
+
+      {/* ── BLÅ LINJA: kun spillernavn / quiz-label / blur ── */}
+      <div style={{
+        background: '#003087',
+        height: nameBarH,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 6px',
+      }}>
+        {quizLabel ? (
+          <span style={{
+            fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
+            letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center',
+          }}>
+            {quizLabel}
+          </span>
+        ) : blur && !showName ? (
+          <div style={{ height: compact ? 8 : 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
+        ) : showName ? (
+          <span style={{
+            fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
+            letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {player.name}
+          </span>
+        ) : null}
       </div>
 
       {/* ── BUNN-STRIPE: PANINI til venstre, FIFA WORLD CUP til høyre ── */}
@@ -997,7 +996,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
         return (
-          <div style={{ ...(isMobile ? C.statsRowMobile : C.statsRowDesktop), alignItems:'stretch' }}>
+          <div style={{
+            ...(isMobile ? C.statsRowMobile : C.statsRowDesktop),
+            alignItems: 'stretch',
+            gridTemplateColumns: isMobile ? undefined : 'repeat(5, 1fr) auto',
+          }}>
             {stats.map(({ num, label }) => (
               <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
                 <div style={C.statNum}>{num}</div>
