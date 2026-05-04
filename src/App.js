@@ -605,7 +605,7 @@ function PaniniCard({ player, blur, showName }) {
           </div>
         )}
         {/* VM logo top-left */}
-        <img src="/vm-logo.png" alt="VM" style={{ position:'absolute', top:2, left:2, width:22, height:22, objectFit:'contain', mixBlendMode:'multiply', opacity:0.85 }} />
+        <img src="/vm-logo.png" alt="VM" style={{ position:'absolute', top:2, left:2, width:28, height:28, objectFit:'contain', opacity:1, filter:'drop-shadow(0 1px 2px rgba(0,0,0,.5))' }} />
       </div>
       {/* Name bar */}
       <div style={{ background: teamColor, padding: '3px 6px', textAlign: 'center', height: 22, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -694,39 +694,25 @@ function QuizWidget({ username }) {
   const scoring = isQuizScoring();
   const [showPopup, setShowPopup] = useState(false);
   const [myAnswer, setMyAnswer] = useState(null);
-  const [scores, setScores] = useState({});
 
   useEffect(() => {
     getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
-    getQuizLeaderboard(scoring).then(setScores);
-  }, [username, player.id, scoring]);
-
-  const myScore = scores[username] || 0;
+  }, [username, player.id]);
 
   return (
     <>
-      <div onClick={() => setShowPopup(true)} style={{ ...C.statWidget, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, minWidth:110 }}
-        onMouseEnter={e => e.currentTarget.style.background='rgba(255,215,0,.1)'}
-        onMouseLeave={e => e.currentTarget.style.background=''}>
-        <div style={{ fontSize:10, color:'#FFD700', fontFamily:"'Fira Code',monospace", fontWeight:700, letterSpacing:1 }}>
-          {scoring ? 'QUIZ' : 'FØR-VM QUIZ'}
-        </div>
-        <div style={{ display:'flex', justifyContent:'center' }}>
+      <div onClick={() => setShowPopup(true)} style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 }}>
+        {/* Mini Panini card as the "number" */}
+        <div style={{ transform:'scale(0.72)', transformOrigin:'top center', height:100 }}>
           <PaniniCard player={player} blur={!myAnswer} showName={!!myAnswer} />
         </div>
-        <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textAlign:'center' }}>
-          {myAnswer ? (myAnswer.correct ? '✅ Riktig!' : '❌ Feil') : '🃏 Gjett!'}
+        <div style={C.statLabel}>
+          {scoring ? 'QUIZ' : 'FØR-VM QUIZ'}
         </div>
-        {scoring && myScore > 0 && (
-          <div style={{ fontSize:9, color:'rgba(255,215,0,.5)', fontFamily:"'Fira Code',monospace" }}>{myScore} rette</div>
-        )}
       </div>
       {showPopup && (
         <QuizPopup player={player} username={username} onClose={() => setShowPopup(false)}
-          onAnswered={() => {
-            getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); });
-            getQuizLeaderboard(scoring).then(setScores);
-          }} />
+          onAnswered={() => getQuizAnswer(username, player.id).then(a => { if (a) setMyAnswer(a); })} />
       )}
     </>
   );
@@ -838,22 +824,32 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         }, 0);
         const stats = [
           { num: myRank ? `#${myRank}` : '–', label: isMobile ? 'Plass' : 'Din plassering' },
-          { num: myPts, label: isMobile ? 'Poeng' : 'Dine poeng' },
           { num: users.length, label: 'Deltakere' },
           { num: finishedCount, label: isMobile ? 'Kamper' : 'Spilte kamper' },
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
+        // Insert quiz in the middle
+        const quizBox = (
+          <div key="quiz" onClick={() => {}} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile, cursor:'pointer' } : { ...C.statWidget, cursor:'pointer' }}>
+            <QuizWidget username={me.username} />
+          </div>
+        );
+        const mid = Math.floor(stats.length / 2);
         return (
           <div style={isMobile ? C.statsRowMobile : C.statsRowDesktop}>
-            {stats.map(({ num, label }) => (
+            {stats.slice(0, mid).map(({ num, label }) => (
               <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
                 <div style={C.statNum}>{num}</div>
                 <div style={C.statLabel}>{label}</div>
               </div>
             ))}
-            <div style={isMobile ? { ...C.statWidgetMobile } : {}}>
-              <QuizWidget username={me.username} />
-            </div>
+            {quizBox}
+            {stats.slice(mid).map(({ num, label }) => (
+              <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
+                <div style={C.statNum}>{num}</div>
+                <div style={C.statLabel}>{label}</div>
+              </div>
+            ))}
           </div>
         );
       })()}
