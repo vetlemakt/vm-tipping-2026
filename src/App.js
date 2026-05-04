@@ -90,9 +90,6 @@ async function getQuizAnswer(username, playerId) {
   return snap.exists() ? snap.data() : null;
 }
 async function setQuizAnswer(username, playerId, answer, correct) {
-  await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now() });
-}
-async function setQuizAnswer(username, playerId, answer, correct) {
   const scoring = isQuizScoring();
   await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now(), scoring });
 }
