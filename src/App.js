@@ -605,9 +605,6 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   const logoSize   = compact ? 26  : 36;   // vm-logo, hjørnet
   const yearLogoSz = compact ? 20  : 28;   // år-spesifikk logo øverst til høyre
   const flagH      = compact ? 11  : 13;   // landflagg nede til høyre
-  const numBottom  = compact ? 17  : 20;   // #nr posisjon over flagget
-
-  const vmLogoSrc      = VM_LOGO[player.year];
   const yearLogoSrc    = `/vm-logos/${player.year}.png`;
   const vmHostName     = VM_HOST_NAME[player.year] || `VM ${player.year}`;
   const hostFlagCode   = VM_HOST_FLAG[player.year];
