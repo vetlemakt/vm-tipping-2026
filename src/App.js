@@ -268,8 +268,8 @@ function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessa
                   </button>
                 );
               })}
-              <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', justifyContent:'flex-end', gap:2, paddingBottom:8 }}>
-                <span style={{ fontSize:12, color:'#FFD700', fontFamily:"'Kanit',sans-serif", fontWeight:600, letterSpacing:0.5 }}>{user.displayName}</span>
+              <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap:6, paddingBottom:8 }}>
+                <span style={{ fontSize:14, color:'#FFD700', fontFamily:"'Kanit',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>{user.displayName}</span>
                 <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
               </div>
             </div>
@@ -2682,9 +2682,9 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   return (
     <div onClick={adminMessage ? onAdminMessageClick : undefined} style={{
       position: 'absolute',
-      top: bannerH / 2,
+      top: 5,
       left: '50%',
-      transform: 'translate(-50%, -50%)',
+      transform: 'translateX(-50%)',
       zIndex: 50,
       width: w,
       background: 'rgba(1,23,76,.95)',
