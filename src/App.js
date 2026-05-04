@@ -202,7 +202,7 @@ function StatusBar({ phase, isAdmin }) {
 // ══════════════════════════════════════════════════════════════════════
 //  BANNER (topp-navigasjon)
 // ══════════════════════════════════════════════════════════════════════
-function Banner({ user, tab, setTab, phase, onLogout }) {
+function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessageClick }) {
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const bannerH = isMobile ? 68 : 90;
@@ -229,7 +229,7 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
   const nav = user.isAdmin ? NAV_A : NAV_U;
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
       <div style={{ ...C.banner, height: bannerH }}>
         {/* Logo */}
         <div style={{ width: isMobile?76:110, minWidth: isMobile?76:110, position:'relative', zIndex:20, cursor:'pointer', flexShrink:0 }}
@@ -241,12 +241,12 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
         <div style={{ ...C.bannerNav }}>
           {isMobile ? (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', height:'100%', paddingBottom:6 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
-                <button onClick={() => setMenuOpen(m => !m)} style={{ background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.2)', color:'#fff', borderRadius:8, padding:'6px 10px', cursor:'pointer', fontSize:18, lineHeight:1, fontFamily:'inherit' }}>
-                  {menuOpen ? '✕' : '☰'}
-                </button>
-              </div>
+              <button onClick={() => setMenuOpen(m => !m)} style={{
+                background:'transparent', border:'2px solid #FFD700', color:'#FFD700',
+                borderRadius:8, padding:'6px 10px', cursor:'pointer', fontSize:18, lineHeight:1, fontFamily:'inherit'
+              }}>
+                {menuOpen ? '✕' : '☰'}
+              </button>
             </div>
           ) : (
             <div style={{ display:'flex', alignItems:'flex-end', width:'100%', gap:4 }}>
@@ -268,17 +268,18 @@ function Banner({ user, tab, setTab, phase, onLogout }) {
                   </button>
                 );
               })}
-              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, paddingBottom:8 }}>
-                <div style={C.bannerUser}>
-                  <div style={C.bannerAvatar}>{user.displayName?.[0]?.toUpperCase()}</div>
-                  <span>{user.displayName}</span>
-                </div>
+              <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', justifyContent:'flex-end', gap:2, paddingBottom:8 }}>
+                <span style={{ fontSize:12, color:'#FFD700', fontFamily:"'Kanit',sans-serif", fontWeight:600, letterSpacing:0.5 }}>{user.displayName}</span>
                 <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Info/countdown overlay – floats over banner, centered */}
+      <VMCountdownBanner adminMessage={adminMessage} onAdminMessageClick={onAdminMessageClick} isMobile={isMobile} bannerH={bannerH} />
+
       {/* Mobile dropdown */}
       {isMobile && menuOpen && (
         <div style={{ position:'absolute', top: bannerH, right:0, left:0, background:'#01174C', zIndex:100, borderBottom:'2px solid rgba(255,215,0,.3)', boxShadow:'0 8px 24px rgba(0,0,0,.5)' }}>
@@ -2641,9 +2642,9 @@ async function fetchAndUpdateResults() {
 // ══════════════════════════════════════════════════════════════════════
 const VM_START = new Date('2026-06-11T19:00:00Z'); // 21:00 CEST
 
-function VMCountdown({ adminMessage, onAdminMessageClick }) {
+function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, bannerH }) {
   const [countdownLabel, setCountdownLabel] = useState('');
-  const [phase, setPhase] = useState('scroll'); // 'scroll' | 'pause' | 'static'
+  const [phase, setPhase] = useState('scroll');
   const [repeat, setRepeat] = useState(0);
 
   useEffect(() => {
@@ -2659,16 +2660,10 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
     return () => clearInterval(iv);
   }, []);
 
-  // Reset scroll state when adminMessage changes
-  useEffect(() => {
-    setPhase('scroll');
-    setRepeat(0);
-  }, [adminMessage]);
-
+  useEffect(() => { setPhase('scroll'); setRepeat(0); }, [adminMessage]);
   useEffect(() => {
     if (!adminMessage || phase === 'static') return;
     if (phase === 'pause') {
-      // No pause – go straight to next repeat or static
       if (repeat < 1) { setRepeat(r => r + 1); setPhase('scroll'); }
       else setPhase('static');
     }
@@ -2682,34 +2677,33 @@ function VMCountdown({ adminMessage, onAdminMessageClick }) {
     ? (phase === 'static' ? '📢 Les melding fra admin' : null)
     : `⏱ ${countdownLabel}`;
 
+  const w = isMobile ? 160 : 320;
+
   return (
-    <div onClick={adminMessage ? onAdminMessageClick : undefined}
-      style={{
-        position: 'fixed', bottom: 28, right: 12, zIndex: 500,
-        background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
-        backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',
-        border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
-        boxShadow: '0 8px 32px rgba(0,0,0,.5)',
-        padding: '8px 14px', minWidth: 160, maxWidth: 220,
-        overflow: 'hidden',
-        cursor: adminMessage ? 'pointer' : 'default',
-      }}>
+    <div onClick={adminMessage ? onAdminMessageClick : undefined} style={{
+      position: 'absolute',
+      top: bannerH / 2,
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      zIndex: 50,
+      width: w,
+      background: 'rgba(1,23,76,.95)',
+      backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',
+      border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
+      boxShadow: '0 4px 20px rgba(0,0,0,.5)',
+      padding: '5px 14px',
+      overflow: 'hidden',
+      cursor: adminMessage ? 'pointer' : 'default',
+      pointerEvents: 'all',
+    }}>
       {adminMessage && phase !== 'static' ? (
         <div style={{
-          overflow: 'hidden',
-          margin: '0 -14px',
+          overflow: 'hidden', margin: '0 -14px',
           maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
           WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
         }}>
-          <span
-            key={phase + repeat}
-            onAnimationEnd={() => setPhase('pause')}
-            style={{
-              fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif",
-              fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-block',
-              padding: '0 20px',
-              animation: 'tickerScroll 12s linear forwards',
-            }}>
+          <span key={phase + repeat} onAnimationEnd={() => setPhase('pause')}
+            style={{ fontSize: 11, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-block', padding: '0 20px', animation: 'tickerScroll 12s linear forwards' }}>
             📢 {adminMessage}
           </span>
         </div>
@@ -2826,7 +2820,8 @@ export default function App() {
   if (!user) return <AuthScreen onLogin={handleLogin} />;
   return (
     <div style={C.app}>
-      <Banner user={user} tab={tab} setTab={t => { setViewUser(null); setTab(t); }} phase={phase} onLogout={handleLogout} />
+      <Banner user={user} tab={tab} setTab={t => { setViewUser(null); setTab(t); }} phase={phase} onLogout={handleLogout}
+        adminMessage={adminMessage} onAdminMessageClick={() => setShowMsgPopup(true)} />
       <div style={C.main}>
         {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={handleShowTips} setTab={setTab} />}
         {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} initialSelected={lbSelected} onClearSelected={() => setLbSelected(null)} onShowTips={handleShowTips} />}
@@ -2840,7 +2835,6 @@ export default function App() {
       <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
       <StatusBar phase={phase} isAdmin={user.isAdmin} />
       <YouTubePlayer />
-      <VMCountdown adminMessage={adminMessage} onAdminMessageClick={() => setShowMsgPopup(true)} />
       {showMsgPopup && <AdminMessagePopup message={adminMessage} onClose={() => setShowMsgPopup(false)} />}
     </div>
   );
