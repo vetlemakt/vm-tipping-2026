@@ -93,18 +93,12 @@ async function setQuizAnswer(username, playerId, answer, correct) {
   const scoring = isQuizScoring();
   await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now(), scoring });
 }
-async function getQuizLeaderboard(scoringOnly) {
-  const snap = await getDocs(collection(db, 'quiz'));
-  const scores = {};
-  snap.docs.forEach(d => {
     const data = d.data();
     if (!data.correct) return;
     if (scoringOnly && !data.scoring) return;
     const user = d.id.split('_')[0];
     scores[user] = (scores[user] || 0) + 1;
   });
-  return scores;
-}
 
 async function setMatchSummary(matchId, text, author) {
   const snap = await getDoc(doc(db, 'summaries', matchId));
@@ -806,7 +800,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
   const medals = ['🥇', '🥈', '🥉'];
   const myRank = users.findIndex(u => u.id === me.username) + 1;
-  const myPts = users.find(u => u.id === me.username)?.total || 0;
   const finishedMatches = GROUP_MATCHES.filter(m => {
     const r = results[m.id];
     return r && r.home !== undefined && r.away !== undefined;
