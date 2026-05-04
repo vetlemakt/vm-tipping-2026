@@ -105,9 +105,6 @@ async function getQuizLeaderboard(scoringOnly) {
   });
   return scores;
 }
-async function resetQuizScores() {
-  // In practice we rely on the scoring flag set at answer time – no action needed
-}
 
 async function setMatchSummary(matchId, text, author) {
   const snap = await getDoc(doc(db, 'summaries', matchId));
