@@ -238,14 +238,35 @@ export const QUIZ_PLAYERS = [
     wrong:['Bastian Schweinsteiger','Mesut Özil','Sami Khedira'] },
 ];
 
-// Get today's quiz player (rotates daily at 06:00)
+// VM starts June 11 2026 06:00 CEST
+const VM_QUIZ_START = new Date('2026-06-11T06:00:00+02:00');
+
+// Get today's quiz player (rotates daily at 06:00 CEST)
 export function getTodaysPlayer() {
   const now = new Date();
-  const base = new Date('2026-06-11T06:00:00');
+  // Use Jan 1 2026 as base so quiz works before VM too
+  const base = new Date('2026-01-01T06:00:00+02:00');
   let dayIndex = Math.floor((now - base) / (1000 * 60 * 60 * 24));
-  if (now.getHours() < 6) dayIndex--; // before 06:00 = yesterday's quiz
+  // Before 06:00 = still yesterday's quiz
+  const localHour = now.getHours();
+  if (localHour < 6) dayIndex--;
   const idx = ((dayIndex % QUIZ_PLAYERS.length) + QUIZ_PLAYERS.length) % QUIZ_PLAYERS.length;
   return QUIZ_PLAYERS[idx];
+}
+
+// Is the real scoring quiz active? (from VM start)
+export function isQuizScoring() {
+  return new Date() >= VM_QUIZ_START;
+}
+
+// Get the day index for scoring (0 = first day of VM quiz)
+export function getQuizDayIndex() {
+  const now = new Date();
+  if (!isQuizScoring()) return -1;
+  const localHour = now.getHours();
+  let day = Math.floor((now - VM_QUIZ_START) / (1000 * 60 * 60 * 24));
+  if (localHour < 6) day--;
+  return Math.max(0, day);
 }
 
 // Shuffle array
