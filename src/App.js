@@ -534,12 +534,6 @@ function compressImage(file, maxKB = 250) {
   });
 }
 
-// VM host info per year for badge
-const VM_HOST = {
-  1982:{host:'ESP'},1986:{host:'MEX'},1990:{host:'ITA'},1994:{host:'USA'},
-  1998:{host:'FRA'},2002:{host:'KOR/JPN'},2006:{host:'GER'},2010:{host:'RSA'},
-  2014:{host:'BRA'},2018:{host:'RUS'},2022:{host:'QAT'},2026:{host:'USA/CAN/MEX'},
-};
 
 // ── VM-logo mapping per år ────────────────────────────────────────────
 // Legg logofilene i public/vm-logos/  (f.eks. public/vm-logos/1994.png)
