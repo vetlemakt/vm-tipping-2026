@@ -3576,7 +3576,7 @@ export default function App() {
         {tab === 'panel'       && !user.isAdmin && <PanelPage me={user} />}
         {tab === 'admin'       && user.isAdmin  && <AdminPanel />}
       </div>
-      <div style={{ textAlign:'center', padding:'12px 16px 24px', fontSize:11, color:'rgba(255,255,255,.2)', fontFamily:"'Fira Code',monospace", letterSpacing:0.5 }}>
+      <div style={{ textAlign:'center', padding:'12px 16px 48px', fontSize:11, color:'rgba(255,255,255,.2)', fontFamily:"'Fira Code',monospace", letterSpacing:0.5 }}>
         VM-tipping 2026 · <a href="https://heiarosenb.org" style={{ color:'rgba(255,255,255,.25)', textDecoration:'none' }}>HeiaRosenb.org</a>
         {' '}© 2026 Vetle Baden Skatvoldsmyr · Ønsker du å bruke koden så spør :)
       </div>
