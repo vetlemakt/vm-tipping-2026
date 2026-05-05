@@ -709,7 +709,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             maxWidth: '80%',
           }}>
-            {player.name}
+            {tiny ? player.name.split(' ').slice(-1)[0] : player.name}
           </span>
         ) : null}
 
@@ -749,9 +749,10 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
           PANINI
         </span>
         <span style={{
-          fontSize: compact ? 5 : 6,
+          fontSize: compact ? (tiny ? 4 : 5) : 6,
           color: '#555',
           fontWeight: 700,
+          whiteSpace: 'nowrap',
         }}>
           FIFA WORLD CUP
         </span>
@@ -1193,12 +1194,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
       {/* Kamper */}
       <div style={{ ...C.card, ...C.dashCardFixed }}>
-        <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
+        <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setMatchesFullscreen(true)}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
-            <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Alle kamper →</span>
-            <button onClick={e => { e.stopPropagation(); setMatchesFullscreen(f => !f); }} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
-          </div>
+          <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Alle kamper →</span>
         </div>
         {finishedMatches.length === 0 && (
           <p style={{ color: '#4a5a80', textAlign: 'center', padding: 24, fontSize: 13 }}>
