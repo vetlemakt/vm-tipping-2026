@@ -9,7 +9,7 @@ import {
   updatePresence, subscribeOnlineUsers,
   db,
 } from './firebase';
-import { doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import { getTodaysPlayer, shuffle, isQuizScoring } from './quizPlayers';
 import {
@@ -92,6 +92,11 @@ async function getQuizAnswer(username, playerId) {
 async function setQuizAnswer(username, playerId, answer, correct) {
   const scoring = isQuizScoring();
   await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now(), scoring });
+}
+
+async function getAllQuizAnswers() {
+  const snap = await getDocs(collection(db, 'quiz'));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 async function setMatchSummary(matchId, text, author) {
@@ -838,6 +843,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
   const [answered, setAnswered] = useState(null);
   const [options] = useState(() => shuffle([player.name, ...player.wrong]));
   const [allAnswers, setAllAnswers] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
 
   useEffect(() => {
     getQuizAnswer(username, player.id).then(a => { if (a) setAnswered(a.answer); });
@@ -856,6 +862,21 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
       )).then(results => setAllAnswers(results.filter(r => r.answer)));
     });
   }, [player.id]);
+
+  // Last inn total quiz-ledertavle
+  useEffect(() => {
+    Promise.all([getAllUsers(), getAllQuizAnswers()]).then(([users, answers]) => {
+      const real = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+      const board = real.map(u => {
+        const uname = u.id;
+        const userAnswers = answers.filter(a => a.id.startsWith(uname + '_'));
+        const correct = userAnswers.filter(a => a.correct).length;
+        const wrong = userAnswers.filter(a => !a.correct).length;
+        return { name: u.displayName || u.id, correct, wrong, total: userAnswers.length };
+      }).filter(u => u.total > 0).sort((a, b) => b.correct - a.correct || a.wrong - b.wrong);
+      setLeaderboard(board);
+    });
+  }, []);
 
   const handleAnswer = async (choice) => {
     if (answered) return;
@@ -927,6 +948,26 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
                   <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', fontStyle:'italic' }}>{r.answer}</span>
                   <span style={{ fontSize:13 }}>{r.correct ? '✅' : '❌'}</span>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Total quiz-ledertavle ── */}
+        {leaderboard.length > 0 && (
+          <div style={{ marginTop:16, borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:14 }}>
+            <div style={{ fontSize:10, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>
+              🏆 Quiz-ledertavle – totalt
+            </div>
+            {leaderboard.map((r, i) => (
+              <div key={r.name} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                <span style={{ fontSize:12, color:'rgba(255,215,0,.5)', fontFamily:"'Fira Code',monospace", minWidth:18 }}>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`}
+                </span>
+                <span style={{ fontSize:13, color:'#e8edf8', flex:1 }}>{r.name}</span>
+                <span style={{ fontSize:12, color:'#4ade80', fontWeight:700 }}>{r.correct} ✅</span>
+                <span style={{ fontSize:12, color:'rgba(255,255,255,.3)' }}>·</span>
+                <span style={{ fontSize:12, color:'rgba(239,68,68,.7)' }}>{r.wrong} ❌</span>
               </div>
             ))}
           </div>
@@ -2309,6 +2350,33 @@ function InfoPage() {
           <div>• Sluttspill-tips kan endres mellom hver runde</div>
           <div>• Vinduet stenges 2 timer før kampstart i hver ny runde</div>
           <div>• Spesialtips (VM-vinner, toppscorer osv.) kan <strong style={{color:'#f87171'}}>ikke</strong> endres etter at gruppespillet starter</div>
+        </div>
+      </div>
+
+      <div style={{ background:'rgba(22,27,44,.75)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28, marginBottom:16 }}>
+        <h3 style={{ color:'#FFD700', fontSize:15, marginBottom:16, textTransform:'uppercase', letterSpacing:1 }}>🍬 Premier</h3>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
+          <img src="/godteri.png" alt="Godteri" style={{ width:'100%', maxWidth:400, borderRadius:16, boxShadow:'0 8px 32px rgba(0,0,0,.4)' }} />
+          <div style={{ color:'rgba(255,255,255,.8)', fontSize:14, lineHeight:1.8, textAlign:'center' }}>
+            Som vanlig er premien ei svær bolle med godteri! 🎉
+          </div>
+          <div style={{ width:'100%', background:'rgba(0,0,0,.2)', borderRadius:10, padding:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 12px', marginBottom:6, background:'rgba(255,215,0,.08)', borderRadius:8, border:'1px solid rgba(255,215,0,.2)' }}>
+              <span style={{ fontSize:22 }}>🥇</span>
+              <span style={{ color:'#FFD700', fontWeight:700, fontSize:15, flex:1 }}>1. plass</span>
+              <span style={{ color:'#FFD700', fontWeight:800, fontSize:18 }}>50%</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 12px', marginBottom:6, background:'rgba(255,255,255,.04)', borderRadius:8, border:'1px solid rgba(255,255,255,.08)' }}>
+              <span style={{ fontSize:22 }}>🥈</span>
+              <span style={{ color:'rgba(255,255,255,.8)', fontWeight:700, fontSize:15, flex:1 }}>2. plass</span>
+              <span style={{ color:'rgba(255,255,255,.8)', fontWeight:800, fontSize:18 }}>30%</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 12px', background:'rgba(255,255,255,.04)', borderRadius:8, border:'1px solid rgba(255,255,255,.08)' }}>
+              <span style={{ fontSize:22 }}>🥉</span>
+              <span style={{ color:'rgba(255,255,255,.8)', fontWeight:700, fontSize:15, flex:1 }}>3. plass</span>
+              <span style={{ color:'rgba(255,255,255,.8)', fontWeight:800, fontSize:18 }}>20%</span>
+            </div>
+          </div>
         </div>
       </div>
 
