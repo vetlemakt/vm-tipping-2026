@@ -2343,7 +2343,7 @@ function InfoPage() {
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
           <div>Gjett VM-spilleren fra Panini-kortet! Ny spiller hver dag kl. 06:00.</div>
           <div style={{marginTop:4}}>🏆 Spilleren med flest rette svar ved slutten av finalen (19. juli 2026) tildeles <strong style={{color:'#FFD700'}}>0,5 ekstrapoeng</strong> i sammendraget.</div>
-          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Ved likt antall rette svar deles prisen. Bots teller ikke.</div>
+          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Ved delt førsteplass i quizzen deles det halve poenget mellom vinnerne. VM-quiz starter 11. juni og avsluttes 19. juli.</div>
         </div>
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
           <div>• Alle tips leveres <strong style={{color:'#FFD700'}}>før</strong> gruppespillet starter</div>
@@ -2358,9 +2358,13 @@ function InfoPage() {
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
           <img src="/godteri.png" alt="Godteri" style={{ width:'100%', maxWidth:400, borderRadius:16, boxShadow:'0 8px 32px rgba(0,0,0,.4)' }} />
           <div style={{ color:'rgba(255,255,255,.8)', fontSize:14, lineHeight:1.8, textAlign:'center' }}>
-            Som vanlig er premien ei svær bolle med godteri! 🎉
+            Som vanlig er premien en svær bolle med godteri! 🎉
           </div>
           <div style={{ width:'100%', background:'rgba(0,0,0,.2)', borderRadius:10, padding:14 }}>
+            <div style={{ fontSize:13, color:'#FFD700', fontWeight:700, textTransform:'uppercase', letterSpacing:1, marginBottom:10 }}>Fordelingsnøkkel</div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', lineHeight:1.6, marginBottom:12 }}>
+              Ved delt førsteplass samles premie for første- og andreplass og deles likt mellom vinnerne. Det samme for delt andreplass, da får man 30+20%=25% hver. Ved delt tredjeplass deles tredjepremien likt mellom spillerne.
+            </div>
             <div style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 12px', marginBottom:6, background:'rgba(255,215,0,.08)', borderRadius:8, border:'1px solid rgba(255,215,0,.2)' }}>
               <span style={{ fontSize:22 }}>🥇</span>
               <span style={{ color:'#FFD700', fontWeight:700, fontSize:15, flex:1 }}>1. plass</span>
@@ -2390,8 +2394,8 @@ function InfoPage() {
             { date:'4–6. juli 2026', event:'Åttendedelsfinalene' },
             { date:'9–10. juli 2026', event:'Kvartfinalene' },
             { date:'14–15. juli 2026', event:'Semifinalene' },
-            { date:'18. juli 2026', event:'Bronsefinalen' },
-            { date:'19. juli 2026', event:'🏆 Gullfinalen' },
+            { date:'18. juli 2026', event:'Bronsefinale' },
+            { date:'19. juli 2026', event:'Finale' },
           ].map(({date,event})=>(
             <div key={date} style={{display:'flex',gap:12,padding:'8px 12px',background:'rgba(255,255,255,.03)',borderRadius:8,border:'1px solid rgba(255,255,255,.05)'}}>
               <span style={{color:'#FFD700',fontFamily:"'Fira Code',monospace",fontSize:12,minWidth:160,flexShrink:0}}>{date}</span>
