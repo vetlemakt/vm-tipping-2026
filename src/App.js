@@ -1143,11 +1143,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => {
             const mine = m.user === me.displayName;
+            const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
+            const botColor = botExpert?.color;
             return (
-              {(() => {
-                const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
-                const botColor = botExpert?.color;
-                return (
                 <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
                   <span style={{ ...C.chatBubble, background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)', border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`, ...(botColor ? { borderLeft: `3px solid ${botColor}` } : {}) }}>
                     {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:200,borderRadius:8,display:'block'}} /> : renderChatText(m.text)}
@@ -1158,8 +1156,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                     {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
                   </div>
                 </div>
-                );
-              })()}
             );
           })}
         </div>
