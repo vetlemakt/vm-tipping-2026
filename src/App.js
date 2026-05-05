@@ -761,6 +761,78 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   );
 }
 
+// ── Bot-kommentar etter quiz-svar ────────────────────────────────────
+function BotQuizComment({ correct, playerName }) {
+  const [comment, setComment] = useState('');
+  const [expert, setExpert] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const picked = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+    setExpert(picked);
+
+    const prompt = correct
+      ? `${picked.personality}
+
+En spiller i VM-tipping-konkurransen gjenkjente akkurat fotballspilleren ${playerName} på et Panini-kort. Gi en kort, personlig gratulasjon på 1-2 setninger i din stil og dialekt. Avslutt med å nevne at et nytt fotballkort kommer kl. 06:00.`
+      : `${picked.personality}
+
+En spiller i VM-tipping-konkurransen klarte ikke å gjenkjenne fotballspilleren ${playerName} på et Panini-kort. Si noe trøstende eller morsomt på 1-2 setninger i din stil og dialekt. Avslutt med å nevne at et nytt fotballkort kommer kl. 06:00.`;
+
+    const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+    if (!apiKey) {
+      // Fallback uten API
+      const fallbacks = correct
+        ? ['Godt jobba! Nytt kort kl. 06:00.', 'Imponerende! Nytt kort kl. 06:00.']
+        : ['Bedre lykke neste gang! Nytt kort kl. 06:00.', 'Ikke lett! Nytt kort kl. 06:00.'];
+      setComment(fallbacks[Math.floor(Math.random() * fallbacks.length)]);
+      setLoading(false);
+      return;
+    }
+
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 120,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { setComment(d.content?.[0]?.text || ''); })
+      .catch(() => setComment(correct ? 'Godt jobba! Nytt kort kl. 06:00.' : 'Bedre lykke neste gang! Nytt kort kl. 06:00.'))
+      .finally(() => setLoading(false));
+  }, [correct, playerName]);
+
+  if (!expert) return null;
+
+  return (
+    <div style={{
+      marginTop: 12,
+      padding: '10px 12px',
+      background: 'rgba(255,255,255,.04)',
+      border: `1px solid ${expert.color}33`,
+      borderLeft: `3px solid ${expert.color}`,
+      borderRadius: 8,
+    }}>
+      <div style={{ fontSize: 11, color: expert.color, fontWeight: 700, marginBottom: 4, fontFamily: "'Kanit',sans-serif" }}>
+        {expert.emoji} {expert.name}
+      </div>
+      {loading ? (
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>…</div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.75)', lineHeight: 1.5 }}>{comment}</div>
+      )}
+    </div>
+  );
+}
+
 function QuizPopup({ player, username, onClose, onAnswered }) {
   const [answered, setAnswered] = useState(null);
   const [options] = useState(() => shuffle([player.name, ...player.wrong]));
@@ -838,10 +910,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
           );
         })}
         {answered && (
-          <p style={{ fontSize:12, color:'rgba(255,255,255,.5)', textAlign:'center', marginTop:8 }}>
-            {answered === player.name ? '🎉 Riktig! ' : `❌ Feil. Det var ${player.name}. `}
-            Ny quiz kl. 06:00.
-          </p>
+          <BotQuizComment correct={answered === player.name} playerName={player.name} />
         )}
 
         {/* ── Quiz-statistikk ── */}
