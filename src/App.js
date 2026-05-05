@@ -3576,10 +3576,9 @@ export default function App() {
         {tab === 'panel'       && !user.isAdmin && <PanelPage me={user} />}
         {tab === 'admin'       && user.isAdmin  && <AdminPanel />}
       </div>
-      <div style={C.footer}>VM-tipping 2026 · Invitasjonskode: {INVITE_CODE}</div>
       <div style={{ textAlign:'center', padding:'12px 16px 24px', fontSize:11, color:'rgba(255,255,255,.2)', fontFamily:"'Fira Code',monospace", letterSpacing:0.5 }}>
-        <a href="https://heiarosenb.org" style={{ color:'rgba(255,255,255,.25)', textDecoration:'none' }}>HeiaRosenb.org</a>
-        {' '}© Vetle Baden Skatvoldsmyr 2026 · Ønsker du å bruke koden så spør :)
+        VM-tipping 2026 · <a href="https://heiarosenb.org" style={{ color:'rgba(255,255,255,.25)', textDecoration:'none' }}>HeiaRosenb.org</a>
+        {' '}© 2026 Vetle Baden Skatvoldsmyr · Ønsker du å bruke koden så spør :)
       </div>
       <StatusBar phase={phase} isAdmin={user.isAdmin} />
       <YouTubePlayer />
