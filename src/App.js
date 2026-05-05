@@ -535,23 +535,6 @@ function compressImage(file, maxKB = 250) {
 }
 
 
-// ── VM-logo mapping per år ────────────────────────────────────────────
-// Legg logofilene i public/vm-logos/  (f.eks. public/vm-logos/1994.png)
-const VM_LOGO = {
-  1982: '/vm-logos/1982.png',
-  1986: '/vm-logos/1986.png',
-  1990: '/vm-logos/1990.png',
-  1994: '/vm-logos/1994.png',
-  1998: '/vm-logos/1998.png',
-  2002: '/vm-logos/2002.png',
-  2006: '/vm-logos/2006.png',
-  2010: '/vm-logos/2010.png',
-  2014: '/vm-logos/2014.png',
-  2018: '/vm-logos/2018.png',
-  2022: '/vm-logos/2022.png',
-  2026: '/vm-logos/2026.png',
-};
-
 // Vertsnasjon per VM-år – vises i topp-stripa
 const VM_HOST_NAME = {
   1982: 'España 1982',
