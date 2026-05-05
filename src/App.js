@@ -975,6 +975,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [summaryText, setSummaryText] = useState('');
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
+  const [matchesFullscreen, setMatchesFullscreen] = useState(false);
   const chatBot = useRef(null);
 
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
@@ -1143,16 +1144,22 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           {msgs.map((m, i) => {
             const mine = m.user === me.displayName;
             return (
-              <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
-                <span style={{ ...C.chatBubble, background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)', border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}` }}>
-                  {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:200,borderRadius:8,display:'block'}} /> : renderChatText(m.text)}
-                </span>
-                <div style={{display:'flex',gap:8,alignItems:'center',justifyContent: mine?'flex-end':'flex-start'}}>
-                  <span style={{...C.chatUser,color: mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
-                  <span style={C.chatTime}>{fmt(m.ts)}</span>
-                  {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
+              {(() => {
+                const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
+                const botColor = botExpert?.color;
+                return (
+                <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
+                  <span style={{ ...C.chatBubble, background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)', border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`, ...(botColor ? { borderLeft: `3px solid ${botColor}` } : {}) }}>
+                    {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:200,borderRadius:8,display:'block'}} /> : renderChatText(m.text)}
+                  </span>
+                  <div style={{display:'flex',gap:8,alignItems:'center',justifyContent: mine?'flex-end':'flex-start'}}>
+                    <span style={{...C.chatUser,color: mine?'rgba(255,215,0,.7)': botColor || 'rgba(255,255,255,.45)'}}>{m.user}</span>
+                    <span style={C.chatTime}>{fmt(m.ts)}</span>
+                    {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
+                  </div>
                 </div>
-              </div>
+                );
+              })()}
             );
           })}
         </div>
@@ -1192,7 +1199,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       <div style={{ ...C.card, ...C.dashCardFixed }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
-          <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Alle kamper →</span>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+            <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Alle kamper →</span>
+            <button onClick={e => { e.stopPropagation(); setMatchesFullscreen(f => !f); }} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
+          </div>
         </div>
         {finishedMatches.length === 0 && (
           <p style={{ color: '#4a5a80', textAlign: 'center', padding: 24, fontSize: 13 }}>
@@ -1234,11 +1244,16 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   </button>
                 )}
                 {/* Bot-sammendrag */}
-                {sum?.botText ? (
-                  <div style={C.botSummaryBox}>
+                {sum?.botText ? (() => {
+                  const botExpert = PANEL_EXPERTS.find(e => e.name === sum.botName);
+                  const botColor = botExpert?.color || 'rgba(255,215,0,.5)';
+                  return (
+                  <div style={{ ...C.botSummaryBox, borderLeft: `3px solid ${botColor}`, paddingLeft: 10 }}>
                     <div style={C.botSummaryText}>{sum.botText}</div>
-                    <div style={C.botSummaryAuthor}>🤖 {sum.botName}</div>
+                    <div style={{ ...C.botSummaryAuthor, color: botColor }}>{botExpert?.emoji || '🤖'} {sum.botName}</div>
                   </div>
+                  );
+                })()
                 ) : (
                   <BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} />
                 )}
@@ -1269,13 +1284,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }} ref={el => { if(el) el.scrollTop = el.scrollHeight; }}>
               {msgs.map((m, i) => {
                 const mine = m.user === me.displayName;
+                const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
+                const botColor = botExpert?.color;
                 return (
                   <div key={m.id||i} style={{ ...C.chatMsg, alignSelf: mine?'flex-end':'flex-start' }}>
-                    <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}` }}>
+                    <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}`, ...(botColor ? { borderLeft:`3px solid ${botColor}` } : {}) }}>
                       {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : renderChatText(m.text)}
                     </span>
                     <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
-                      <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
+                      <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':botColor || 'rgba(255,255,255,.45)'}}>{m.user}</span>
                       <span style={C.chatTime}>{fmt(m.ts)}</span>
                     </div>
                   </div>
@@ -1294,7 +1311,67 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <button style={{...C.btnCyan,padding:'8px 16px',fontSize:12}} onClick={sendMsg}>Send</button>
             </div>
           </div>
-        )}
+    
+    {matchesFullscreen && (
+      <div style={{ position:'fixed', inset:0, zIndex:999, background:'#0a0e1a', display:'flex', flexDirection:'column', overflowY:'auto' }}>
+        <div style={{ ...C.cardHeader, flexShrink:0, position:'sticky', top:0, background:'#0a0e1a', zIndex:1 }}>
+          <span style={C.cardTitle}><span style={C.cardTitleDot}/> Siste kamper – Fullskjerm</span>
+          <button onClick={() => setMatchesFullscreen(false)} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+        </div>
+        <div style={{ flex:1, padding:'0 0 40px 0' }}>
+          {finishedMatches.length === 0 && (
+            <p style={{ color:'#4a5a80', textAlign:'center', padding:40, fontSize:13 }}>Ingen kampresultater ennå.</p>
+          )}
+          {finishedMatches.map(m => {
+            const r = results[m.id];
+            const sum = summaries[m.id];
+            const isEditing = editingSummary === m.id;
+            const botExpert = sum?.botName ? PANEL_EXPERTS.find(e => e.name === sum.botName) : null;
+            const botColor = botExpert?.color || 'rgba(255,215,0,.5)';
+            return (
+              <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0 }}>
+                <div style={C.matchTeams}>
+                  <span style={C.matchTeam}><Flag team={m.home} /> {m.home}</span>
+                  <span style={C.matchScore}>{r.home} – {r.away}</span>
+                  <span style={{ ...C.matchTeam, textAlign:'right' }}>{m.away} <Flag team={m.away} /></span>
+                </div>
+                <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
+                {sum?.text && (
+                  <div style={{ marginTop:6 }}>
+                    <div style={C.matchSummaryText}>{sum.text}</div>
+                    <div style={C.matchSummaryAuthor}>✍️ {sum.author}</div>
+                  </div>
+                )}
+                {!sum?.text && isEditing && (
+                  <div style={{ marginTop:8 }}>
+                    <textarea style={{ ...C.ta, fontSize:12, marginBottom:6 }} rows={3}
+                      value={summaryText} onChange={e => setSummaryText(e.target.value)}
+                      placeholder="Skriv et kort kampreferat…" />
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button style={{ ...C.btnGold, padding:'6px 14px', fontSize:11 }} onClick={() => saveSummary(m.id)}>Lagre</button>
+                      <button style={{ ...C.btnSecondary, padding:'6px 14px', fontSize:11 }} onClick={() => setEditingSummary(null)}>Avbryt</button>
+                    </div>
+                  </div>
+                )}
+                {!sum?.text && !isEditing && (
+                  <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>✍️ Skriv kampreferat</button>
+                )}
+                {sum?.botText && (
+                  <div style={{ ...C.botSummaryBox, borderLeft:`3px solid ${botColor}`, paddingLeft:10 }}>
+                    <div style={C.botSummaryText}>{sum.botText}</div>
+                    <div style={{ ...C.botSummaryAuthor, color:botColor }}>{botExpert?.emoji || '🤖'} {sum.botName}</div>
+                  </div>
+                )}
+                {!sum?.botText && (
+                  <BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+    )}
     </>
   );
 }
@@ -2947,13 +3024,15 @@ function ChatPage({ me }) {
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => {
           const mine = m.user === me.displayName;
+          const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
+          const botColor = botExpert?.color;
           return (
             <div key={m.id||i} style={{ ...C.chatMsg, alignSelf: mine?'flex-end':'flex-start' }}>
-              <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}` }}>
+              <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}`, ...(botColor ? { borderLeft:`3px solid ${botColor}` } : {}) }}>
                 {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : renderChatText(m.text)}
               </span>
               <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
-                <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':'rgba(255,255,255,.45)'}}>{m.user}</span>
+                <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':botColor || 'rgba(255,255,255,.45)'}}>{m.user}</span>
                 <span style={C.chatTime}>{fmt(m.ts)}</span>
                 {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
               </div>
