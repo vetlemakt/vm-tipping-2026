@@ -551,7 +551,7 @@ const VM_HOST_NAME = {
   2026: 'USA/CAN/MEX 2026',
 };
 
-function PaniniCard({ player, blur, showName, compact, quizLabel }) {
+function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
   const [imgUrl, setImgUrl] = useState(null);
 
   const teamColor = {
@@ -574,15 +574,15 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
       .catch(() => {});
   }, [player.name]);
 
-  const w          = compact ? 100 : 140;
-  const imgH       = compact ? 110 : 143;
-  const nameBarH   = compact ? 20  : 26;
-  const stripeH    = compact ? 14  : 18;
-  const borderW    = compact ? 2.5 : 3;
-  const logoSize   = compact ? 32  : 44;
-  const yearLogoH  = compact ? 10  : 14;
-  const flagH      = compact ? 11  : 14;
-  const numSize    = compact ? 7   : 9;
+  const w          = compact ? (tiny ? 70 : 100) : 140;
+  const imgH       = compact ? (tiny ? 77 : 110) : 143;
+  const nameBarH   = compact ? (tiny ? 14 : 20)  : 26;
+  const stripeH    = compact ? (tiny ? 10 : 14)  : 18;
+  const borderW    = compact ? (tiny ? 2  : 2.5) : 3;
+  const logoSize   = compact ? (tiny ? 22 : 32)  : 44;
+  const yearLogoH  = compact ? (tiny ? 7  : 10)  : 14;
+  const flagH      = compact ? (tiny ? 8  : 11)  : 14;
+  const numSize    = compact ? (tiny ? 6  : 7)   : 9;
 
   const yearLogoSrc    = `/vm-logos/${player.year}.png`;
   const vmHostName     = VM_HOST_NAME[player.year] || `VM ${player.year}`;
@@ -951,7 +951,7 @@ function QuizWidget({ username }) {
   return (
     <>
       <div onClick={() => setShowPopup(true)} style={{ cursor:'pointer', flexShrink:0 }}>
-        <PaniniCard player={player} blur={!myAnswer} showName={!!myAnswer} quizLabel={!myAnswer ? quizLabel : undefined} compact />
+        <PaniniCard player={player} blur={!myAnswer} showName={!!myAnswer} quizLabel={!myAnswer ? quizLabel : undefined} compact tiny />
       </div>
       {showPopup && (
         <QuizPopup player={player} username={username} onClose={() => setShowPopup(false)}
