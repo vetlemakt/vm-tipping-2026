@@ -1304,7 +1304,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <button style={{...C.btnCyan,padding:'8px 16px',fontSize:12}} onClick={sendMsg}>Send</button>
             </div>
           </div>
-    
+    )}
     {matchesFullscreen && (
       <div style={{ position:'fixed', inset:0, zIndex:999, background:'#0a0e1a', display:'flex', flexDirection:'column', overflowY:'auto' }}>
         <div style={{ ...C.cardHeader, flexShrink:0, position:'sticky', top:0, background:'#0a0e1a', zIndex:1 }}>
