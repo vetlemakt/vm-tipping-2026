@@ -1240,16 +1240,13 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   </button>
                 )}
                 {/* Bot-sammendrag */}
-                {sum?.botText ? (() => {
-                  const botExpert = PANEL_EXPERTS.find(e => e.name === sum.botName);
-                  const botColor = botExpert?.color || 'rgba(255,215,0,.5)';
-                  return (
-                  <div style={{ ...C.botSummaryBox, borderLeft: `3px solid ${botColor}`, paddingLeft: 10 }}>
+                {sum?.botText ? (
+                  <div style={{ ...C.botSummaryBox, borderLeft: `3px solid ${PANEL_EXPERTS.find(e => e.name === sum.botName)?.color || 'rgba(255,215,0,.5)'}`, paddingLeft: 10 }}>
                     <div style={C.botSummaryText}>{sum.botText}</div>
-                    <div style={{ ...C.botSummaryAuthor, color: botColor }}>{botExpert?.emoji || '🤖'} {sum.botName}</div>
+                    <div style={{ ...C.botSummaryAuthor, color: PANEL_EXPERTS.find(e => e.name === sum.botName)?.color || 'rgba(255,215,0,.5)' }}>
+                      {PANEL_EXPERTS.find(e => e.name === sum.botName)?.emoji || '🤖'} {sum.botName}
+                    </div>
                   </div>
-                  );
-                })()
                 ) : (
                   <BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} />
                 )}
