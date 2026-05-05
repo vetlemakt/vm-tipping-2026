@@ -683,48 +683,48 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
         </div>
       </div>
 
-      {/* ── BLÅ LINJA: navn midten, landflagg til høyre ── */}
+      {/* ── BLÅ LINJA: navn sentrert, landflagg absolutt til høyre ── */}
       <div style={{
         background: '#003087',
         height: nameBarH,
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        padding: `0 ${compact ? 5 : 6}px`,
+        justifyContent: 'center',
       }}>
-        {/* Navn / quiz-label / blur */}
-        <div style={{ flex: 1, textAlign: 'center', overflow: 'hidden', marginRight: 4 }}>
-          {quizLabel ? (
-            <span style={{
-              fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
-              letterSpacing: 1, textTransform: 'uppercase',
-            }}>
-              {quizLabel}
-            </span>
-          ) : blur && !showName ? (
-            <div style={{ height: compact ? 8 : 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%', margin: '0 auto' }} />
-          ) : showName ? (
-            <span style={{
-              fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
-              letterSpacing: 0.5, textTransform: 'uppercase',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              display: 'block',
-            }}>
-              {player.name}
-            </span>
-          ) : null}
-        </div>
+        {/* Navn / quiz-label / blur – alltid perfekt sentrert */}
+        {quizLabel ? (
+          <span style={{
+            fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
+            letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center',
+          }}>
+            {quizLabel}
+          </span>
+        ) : blur && !showName ? (
+          <div style={{ height: compact ? 8 : 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
+        ) : showName ? (
+          <span style={{
+            fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
+            letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            maxWidth: '80%',
+          }}>
+            {player.name}
+          </span>
+        ) : null}
 
-        {/* Landflagg til høyre på blå linja */}
+        {/* Landflagg – absolutt posisjonert til høyre, 3px padding */}
         {playerFlagCode && (
           <img
             src={`https://flagcdn.com/w40/${playerFlagCode}.png`}
             alt={player.country}
             style={{
+              position: 'absolute',
+              right: 3,
               height: flagH,
               width: 'auto',
               objectFit: 'cover',
               borderRadius: 2,
-              flexShrink: 0,
             }}
           />
         )}
@@ -764,10 +764,25 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
 function QuizPopup({ player, username, onClose, onAnswered }) {
   const [answered, setAnswered] = useState(null);
   const [options] = useState(() => shuffle([player.name, ...player.wrong]));
+  const [allAnswers, setAllAnswers] = useState([]);
 
   useEffect(() => {
     getQuizAnswer(username, player.id).then(a => { if (a) setAnswered(a.answer); });
   }, [username, player.id]);
+
+  // Last inn alle brukeres svar for denne quizen
+  useEffect(() => {
+    getAllUsers().then(users => {
+      const real = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+      Promise.all(real.map(u =>
+        getQuizAnswer(u.id, player.id).then(a => ({
+          name: u.displayName || u.id,
+          answer: a?.answer || null,
+          correct: a?.correct || false,
+        }))
+      )).then(results => setAllAnswers(results.filter(r => r.answer)));
+    });
+  }, [player.id]);
 
   const handleAnswer = async (choice) => {
     if (answered) return;
@@ -775,7 +790,16 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
     setAnswered(choice);
     await setQuizAnswer(username, player.id, choice, correct);
     if (onAnswered) onAnswered(correct);
+    // Oppdater allAnswers lokalt
+    setAllAnswers(prev => {
+      const existing = prev.findIndex(r => r.name === username);
+      const entry = { name: username, answer: choice, correct };
+      return existing >= 0 ? prev.map((r,i) => i===existing ? entry : r) : [...prev, entry];
+    });
   };
+
+  const correctCount = allAnswers.filter(r => r.correct).length;
+  const totalCount = allAnswers.length;
 
   return createPortal(
     <>
@@ -785,6 +809,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
         top:'50%', left:'50%', transform:'translate(-50%,-50%)',
         background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.35)',
         borderRadius:16, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,.8)',
+        maxHeight:'90vh', overflowY:'auto',
       }}>
         <div style={{ fontSize:11, color:'rgba(255,215,0,.7)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:14, textAlign:'center' }}>
           Hvem er dette? • VM {player.year}
@@ -817,6 +842,24 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
             {answered === player.name ? '🎉 Riktig! ' : `❌ Feil. Det var ${player.name}. `}
             Ny quiz kl. 06:00.
           </p>
+        )}
+
+        {/* ── Quiz-statistikk ── */}
+        {allAnswers.length > 0 && (
+          <div style={{ marginTop:16, borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:14 }}>
+            <div style={{ fontSize:10, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>
+              Deltakere · {correctCount}/{totalCount} riktig
+            </div>
+            {allAnswers.map(r => (
+              <div key={r.name} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                <span style={{ fontSize:13, color: r.correct ? '#4ade80' : '#e8edf8' }}>{r.name}</span>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', fontStyle:'italic' }}>{r.answer}</span>
+                  <span style={{ fontSize:13 }}>{r.correct ? '✅' : '❌'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </>, document.body
