@@ -2360,7 +2360,7 @@ function InfoPage() {
             Som vanlig er premien en svær bolle med godteri! 🎉
           </div>
           <div style={{ width:'100%', background:'rgba(0,0,0,.2)', borderRadius:10, padding:14 }}>
-            <div style={{ fontSize:13, color:'#FFD700', fontWeight:700, textTransform:'uppercase', letterSpacing:1, marginBottom:10 }}>Fordelingsnøkkel</div>
+            <div style={{ fontSize:13, color:'#FFD700', fontWeight:700, textTransform:'uppercase', letterSpacing:1, marginBottom:10 }}>Godteribollefordelingsnøkkel</div>
             <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', lineHeight:1.6, marginBottom:12 }}>
               Ved delt førsteplass samles premie for første- og andreplass og deles likt mellom vinnerne. Det samme for delt andreplass, da får man 30+20%=25% hver. Ved delt tredjeplass deles tredjepremien likt mellom spillerne.
             </div>
