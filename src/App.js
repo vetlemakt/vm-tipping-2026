@@ -566,12 +566,6 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
     'Elfenbenskysten':'#c05500','Egypt':'#C8102E','Marokko':'#C1272D',
   }[player.country] || '#1a2a5e';
 
-  const VM_HOST_FLAG = {
-    1982:'es', 1986:'mx', 1990:'it', 1994:'us',
-    1998:'fr', 2002:'kr', 2006:'de', 2010:'za',
-    2014:'br', 2018:'ru', 2022:'qa', 2026:'us',
-  };
-
   useEffect(() => {
     const name = player.name.replace(/ /g, '_');
     fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`)
@@ -585,12 +579,13 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
   const nameBarH   = compact ? 20  : 26;
   const stripeH    = compact ? 14  : 18;
   const borderW    = compact ? 2.5 : 3;
-  const logoSize   = compact ? 26  : 36;   // vm-logo, hjørnet
-  const yearLogoSz = compact ? 20  : 28;   // år-spesifikk logo øverst til høyre
-  const flagH      = compact ? 11  : 13;   // landflagg nede til høyre
+  const logoSize   = compact ? 32  : 44;
+  const yearLogoH  = compact ? 10  : 14;
+  const flagH      = compact ? 11  : 14;
+  const numSize    = compact ? 7   : 9;
+
   const yearLogoSrc    = `/vm-logos/${player.year}.png`;
   const vmHostName     = VM_HOST_NAME[player.year] || `VM ${player.year}`;
-  const hostFlagCode   = VM_HOST_FLAG[player.year];
   const playerFlagCode = COUNTRY_CODES[player.country];
 
   return (
@@ -606,7 +601,7 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
       fontFamily: "'Kanit',sans-serif",
     }}>
 
-      {/* ── TOPP-STRIPE: vertsnavn til venstre, vertslandflagg til høyre ── */}
+      {/* ── TOPP-STRIPE: vertsnavn venstre, VM-logo (år-spesifikk) høyre ── */}
       <div style={{
         background: '#f0d080',
         height: stripeH,
@@ -628,13 +623,11 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
         }}>
           {vmHostName}
         </span>
-        {hostFlagCode && (
-          <img
-            src={`https://flagcdn.com/w40/${hostFlagCode}.png`}
-            alt={vmHostName}
-            style={{ height: compact ? 10 : 13, width: 'auto', objectFit: 'contain' }}
-          />
-        )}
+        <img
+          src={yearLogoSrc}
+          alt={`VM ${player.year}`}
+          style={{ height: yearLogoH, width: 'auto', objectFit: 'contain' }}
+        />
       </div>
 
       {/* ── FOTO-OMRÅDE ── */}
@@ -661,7 +654,7 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
           </div>
         )}
 
-        {/* vm-logo.png – stor, helt i hjørnet, 0px padding */}
+        {/* vm-logo.png – stor, helt i hjørnet, ingen padding */}
         <img
           src="/vm-logo.png"
           alt="VM"
@@ -673,79 +666,71 @@ function PaniniCard({ player, blur, showName, compact, quizLabel }) {
           }}
         />
 
-        {/* År-spesifikk VM-logo øverst til høyre */}
-        <img
-          src={yearLogoSrc}
-          alt={`VM ${player.year}`}
-          style={{
-            position: 'absolute', top: 4, right: 4,
-            width: yearLogoSz, height: yearLogoSz,
-            objectFit: 'contain',
-            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,.6))',
-          }}
-        />
-
-        {/* #nummer – nede til høyre, rett over flagget */}
+        {/* #nummer – nede til høyre i bildet, hvit font */}
         <div style={{
           position: 'absolute',
-          bottom: flagH + 5,
+          bottom: 4,
           right: 3,
           background: 'rgba(0,0,0,.55)',
-          color: '#FFD700',
-          fontSize: compact ? 7 : 8,
+          color: '#fff',
+          fontSize: numSize,
           fontWeight: 800,
-          padding: '1px 5px',
+          padding: '2px 6px',
           borderRadius: 4,
+          fontFamily: "'Kanit',sans-serif",
         }}>
           #{player.num}
         </div>
-
-        {/* Spillerens landflagg – nede til høyre */}
-        {playerFlagCode && (
-          <img
-            src={`https://flagcdn.com/w40/${playerFlagCode}.png`}
-            alt={player.country}
-            style={{
-              position: 'absolute', bottom: 3, right: 3,
-              height: flagH,
-              width: 'auto',
-              objectFit: 'cover',
-              borderRadius: 2,
-            }}
-          />
-        )}
       </div>
 
-      {/* ── BLÅ LINJA: kun spillernavn / quiz-label / blur ── */}
+      {/* ── BLÅ LINJA: navn midten, landflagg til høyre ── */}
       <div style={{
         background: '#003087',
         height: nameBarH,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0 6px',
+        padding: `0 ${compact ? 5 : 6}px`,
       }}>
-        {quizLabel ? (
-          <span style={{
-            fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
-            letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center',
-          }}>
-            {quizLabel}
-          </span>
-        ) : blur && !showName ? (
-          <div style={{ height: compact ? 8 : 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%' }} />
-        ) : showName ? (
-          <span style={{
-            fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
-            letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {player.name}
-          </span>
-        ) : null}
+        {/* Navn / quiz-label / blur */}
+        <div style={{ flex: 1, textAlign: 'center', overflow: 'hidden', marginRight: 4 }}>
+          {quizLabel ? (
+            <span style={{
+              fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
+              letterSpacing: 1, textTransform: 'uppercase',
+            }}>
+              {quizLabel}
+            </span>
+          ) : blur && !showName ? (
+            <div style={{ height: compact ? 8 : 10, background: 'rgba(255,255,255,.15)', borderRadius: 3, width: '70%', margin: '0 auto' }} />
+          ) : showName ? (
+            <span style={{
+              fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
+              letterSpacing: 0.5, textTransform: 'uppercase',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              display: 'block',
+            }}>
+              {player.name}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Landflagg til høyre på blå linja */}
+        {playerFlagCode && (
+          <img
+            src={`https://flagcdn.com/w40/${playerFlagCode}.png`}
+            alt={player.country}
+            style={{
+              height: flagH,
+              width: 'auto',
+              objectFit: 'cover',
+              borderRadius: 2,
+              flexShrink: 0,
+            }}
+          />
+        )}
       </div>
 
-      {/* ── BUNN-STRIPE: PANINI til venstre, FIFA WORLD CUP til høyre ── */}
+      {/* ── BUNN-STRIPE: PANINI venstre, FIFA WORLD CUP høyre ── */}
       <div style={{
         background: '#f0d080',
         height: stripeH,
