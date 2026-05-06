@@ -6,12 +6,12 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage,
   subscribePhase, subscribeResults,
-  updatePresence, subscribeOnlineUsers, subscribeLiveEvent,
+  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
-import { getTodaysPlayer, shuffle, isQuizScoring } from './quizPlayers';
+import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
 import {
   INVITE_CODE, ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
@@ -983,7 +983,12 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
 }
 
 function QuizWidget({ username }) {
-  const player = getTodaysPlayer();
+  const [playerIdx, setPlayerIdx] = useState(null);
+  useEffect(() => {
+    const unsub = subscribeQuizPlayer(idx => setPlayerIdx(idx));
+    return unsub;
+  }, []);
+  const player = playerIdx !== null ? QUIZ_PLAYERS[playerIdx] : getTodaysPlayer();
   const scoring = isQuizScoring();
   const [showPopup, setShowPopup] = useState(false);
   const [myAnswer, setMyAnswer] = useState(null);

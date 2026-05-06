@@ -341,4 +341,26 @@ exports.buildFixtureLookup = onRequest(async (req, res) => {
 
   await db.collection('config').doc('fixtureLookup').set(lookup);
   res.json({ ok: true, entries: Object.keys(lookup).length });
+  // ══════════════════════════════════════════════════════════════════════
+//  SCHEDULED FUNCTION – bytter quiz-kort kl. 06:00 hver dag
+// ══════════════════════════════════════════════════════════════════════
+exports.rotateQuizPlayer = onSchedule(
+  {
+    schedule: '0 4 * * *', // 04:00 UTC = 06:00 CEST
+    timeZone: 'UTC',
+    secrets: ['FOOTBALL_API_KEY'],
+  },
+  async () => {
+    const now = new Date();
+    const base = new Date('2026-01-01T06:00:00+02:00');
+    let dayIndex = Math.floor((now - base) / (1000 * 60 * 60 * 24));
+    const TOTAL_PLAYERS = 105;
+    const idx = ((dayIndex % TOTAL_PLAYERS) + TOTAL_PLAYERS) % TOTAL_PLAYERS;
+    await db.collection('config').doc('quizPlayer').set({
+      idx,
+      updatedAt: Date.now(),
+    });
+    console.log(`Quiz-kort rotert til indeks ${idx}`);
+  }
+);
 });
