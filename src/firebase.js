@@ -119,9 +119,11 @@ export function subscribeLiveEvent(callback) {
   return onSnapshot(doc(db, 'config', 'liveEvent'), snap => {
     callback(snap.exists() ? snap.data() : null);
   });
-  // ── Quiz-spiller fra Firestore (roteres kl. 06:00 av Cloud Function) ─
+}
+
+// ── Quiz-spiller fra Firestore (roteres kl. 06:00 av Cloud Function) ─
 export function subscribeQuizPlayer(callback) {
   return onSnapshot(doc(db, 'config', 'quizPlayer'), snap => {
     callback(snap.exists() ? snap.data().idx : null);
   });
-
+}
