@@ -3288,18 +3288,13 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
     return () => clearInterval(iv);
   }, []);
 
-  // Poll live events every 30s
+  // Lytt på live-hendelser fra Cloud Function via Firestore
   useEffect(() => {
-    const poll = async () => {
-      const ev = await fetchLiveEvents();
-      if (ev) { setLiveEvent(ev); return; }
-      const fin = await fetchFinishedMatch();
-      if (fin) { setLiveEvent(fin); return; }
-      setLiveEvent(null);
-    };
-    poll();
-    const iv = setInterval(poll, 30000);
-    return () => clearInterval(iv);
+    const unsub = subscribeLiveEvent(ev => {
+      if (ev?.type) setLiveEvent(ev);
+      else setLiveEvent(null);
+    });
+    return unsub;
   }, []);
 
   useEffect(() => { setPhase('scroll'); setRepeat(0); }, [adminMessage]);
