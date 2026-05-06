@@ -908,6 +908,11 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
         <div style={{ fontSize:11, color:'rgba(255,215,0,.7)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:14, textAlign:'center' }}>
           Hvem er dette? • VM {player.year}
         </div>
+        {!isQuizScoring() && (
+          <div style={{ fontSize:11, color:'#f97316', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:1, marginBottom:14, textAlign:'center', lineHeight:1.6, border:'1px solid rgba(249,115,22,.3)', borderRadius:8, padding:'8px 10px' }}>
+            Mens vi venter på at moroa skal starte kjører vi dette som en før-VM-quiz! Alle poeng nullstilles 11. juni!
+          </div>
+        )}
         <div style={{ display:'flex', justifyContent:'center', marginBottom:18 }}>
           <PaniniCard player={player} blur={!answered} showName={!!answered} />
         </div>
