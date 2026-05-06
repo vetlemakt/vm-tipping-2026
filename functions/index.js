@@ -69,6 +69,11 @@ const API_TO_NOR = Object.fromEntries(
 
 // Disse statuskodene betyr at kampen pågår
 const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
+// ── TEST: hent spesifikk fixture for testing ─────────────────────────
+async function getTestFixture() {
+  const data = await apiFetch('fixtures?id=1512366');
+  return data.response || [];
+}
 // Disse betyr at kampen er ferdig
 const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN']);
 
@@ -196,7 +201,8 @@ async function pollAndUpdate() {
   }
 
   // 1. Sjekk om det er live kamper
-  const liveFixtures = await getActiveFixtures();
+  const testFixtures = await getTestFixture();
+  const liveFixtures = testFixtures.length ? testFixtures : await getActiveFixtures();
 
   // 2. Hent nylig ferdigspilte kamper uansett
   const finishedFixtures = await getRecentlyFinished();
