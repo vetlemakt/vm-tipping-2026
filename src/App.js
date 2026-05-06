@@ -3504,7 +3504,7 @@ export default function App() {
     setViewUser(r);
     setTab('tips');
   };
-  const [adminMess useEffect(() => {age, setAdminMessageState] = useState('');
+  const [adminMessage, setAdminMessageState] = useState('');
   const [showMsgPopup, setShowMsgPopup] = useState(false);
 
   useEffect(() => {
@@ -3536,7 +3536,6 @@ export default function App() {
   }, [user]);
 
   useEffect(() => { window.scrollTo(0,0); }, [tab]);
- 
   useEffect(() => {
     if (!user) return;
     updatePresence(user.username, user.displayName);
