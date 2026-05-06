@@ -124,5 +124,4 @@ export function subscribeQuizPlayer(callback) {
   return onSnapshot(doc(db, 'config', 'quizPlayer'), snap => {
     callback(snap.exists() ? snap.data().idx : null);
   });
-}
-}
+
