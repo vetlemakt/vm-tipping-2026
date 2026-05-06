@@ -3403,6 +3403,7 @@ function AdminMessagePopup({ message, onClose }) {
 }
 
 // ── Live match events ─────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
 async function fetchLiveEvents() {
   const apiKey = process.env.REACT_APP_FOOTBALL_KEY;
   if (!apiKey) return null;
@@ -3460,7 +3461,7 @@ async function fetchLiveEvents() {
     return null;
   }
 }
-
+// eslint-disable-next-line no-unused-vars
 async function fetchFinishedMatch() {
   const apiKey = process.env.REACT_APP_FOOTBALL_KEY;
   if (!apiKey) return null;
