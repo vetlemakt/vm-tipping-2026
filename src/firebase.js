@@ -113,3 +113,10 @@ export function subscribeOnlineUsers(callback) {
     callback(active);
   });
 }
+
+// ── Live-hendelse fra Cloud Function ────────────────────────────────
+export function subscribeLiveEvent(callback) {
+  return onSnapshot(doc(db, 'config', 'liveEvent'), snap => {
+    callback(snap.exists() ? snap.data() : null);
+  });
+}
