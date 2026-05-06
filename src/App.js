@@ -3182,6 +3182,7 @@ const TEAM_NAME_MAP = {
   'England':'England','Kroatia':'Croatia','Ghana':'Ghana','Panama':'Panama',
 };
 
+// eslint-disable-next-line no-unused-vars
 async function fetchAndUpdateResults() {
  if (true) return; // Disabled – Cloud Function handles this now
   const apiKey = process.env.REACT_APP_FOOTBALL_KEY;
