@@ -6,7 +6,7 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage,
   subscribePhase, subscribeResults,
-  updatePresence, subscribeOnlineUsers,
+  uupdatePresence, subscribeOnlineUsers, subscribeLiveEvent,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
