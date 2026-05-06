@@ -1111,8 +1111,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         const stats = [
           { num: myRank ? `#${myRank}` : '–', label: isMobile ? 'Plass' : 'Din plassering' },
           { num: myPts, label: isMobile ? 'Poeng' : 'Dine poeng' },
-          { num: users.length, label: 'Deltakere' },
-          { num: finishedCount, label: isMobile ? 'Kamper' : 'Spilte kamper' },
+          ...(!isMobile ? [
+            { num: users.length, label: 'Deltakere' },
+            { num: finishedCount, label: 'Spilte kamper' },
+          ] : []),
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
         return (
