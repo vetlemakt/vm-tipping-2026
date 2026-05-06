@@ -965,9 +965,9 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`}
                 </span>
                 <span style={{ fontSize:13, color:'#e8edf8', flex:1 }}>{r.name}</span>
-                <span style={{ fontSize:12, color:'#4ade80', fontWeight:700 }}>{r.correct} ✅</span>
+                <span style={{ fontSize:12, color:'#4ade80', fontWeight:700, minWidth:28, textAlign:'right' }}>{r.correct} ✅</span>
                 <span style={{ fontSize:12, color:'rgba(255,255,255,.3)' }}>·</span>
-                <span style={{ fontSize:12, color:'rgba(239,68,68,.7)' }}>{r.wrong} ❌</span>
+                <span style={{ fontSize:12, color:'rgba(239,68,68,.7)', minWidth:28, textAlign:'right' }}>{r.wrong} ❌</span>
               </div>
             ))}
           </div>
