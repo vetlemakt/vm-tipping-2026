@@ -945,7 +945,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
               <div key={r.name} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
                 <span style={{ fontSize:13, color: r.correct ? '#4ade80' : '#e8edf8' }}>{r.name}</span>
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', fontStyle:'italic' }}>{r.answer}</span>
+                  {answered && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', fontStyle:'italic' }}>{r.answer}</span>}
                   <span style={{ fontSize:13 }}>{r.correct ? '✅' : '❌'}</span>
                 </div>
               </div>
