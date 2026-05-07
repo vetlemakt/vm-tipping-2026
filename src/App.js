@@ -1047,6 +1047,56 @@ function QuizWidget({ username }) {
   );
 }
 
+// ── Chat-lyd ─────────────────────────────────────────────────────────
+function useChatSound() {
+  const [soundOn, setSoundOn] = useState(() => {
+    try { return localStorage.getItem('vm_chat_sound') !== 'off'; } catch { return true; }
+  });
+
+  const toggleSound = () => setSoundOn(prev => {
+    const next = !prev;
+    try { localStorage.setItem('vm_chat_sound', next ? 'on' : 'off'); } catch {}
+    return next;
+  });
+
+  const playSound = useCallback(() => {
+    if (!soundOn) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
+      g.gain.setValueAtTime(0.18, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime + 0.25);
+    } catch {}
+  }, [soundOn]);
+
+  return { soundOn, toggleSound, playSound };
+}
+
+function SoundToggle({ soundOn, onToggle }) {
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onToggle(); }}
+      title={soundOn ? 'Skru av lydvarsling' : 'Skru på lydvarsling'}
+      style={{
+        background: soundOn ? 'rgba(255,180,0,.12)' : 'rgba(255,255,255,.06)',
+        border: soundOn ? '1px solid rgba(255,180,0,.35)' : '1px solid rgba(255,255,255,.12)',
+        color: soundOn ? '#FFB700' : 'rgba(255,255,255,.35)',
+        borderRadius: 6, width: 26, height: 26, cursor: 'pointer',
+        fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      {soundOn ? '🔔' : '🔕'}
+    </button>
+  );
+}
+
 const CardIcon = ({ src, size = 18 }) => (
   <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 4px rgba(255,215,0,.4))' }} />
 );
@@ -1137,6 +1187,16 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
+  const { soundOn, toggleSound, playSound } = useChatSound();
+  const prevMsgCount = useRef(0);
+
+  useEffect(() => {
+    if (msgs.length > 0 && prevMsgCount.current > 0 && msgs.length > prevMsgCount.current) {
+      const latest = msgs[msgs.length - 1];
+      if (latest?.user !== me.displayName) playSound();
+    }
+    prevMsgCount.current = msgs.length;
+  }, [msgs]); // eslint-disable-line
 
   const openChatFullscreen = () => { window.history.pushState({ modal: 'chat' }, '', ''); setChatFullscreen(true); };
   const openMatchesFullscreen = () => { window.history.pushState({ modal: 'matches' }, '', ''); setMatchesFullscreen(true); };
@@ -1310,6 +1370,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
           <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
             <OnlineIndicator onlineUsers={onlineUsers} />
+            <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
             <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
@@ -3148,12 +3209,21 @@ function ChatPage({ me }) {
   const [input, setInput] = useState('');
   const [onlineUsers, setOnlineUsers] = useState([]);
   const chatBoxRef = useRef(null);
+  const { soundOn, toggleSound, playSound } = useChatSound();
+  const prevMsgCount = useRef(0);
 
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => {
     if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
   }, [msgs]);
+  useEffect(() => {
+    if (msgs.length > 0 && prevMsgCount.current > 0 && msgs.length > prevMsgCount.current) {
+      const latest = msgs[msgs.length - 1];
+      if (latest?.user !== me.displayName) playSound();
+    }
+    prevMsgCount.current = msgs.length;
+  }, [msgs]); // eslint-disable-line
 
   const fmt = ts => {
     if (!ts) return '';
@@ -3206,7 +3276,11 @@ function ChatPage({ me }) {
     <div style={C.card}>
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat</span>
-        <OnlineIndicator onlineUsers={onlineUsers} />
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <OnlineIndicator onlineUsers={onlineUsers} />
+          <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
+        </div>
+      </div>
       </div>
       <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
