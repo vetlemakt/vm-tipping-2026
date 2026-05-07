@@ -603,7 +603,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
   const borderW    = compact ? (tiny ? 2  : 2.5) : 3;
   const logoSize   = compact ? (tiny ? 22 : 32)  : 44;
   const yearLogoH  = compact ? (tiny ? 7  : 10)  : 14;
-  const flagH      = compact ? (tiny ? 8  : 11)  : 14;
+  const flagImgH   = compact ? (tiny ? 8  : 11)  : 14;
   const numSize    = compact ? (tiny ? 6  : 7)   : 9;
 
   const yearLogoSrc    = `/vm-logos/${player.year}.png`;
@@ -777,7 +777,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
             right: compact ? 4 : 5,
             top: '50%',
             transform: 'translateY(-50%)',
-            height: compact ? 14 : 18,
+            height: flagImgH,
             width: 'auto',
             objectFit: 'cover',
             borderRadius: 2,
