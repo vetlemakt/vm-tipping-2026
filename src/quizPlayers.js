@@ -241,15 +241,18 @@ export const QUIZ_PLAYERS = [
 // VM starts June 11 2026 06:00 CEST
 const VM_QUIZ_START = new Date('2026-06-11T06:00:00+02:00');
 
-// Get today's quiz player (rotates daily at 06:00 CEST)
+// Get today's quiz player (rotates daily at 06:00 CEST = 04:00 UTC)
 export function getTodaysPlayer() {
   const now = new Date();
-  // Use Jan 1 2026 as base so quiz works before VM too
-  const base = new Date('2026-01-01T06:00:00+02:00');
-  let dayIndex = Math.floor((now - base) / (1000 * 60 * 60 * 24));
-  // Before 06:00 = still yesterday's quiz
-  const localHour = now.getHours();
-  if (localHour < 6) dayIndex--;
+  // Convert to CEST (UTC+2) by shifting ms
+  const cestMs = now.getTime() + 2 * 60 * 60 * 1000;
+  const cestNow = new Date(cestMs);
+  // Base: 2026-01-01 06:00 CEST = 04:00 UTC
+  const base = new Date('2026-01-01T04:00:00Z');
+  let dayIndex = Math.floor((cestNow - base) / (1000 * 60 * 60 * 24));
+  // Before 06:00 CEST = still yesterday's quiz
+  const cestHour = cestNow.getUTCHours();
+  if (cestHour < 6) dayIndex--;
   const idx = ((dayIndex % QUIZ_PLAYERS.length) + QUIZ_PLAYERS.length) % QUIZ_PLAYERS.length;
   return QUIZ_PLAYERS[idx];
 }
@@ -263,9 +266,11 @@ export function isQuizScoring() {
 export function getQuizDayIndex() {
   const now = new Date();
   if (!isQuizScoring()) return -1;
-  const localHour = now.getHours();
-  let day = Math.floor((now - VM_QUIZ_START) / (1000 * 60 * 60 * 24));
-  if (localHour < 6) day--;
+  const cestMs = now.getTime() + 2 * 60 * 60 * 1000;
+  const cestNow = new Date(cestMs);
+  const cestHour = cestNow.getUTCHours();
+  let day = Math.floor((cestNow - VM_QUIZ_START) / (1000 * 60 * 60 * 24));
+  if (cestHour < 6) day--;
   return Math.max(0, day);
 }
 
