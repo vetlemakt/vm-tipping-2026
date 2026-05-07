@@ -60,12 +60,13 @@ const Flag = ({ team, size=20 }) => {
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
 
 const useIsMobile = () => {
-  const [mobile, setMobile] = useState(window.innerWidth < 768);
+  const mq = window.matchMedia('(max-width: 767px)');
+  const [mobile, setMobile] = useState(mq.matches);
   useEffect(() => {
-    const h = () => setMobile(window.innerWidth < 768);
-    window.addEventListener('resize', h);
-    return () => window.removeEventListener('resize', h);
-  }, []);
+    const h = (e) => setMobile(e.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []); // eslint-disable-line
   return mobile;
 };
 
@@ -1151,7 +1152,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       <div style={{ ...C.card, ...C.dashCardFixed }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Tabell</span>
-          <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Se full tabell →</span>
+          <button onClick={e => { e.stopPropagation(); setTab('leaderboard'); }} style={{
+            background: 'rgba(255,180,0,.12)', border: '1px solid rgba(255,180,0,.35)',
+            color: '#FFB700', borderRadius: 6, width: 26, height: 26, cursor: 'pointer',
+            fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }} title="Se full tabell">⛶</button>
         </div>
         <div style={C.dashCardFixedBody}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
@@ -1193,7 +1198,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
           <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
             <OnlineIndicator onlineUsers={onlineUsers} />
-            <button onClick={e => { e.stopPropagation(); setChatFullscreen(f => !f); }} style={{ background:'rgba(255,255,255,.08)', border:'none', color:'rgba(255,255,255,.6)', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
+            <button onClick={e => { e.stopPropagation(); setChatFullscreen(f => !f); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
@@ -1252,7 +1257,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       <div style={{ ...C.card, ...C.dashCardFixed }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setMatchesFullscreen(true)}>
           <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
-          <span style={{ fontSize:11, color:'rgba(255,215,0,.6)', fontFamily:"'Fira Code',monospace" }}>Alle kamper →</span>
+          <button onClick={e => { e.stopPropagation(); setMatchesFullscreen(true); }} style={{
+            background: 'rgba(255,180,0,.12)', border: '1px solid rgba(255,180,0,.35)',
+            color: '#FFB700', borderRadius: 6, width: 26, height: 26, cursor: 'pointer',
+            fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }} title="Alle kamper">⛶</button>
         </div>
         {finishedMatches.length === 0 && (
           <p style={{ color: '#4a5a80', textAlign: 'center', padding: 24, fontSize: 13 }}>
