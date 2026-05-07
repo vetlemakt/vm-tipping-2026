@@ -38,9 +38,9 @@ const COUNTRY_CODES = {
   // Historiske quiz-land
   'Romania':'ro','Russland':'ru','Bulgaria':'bg',
   'Vest-Tyskland':'de','Ungarn':'hu','Tsjekkoslovakia':'cz',
-  'Sovjet':'ru','Jugoslavia':'rs','Skottland':'gb-sct',
+  'Sovjet':'ru','Jugoslavia':'rs',
   'Wales':'gb-wls','Irland':'ie','Nord-Irland':'gb-nir',
-  'Tanzania':'tz','Monaco':'mc','Elfenbenskysten':'ci',
+  'Tanzania':'tz','Monaco':'mc',
 };
 
 const TOPSCORER_FLAGS = {
