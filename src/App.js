@@ -1302,7 +1302,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
         <div style={C.chatInputRow}>
           <ImageUploadButton onImage={dataUrl => sendChatMessage(me.displayName, '', dataUrl)} />
-          </label>
           <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
