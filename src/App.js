@@ -35,6 +35,12 @@ const COUNTRY_CODES = {
   'Spania':'es','Sveits':'ch','Sverige':'se','Sør-Afrika':'za',
   'Sør-Korea':'kr','Tunisia':'tn','Tyrkia':'tr','Tsjekkia':'cz',
   'USA':'us','Uruguay':'uy','Usbekistan':'uz',
+  // Historiske quiz-land
+  'Romania':'ro','Russland':'ru','Bulgaria':'bg',
+  'Vest-Tyskland':'de','Ungarn':'hu','Tsjekkoslovakia':'cz',
+  'Sovjet':'ru','Jugoslavia':'rs','Skottland':'gb-sct',
+  'Wales':'gb-wls','Irland':'ie','Nord-Irland':'gb-nir',
+  'Tanzania':'tz','Monaco':'mc','Elfenbenskysten':'ci',
 };
 
 const TOPSCORER_FLAGS = {
@@ -708,7 +714,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
       </div>
 
       {/* ── BLÅ LINJA + GUL FOOTER wrapper (for flagg-posisjonering) ── */}
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', overflow: 'visible' }}>
 
       {/* BLÅ LINJA: navn sentrert */}
       <div style={{
@@ -717,7 +723,6 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
       }}>
         {/* Navn / quiz-label / blur – sentrert */}
         {quizLabel ? (
@@ -750,7 +755,6 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
         justifyContent: 'space-between',
         padding: `0 ${compact ? 5 : 6}px`,
         borderRadius: '0 0 7px 7px',
-        overflow: 'hidden',
       }}>
         <span style={{
           fontSize: compact ? 5 : 6,
@@ -787,7 +791,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
             borderRadius: 2,
             border: '1.5px solid rgba(255,255,255,0.85)',
             boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-            zIndex: 2,
+            zIndex: 10,
           }}
         />
       )}
