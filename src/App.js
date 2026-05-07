@@ -1028,10 +1028,7 @@ const CardIcon = ({ src, size = 18 }) => (
 );
 
 const CameraIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 3L7.17 5H4C2.9 5 2 5.9 2 7V19C2 20.1 2.9 21 4 21H20C21.1 21 22 20.1 22 19V7C22 5.9 21.1 5 20 5H16.83L15 3H9ZM12 18C9.24 18 7 15.76 7 13C7 10.24 9.24 8 12 8C14.76 8 17 10.24 17 13C17 15.76 14.76 18 12 18Z" fill="currentColor"/>
-    <circle cx="12" cy="13" r="3" fill="currentColor"/>
-  </svg>
+  <img src="/camera.png" alt="Legg til bilde" style={{ width: 26, height: 26, objectFit: 'contain', display: 'block' }} />
 );
 
 function ImageUploadButton({ onImage }) {
@@ -1054,8 +1051,8 @@ function ImageUploadButton({ onImage }) {
         style={{
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 38, height: 38,
-          background: 'rgba(255,180,0,.12)', border: '1px solid rgba(255,180,0,.35)',
-          borderRadius: 8, color: '#FFB700',
+          background: 'transparent', border: 'none',
+          borderRadius: 8, padding: 0,
         }}
         title="Last opp bilde eller ta foto"
       >
@@ -1305,7 +1302,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
-            placeholder="Skriv melding… (lim inn bilde med Ctrl+V)"
+            placeholder="Skriv melding…"
             onPaste={async e=>{
               const items=e.clipboardData?.items;
               if(!items)return;
@@ -1320,7 +1317,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               }
             }}
           />
-          <button style={{ ...C.btnCyan, padding: '8px 16px', fontSize: 12 }} onClick={sendMsg}>Send</button>
+          <button style={{ ...C.btnSend }} onClick={sendMsg}>Send</button>
         </div>
       </div>
 
@@ -1433,7 +1430,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 value={input} onChange={e=>setInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&sendMsg()}
                 placeholder="Skriv melding…"/>
-              <button style={{...C.btnCyan,padding:'8px 16px',fontSize:12}} onClick={sendMsg}>Send</button>
+              <button style={{...C.btnSend}} onClick={sendMsg}>Send</button>
             </div>
           </div>
     )}
@@ -3200,7 +3197,7 @@ function ChatPage({ me }) {
         <input style={{...C.inp,marginBottom:0,flex:1,fontSize:13,padding:'8px 12px'}}
           value={input} onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>e.key==='Enter'&&sendMsg()}
-          placeholder="Skriv melding… (lim inn bilde med Ctrl+V)"
+          placeholder="Skriv melding…"
           onPaste={async e=>{
             const items=e.clipboardData?.items;if(!items)return;
             for(let item of items){
@@ -3214,7 +3211,7 @@ function ChatPage({ me }) {
             }
           }}
         />
-        <button style={{...C.btnCyan,padding:'8px 16px',fontSize:12}} onClick={sendMsg}>Send</button>
+        <button style={{...C.btnSend}} onClick={sendMsg}>Send</button>
       </div>
     </div>
   );

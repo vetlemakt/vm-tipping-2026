@@ -690,5 +690,17 @@ export const C = {
     transition: 'all .15s',
   },
 
-  spinner: { display: 'inline-block', animation: 'spin 1s linear infinite' },
+  btnSend: {
+    background: 'rgba(255,255,255,.08)',
+    border: '1px solid rgba(255,255,255,.15)',
+    color: '#e8edf8',
+    borderRadius: 10,
+    padding: '8px 16px',
+    fontWeight: 700,
+    fontSize: 13,
+    cursor: 'pointer',
+    fontFamily: "'Kanit',sans-serif",
+    letterSpacing: 1,
+    transition: 'all .15s',
+  },
 };
