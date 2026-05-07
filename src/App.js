@@ -1023,6 +1023,16 @@ function QuizWidget({ username }) {
   );
 }
 
+const NAV_ICONS = {
+  leaderboard: '/tabell.png',
+  chat: '/chat.png',
+  panel: '/ekspertpanel.png',
+  info: '/info.png',
+};
+const CardIcon = ({ src, size = 18 }) => (
+  <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 4px rgba(255,215,0,.4))' }} />
+);
+
 // ══════════════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════════════════════════════════════
@@ -1160,7 +1170,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       {/* Tabell */}
       <div style={{ ...C.card, ...C.dashCardFixed }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
-          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Tabell</span>
+          <span style={C.cardTitle}><CardIcon src="/tabell.png" /> Tabell</span>
           <button onClick={e => { e.stopPropagation(); setTab('leaderboard'); }} style={{
             background: 'rgba(255,180,0,.12)', border: '1px solid rgba(255,180,0,.35)',
             color: '#FFB700', borderRadius: 6, width: 26, height: 26, cursor: 'pointer',
@@ -1204,7 +1214,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       {/* Chat */}
       <div style={{ ...C.card, ...C.dashCardFixed }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('chat')}>
-          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Chat</span>
+          <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
           <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
             <OnlineIndicator onlineUsers={onlineUsers} />
             <button onClick={e => { e.stopPropagation(); setChatFullscreen(f => !f); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
@@ -1265,7 +1275,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       {/* Kamper */}
       <div style={{ ...C.card, ...C.dashCardFixed }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setMatchesFullscreen(true)}>
-          <span style={C.cardTitle}><span style={C.cardTitleDot} /> Siste kamper</span>
+          <span style={C.cardTitle}><CardIcon src="/tips.png" /> Siste kamper</span>
           <button onClick={e => { e.stopPropagation(); setMatchesFullscreen(true); }} style={{
             background: 'rgba(255,180,0,.12)', border: '1px solid rgba(255,180,0,.35)',
             color: '#FFB700', borderRadius: 6, width: 26, height: 26, cursor: 'pointer',
