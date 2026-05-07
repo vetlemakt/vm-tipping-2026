@@ -1121,8 +1121,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
 
-  const openChatFullscreen = () => { history.pushState({ modal: 'chat' }, '', ''); openChatFullscreen(); };
-  const openMatchesFullscreen = () => { history.pushState({ modal: 'matches' }, '', ''); openMatchesFullscreen(); };
+  const openChatFullscreen = () => { window.history.pushState({ modal: 'chat' }, '', ''); setChatFullscreen(true); };
+  const openMatchesFullscreen = () => { window.history.pushState({ modal: 'matches' }, '', ''); setMatchesFullscreen(true); };
 
   useEffect(() => {
     const onPop = (e) => {
@@ -3599,7 +3599,7 @@ export default function App() {
 
   // Browser back/forward navigation
   const setTabWithHistory = useCallback((newTab) => {
-    history.pushState({ tab: newTab }, '', '');
+    window.history.pushState({ tab: newTab }, '', '');
     setTab(newTab);
   }, []);
 
@@ -3610,7 +3610,7 @@ export default function App() {
     };
     window.addEventListener('popstate', onPop);
     // Set initial history entry
-    history.replaceState({ tab: 'dashboard' }, '', '');
+    window.history.replaceState({ tab: 'dashboard' }, '', '');
     return () => window.removeEventListener('popstate', onPop);
   }, []);
   const [phase, setPhaseState] = useState('pre');
