@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   getUser, getAllUsers, createUser, updateUser,
@@ -394,13 +394,20 @@ function OnlineIndicator({ onlineUsers }) {
       </span>
       {show && (
         <>
-          {isMobile && <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:98 }}/>}
-          <div style={{
-            position:'absolute', top:'100%', right:0, zIndex:99,
-            background:'rgba(10,14,26,.97)', border:'1px solid rgba(74,222,128,.3)',
-            borderRadius:10, padding:'10px 14px', minWidth:160, marginTop:6,
-            boxShadow:'0 8px 24px rgba(0,0,0,.5)',
-          }}>
+          <div
+            onClick={e => { e.stopPropagation(); setShow(false); }}
+            onTouchEnd={e => { e.stopPropagation(); setShow(false); }}
+            style={{ position:'fixed', inset:0, zIndex:998 }}
+          />
+          <div
+            onClick={e => e.stopPropagation()}
+            onTouchEnd={e => e.stopPropagation()}
+            style={{
+              position:'absolute', top:'100%', right:0, zIndex:999,
+              background:'rgba(10,14,26,.97)', border:'1px solid rgba(74,222,128,.3)',
+              borderRadius:10, padding:'10px 14px', minWidth:160, marginTop:6,
+              boxShadow:'0 8px 24px rgba(0,0,0,.5)',
+            }}>
             <div style={{ fontSize:10, color:'rgba(255,255,255,.4)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>Pålogget nå</div>
             {onlineUsers.length === 0
               ? <div style={{ fontSize:12, color:'rgba(255,255,255,.4)' }}>Ingen</div>
@@ -1113,6 +1120,18 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
+
+  const openChatFullscreen = () => { history.pushState({ modal: 'chat' }, '', ''); openChatFullscreen(); };
+  const openMatchesFullscreen = () => { history.pushState({ modal: 'matches' }, '', ''); openMatchesFullscreen(); };
+
+  useEffect(() => {
+    const onPop = (e) => {
+      if (chatFullscreen) setChatFullscreen(false);
+      else if (matchesFullscreen) setMatchesFullscreen(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [chatFullscreen, matchesFullscreen]);
   const chatBot = useRef(null);
 
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
@@ -1233,7 +1252,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       })()}
       <div style={isMobile ? C.dashGrid3Mobile : C.dashGrid3}>
       {/* Tabell */}
-      <div style={{ ...C.card, ...C.dashCardFixed }}>
+      <div style={{ ...C.card, ...C.dashCardFixed, ...(isMobile ? { order: 2 } : {}) }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
           <span style={C.cardTitle}><CardIcon src="/tabell.png" /> Tabell</span>
           <button onClick={e => { e.stopPropagation(); setTab('leaderboard'); }} style={{
@@ -1269,12 +1288,12 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       </div>
 
       {/* Chat */}
-      <div style={{ ...C.card, ...C.dashCardFixed }}>
+      <div style={{ ...C.card, ...C.dashCardFixed, ...(isMobile ? { order: 1 } : {}) }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('chat')}>
           <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
           <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
             <OnlineIndicator onlineUsers={onlineUsers} />
-            <button onClick={e => { e.stopPropagation(); setChatFullscreen(f => !f); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
+            <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
@@ -1322,10 +1341,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       </div>
 
       {/* Kamper */}
-      <div style={{ ...C.card, ...C.dashCardFixed }}>
-        <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setMatchesFullscreen(true)}>
+      <div style={{ ...C.card, ...C.dashCardFixed, ...(isMobile ? { order: 3 } : {}) }}>
+        <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => openMatchesFullscreen()}>
           <span style={C.cardTitle}><CardIcon src="/tips.png" /> Siste kamper</span>
-          <button onClick={e => { e.stopPropagation(); setMatchesFullscreen(true); }} style={{
+          <button onClick={e => { e.stopPropagation(); openMatchesFullscreen(); }} style={{
             background: 'rgba(255,180,0,.12)', border: '1px solid rgba(255,180,0,.35)',
             color: '#FFB700', borderRadius: 6, width: 26, height: 26, cursor: 'pointer',
             fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -3577,6 +3596,23 @@ export default function App() {
     } catch { return null; }
   });
   const [tab, setTab] = useState('dashboard');
+
+  // Browser back/forward navigation
+  const setTabWithHistory = useCallback((newTab) => {
+    history.pushState({ tab: newTab }, '', '');
+    setTab(newTab);
+  }, []);
+
+  useEffect(() => {
+    const onPop = (e) => {
+      const t = e.state?.tab || 'dashboard';
+      setTab(t);
+    };
+    window.addEventListener('popstate', onPop);
+    // Set initial history entry
+    history.replaceState({ tab: 'dashboard' }, '', '');
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const [phase, setPhaseState] = useState('pre');
   const [lbSelected, setLbSelected] = useState(null);
   const [viewUser, setViewUser] = useState(null);
@@ -3639,10 +3675,10 @@ export default function App() {
   if (!user) return <AuthScreen onLogin={handleLogin} />;
   return (
     <div style={C.app}>
-      <Banner user={user} tab={tab} setTab={t => { setViewUser(null); setTab(t); }} phase={phase} onLogout={handleLogout}
+      <Banner user={user} tab={tab} setTab={t => { setViewUser(null); setTabWithHistory(t); }} phase={phase} onLogout={handleLogout}
         adminMessage={adminMessage} onAdminMessageClick={() => setShowMsgPopup(true)} />
       <div style={C.main}>
-        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={handleShowTips} setTab={setTab} />}
+        {tab === 'dashboard'   && <Dashboard me={user} phase={phase} onShowTips={handleShowTips} setTab={setTabWithHistory} />}
         {tab === 'leaderboard' && <Leaderboard me={user} phase={phase} initialSelected={lbSelected} onClearSelected={() => setLbSelected(null)} onShowTips={handleShowTips} />}
         {tab === 'tips'        && !user.isAdmin && <TipsForm me={user} phase={phase} viewUser={viewUser} />}
         {tab === 'chat'       && !user.isAdmin && <ChatPage me={user} />}
