@@ -614,13 +614,13 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
     <div style={{
       width: w,
       borderRadius: 8,
-      overflow: 'hidden',
       border: `${borderW}px solid #f0d080`,
       boxShadow: '0 4px 16px rgba(0,0,0,.6)',
       background: '#f5e6c0',
       flexShrink: 0,
       position: 'relative',
       fontFamily: "'Kanit',sans-serif",
+      overflow: 'visible',
     }}>
 
       {/* ── TOPP-STRIPE: vertsnavn venstre, VM-logo (år-spesifikk) høyre ── */}
@@ -631,6 +631,8 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: `0 ${compact ? 5 : 6}px`,
+        borderRadius: '7px 7px 0 0',
+        overflow: 'hidden',
       }}>
         <span style={{
           fontSize: compact ? 6 : 7,
@@ -715,7 +717,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingRight: compact ? 28 : 36,  // make room for flag on right
+        overflow: 'hidden',
       }}>
         {/* Navn / quiz-label / blur – sentrert */}
         {quizLabel ? (
@@ -747,6 +749,8 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: `0 ${compact ? 5 : 6}px`,
+        borderRadius: '0 0 7px 7px',
+        overflow: 'hidden',
       }}>
         <span style={{
           fontSize: compact ? 5 : 6,
