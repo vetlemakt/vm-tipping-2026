@@ -705,16 +705,19 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
         </div>
       </div>
 
-      {/* ── BLÅ LINJA: navn sentrert, landflagg absolutt til høyre ── */}
+      {/* ── BLÅ LINJA + GUL FOOTER wrapper (for flagg-posisjonering) ── */}
+      <div style={{ position: 'relative' }}>
+
+      {/* BLÅ LINJA: navn sentrert */}
       <div style={{
         background: '#003087',
         height: nameBarH,
-        position: 'relative',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingRight: compact ? 28 : 36,  // make room for flag on right
       }}>
-        {/* Navn / quiz-label / blur – alltid perfekt sentrert */}
+        {/* Navn / quiz-label / blur – sentrert */}
         {quizLabel ? (
           <span style={{
             fontSize: compact ? 7 : 9, color: '#FFD700', fontWeight: 800,
@@ -729,27 +732,11 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
             fontSize: compact ? 8 : 10, color: '#FFD700', fontWeight: 800,
             letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            maxWidth: '80%',
+            maxWidth: '100%',
           }}>
             {tiny ? player.name.split(' ').slice(-1)[0] : player.name}
           </span>
         ) : null}
-
-        {/* Landflagg – absolutt posisjonert til høyre, 3px padding */}
-        {playerFlagCode && (
-          <img
-            src={`https://flagcdn.com/w40/${playerFlagCode}.png`}
-            alt={player.country}
-            style={{
-              position: 'absolute',
-              right: 3,
-              height: flagH,
-              width: 'auto',
-              objectFit: 'cover',
-              borderRadius: 2,
-            }}
-          />
-        )}
       </div>
 
       {/* ── BUNN-STRIPE: PANINI venstre, FIFA WORLD CUP høyre ── */}
@@ -780,7 +767,28 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
         </span>
       </div>
 
-    </div>
+      {/* Landflagg – straddling the blue/yellow border */}
+      {playerFlagCode && (
+        <img
+          src={`https://flagcdn.com/w40/${playerFlagCode}.png`}
+          alt={player.country}
+          style={{
+            position: 'absolute',
+            right: compact ? 4 : 5,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            height: compact ? 14 : 18,
+            width: 'auto',
+            objectFit: 'cover',
+            borderRadius: 2,
+            border: '1.5px solid rgba(255,255,255,0.85)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+            zIndex: 2,
+          }}
+        />
+      )}
+
+      </div>
   );
 }
 
