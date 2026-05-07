@@ -170,7 +170,7 @@ function AuthScreen({ onLogin }) {
       <div style={C.authGlow} />
       <div style={C.authBox}>
         <div style={C.authLogoWrap}>
-          <img src="/vm-logo.png" alt="VM-tipping 2026" style={C.authLogoImg} />
+          <img src="/vm-logo-login.png" alt="VM-tipping 2026" style={C.authLogoImg} />
         </div>
         <p style={C.authSub}>FIFA World Cup · USA · Canada · Mexico</p>
         <div style={C.tabs}>
