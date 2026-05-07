@@ -1034,6 +1034,74 @@ const CameraIcon = () => (
   </svg>
 );
 
+function ImageUploadButton({ onImage }) {
+  const [open, setOpen] = useState(false);
+  const galleryRef = useRef(null);
+  const cameraRef = useRef(null);
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    setOpen(false);
+    const dataUrl = await compressImage(file);
+    onImage(dataUrl);
+  };
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 38, height: 38,
+          background: 'rgba(255,180,0,.12)', border: '1px solid rgba(255,180,0,.35)',
+          borderRadius: 8, color: '#FFB700',
+        }}
+        title="Last opp bilde eller ta foto"
+      >
+        <CameraIcon />
+      </button>
+
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
+          <div style={{
+            position: 'absolute', bottom: 46, left: 0, zIndex: 999,
+            background: 'rgba(13,18,48,.97)', border: '1px solid rgba(255,180,0,.3)',
+            borderRadius: 12, overflow: 'hidden', minWidth: 180,
+            boxShadow: '0 8px 32px rgba(0,0,0,.6)',
+          }}>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '13px 16px', cursor: 'pointer', color: '#e8edf8', fontSize: 14,
+              fontFamily: "'Kanit',sans-serif", borderBottom: '1px solid rgba(255,255,255,.07)',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,180,0,.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: 18 }}>🖼️</span> Velg fra galleri
+              <input ref={galleryRef} type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => handleFile(e.target.files[0])} />
+            </label>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '13px 16px', cursor: 'pointer', color: '#e8edf8', fontSize: 14,
+              fontFamily: "'Kanit',sans-serif",
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,180,0,.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontSize: 18 }}>📷</span> Ta bilde
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                onChange={e => handleFile(e.target.files[0])} />
+            </label>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 
 // ══════════════════════════════════════════════════════════════════════
 function Dashboard({ me, phase, onShowTips, setTab }) {
@@ -1233,19 +1301,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           })}
         </div>
         <div style={C.chatInputRow}>
-          <label style={{
-            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-            width:38, height:38, flexShrink:0,
-            background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)',
-            borderRadius:8, color:'#FFB700', transition:'background .15s',
-          }} title="Last opp bilde eller ta foto">
-            <CameraIcon />
-            <input type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{
-              const file=e.target.files[0]; if(!file)return;
-              const dataUrl = await compressImage(file);
-              sendChatMessage(me.displayName,'',dataUrl);
-              e.target.value='';
-            }}/>
+          <ImageUploadButton onImage={dataUrl => sendChatMessage(me.displayName, '', dataUrl)} />
           </label>
           <input style={{ ...C.inp, marginBottom: 0, flex: 1, fontSize: 13, padding: '8px 12px' }}
             value={input} onChange={e => setInput(e.target.value)}
@@ -1373,20 +1429,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <div ref={chatBot}/>
             </div>
             <div style={{ ...C.chatInputRow, flexShrink:0 }}>
-              <label style={{
-                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                width:38, height:38, flexShrink:0,
-                background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)',
-                borderRadius:8, color:'#FFB700',
-              }} title="Last opp bilde eller ta foto">
-                <CameraIcon />
-                <input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={async e=>{
-                  const file=e.target.files[0];if(!file)return;
-                  const dataUrl = await compressImage(file);
-                  sendChatMessage(me.displayName,'',dataUrl);
-                  e.target.value='';
-                }}/>
-              </label>
+              <ImageUploadButton onImage={dataUrl => sendChatMessage(me.displayName, '', dataUrl)} />
               <input style={{...C.inp,marginBottom:0,flex:1,fontSize:13,padding:'8px 12px'}}
                 value={input} onChange={e=>setInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&sendMsg()}
@@ -3154,20 +3197,7 @@ function ChatPage({ me }) {
         })}
       </div>
       <div style={C.chatInputRow}>
-        <label style={{
-          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-          width:38, height:38, flexShrink:0,
-          background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)',
-          borderRadius:8, color:'#FFB700',
-        }} title="Last opp bilde eller ta foto">
-          <CameraIcon />
-          <input type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{
-            const file=e.target.files[0];if(!file)return;
-            const dataUrl = await compressImage(file);
-            sendChatMessage(me.displayName,'',dataUrl);
-            e.target.value='';
-          }}/>
-        </label>
+        <ImageUploadButton onImage={dataUrl => sendChatMessage(me.displayName, '', dataUrl)} />
         <input style={{...C.inp,marginBottom:0,flex:1,fontSize:13,padding:'8px 12px'}}
           value={input} onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>e.key==='Enter'&&sendMsg()}
