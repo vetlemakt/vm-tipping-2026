@@ -782,14 +782,14 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
           alt={player.country}
           style={{
             position: 'absolute',
-            right: compact ? 5 : 7,
+            left: '50%',
             top: nameBarH,
-            transform: 'translateY(-50%)',
+            transform: 'translate(-50%, -50%)',
             height: flagImgH,
             width: 'auto',
             objectFit: 'cover',
             borderRadius: 2,
-            border: '1px solid rgba(255,255,255,0.9)',
+            border: '1px solid #f0d080',
             boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
             zIndex: 10,
           }}
