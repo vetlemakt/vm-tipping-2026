@@ -60,13 +60,21 @@ const Flag = ({ team, size=20 }) => {
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
 
 const useIsMobile = () => {
-  const mq = window.matchMedia('(max-width: 767px)');
-  const [mobile, setMobile] = useState(mq.matches);
+  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   useEffect(() => {
-    const h = (e) => setMobile(e.matches);
-    mq.addEventListener('change', h);
-    return () => mq.removeEventListener('change', h);
-  }, []); // eslint-disable-line
+    const check = () => setMobile(window.matchMedia('(max-width: 767px)').matches);
+    const mq = window.matchMedia('(max-width: 767px)');
+    mq.addEventListener('change', check);
+    // Safari fires orientationchange before dimensions update – delay the check
+    const onOrient = () => setTimeout(check, 100);
+    window.addEventListener('orientationchange', onOrient);
+    window.addEventListener('resize', check);
+    return () => {
+      mq.removeEventListener('change', check);
+      window.removeEventListener('orientationchange', onOrient);
+      window.removeEventListener('resize', check);
+    };
+  }, []);
   return mobile;
 };
 
