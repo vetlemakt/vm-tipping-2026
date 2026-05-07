@@ -1132,14 +1132,17 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             ...(isMobile ? C.statsRowMobile : C.statsRowDesktop),
             alignItems: 'stretch',
             gridTemplateColumns: isMobile ? undefined : 'repeat(5, 1fr) auto',
+            overflow: 'hidden',
           }}>
             {stats.map(({ num, label }) => (
               <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
-                <div style={C.statNum}>{num}</div>
-                <div style={C.statLabel}>{label}</div>
+                <div style={{ ...C.statNum, fontSize: isMobile ? 22 : 32 }}>{num}</div>
+                <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 10, letterSpacing: isMobile ? 1 : 2 }}>{label}</div>
               </div>
             ))}
-            <QuizWidget username={me.username} />
+            <div style={isMobile ? { flexShrink: 0 } : {}}>
+              <QuizWidget username={me.username} />
+            </div>
           </div>
         );
       })()}

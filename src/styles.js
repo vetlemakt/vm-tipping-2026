@@ -570,16 +570,13 @@ export const C = {
   statsRowMobile: {
     display: 'flex',
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     marginBottom: 16,
-    overflowX: 'auto',
-    WebkitOverflowScrolling: 'touch',
-    paddingBottom: 4,
-    scrollbarWidth: 'none',
   },
   statWidgetMobile: {
-    flexShrink: 0,
-    minWidth: 90,
+    flex: 1,
+    minWidth: 0,
+    padding: '10px 6px',
   },
 
   // ── Dashboard fixed-height cards ──────────────────────────
