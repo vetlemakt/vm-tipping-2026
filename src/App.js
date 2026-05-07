@@ -1023,12 +1023,6 @@ function QuizWidget({ username }) {
   );
 }
 
-const NAV_ICONS = {
-  leaderboard: '/tabell.png',
-  chat: '/chat.png',
-  panel: '/ekspertpanel.png',
-  info: '/info.png',
-};
 const CardIcon = ({ src, size = 18 }) => (
   <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 4px rgba(255,215,0,.4))' }} />
 );
