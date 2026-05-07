@@ -60,12 +60,12 @@ const Flag = ({ team, size=20 }) => {
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
 
 const useIsMobile = () => {
-  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 600px)').matches);
   useEffect(() => {
-    const check = () => setMobile(window.matchMedia('(max-width: 767px)').matches);
-    const mq = window.matchMedia('(max-width: 767px)');
+    const check = () => setMobile(window.matchMedia('(max-width: 600px)').matches);
+    const mq = window.matchMedia('(max-width: 600px)');
     mq.addEventListener('change', check);
-    const onOrient = () => setTimeout(check, 100);
+    const onOrient = () => setTimeout(check, 150);
     window.addEventListener('orientationchange', onOrient);
     window.addEventListener('resize', check);
     return () => {
@@ -77,23 +77,7 @@ const useIsMobile = () => {
   return mobile;
 };
 
-// DEBUG – fjern denne etter testing
-function DebugOverlay() {
-  const isMobile = useIsMobile();
-  const [w, setW] = useState(window.innerWidth);
-  const [sw, setSw] = useState(window.screen.width);
-  useEffect(() => {
-    const h = () => { setW(window.innerWidth); setSw(window.screen.width); };
-    window.addEventListener('resize', h);
-    window.addEventListener('orientationchange', () => setTimeout(h, 150));
-    return () => window.removeEventListener('resize', h);
-  }, []);
-  return (
-    <div style={{ position:'fixed', top:4, right:4, zIndex:9999, background:'rgba(0,0,0,.85)', color:'#0f0', fontSize:11, fontFamily:'monospace', padding:'6px 10px', borderRadius:6, pointerEvents:'none' }}>
-      innerW: {w} | screen.w: {sw} | isMobile: {String(isMobile)}
-    </div>
-  );
-}
+
 
 async function getAdminMessage() {
   const snap = await getDoc(doc(db, 'config', 'adminMessage'));
@@ -3605,7 +3589,6 @@ export default function App() {
   if (!user) return <AuthScreen onLogin={handleLogin} />;
   return (
     <div style={C.app}>
-      <DebugOverlay />
       <Banner user={user} tab={tab} setTab={t => { setViewUser(null); setTab(t); }} phase={phase} onLogout={handleLogout}
         adminMessage={adminMessage} onAdminMessageClick={() => setShowMsgPopup(true)} />
       <div style={C.main}>
