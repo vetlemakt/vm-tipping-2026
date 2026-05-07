@@ -789,6 +789,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
       )}
 
       </div>
+    </div>
   );
 }
 
