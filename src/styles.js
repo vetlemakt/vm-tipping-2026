@@ -153,7 +153,7 @@ export const C = {
 
   // ── GLASSMORPHISM CARDS ────────────────────────────────────
   card: {
-    background: 'rgba(30, 38, 68, 0.72)',
+    background: 'linear-gradient(180deg, rgba(38,48,82,0.78) 0%, rgba(22,30,58,0.68) 100%)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     border: '0.5px solid rgba(255,255,255,.18)',
@@ -221,7 +221,7 @@ export const C = {
     marginBottom: 16,
   },
   statWidget: {
-    background: 'rgba(30, 38, 68, 0.72)',
+    background: 'linear-gradient(180deg, rgba(38,48,82,0.78) 0%, rgba(22,30,58,0.68) 100%)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     border: '0.5px solid rgba(255,255,255,.18)',
@@ -439,7 +439,7 @@ export const C = {
   },
   authBox: {
     position: 'relative', zIndex: 1,
-    background: 'rgba(30,38,68,.80)',
+    background: 'linear-gradient(180deg, rgba(38,48,82,0.85) 0%, rgba(22,30,58,0.78) 100%)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
     border: '0.5px solid rgba(255,255,255,.18)',
