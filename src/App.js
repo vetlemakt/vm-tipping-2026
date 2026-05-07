@@ -1027,8 +1027,14 @@ const CardIcon = ({ src, size = 18 }) => (
   <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 4px rgba(255,215,0,.4))' }} />
 );
 
-// ══════════════════════════════════════════════════════════════════════
-//  DASHBOARD
+const CameraIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 3L7.17 5H4C2.9 5 2 5.9 2 7V19C2 20.1 2.9 21 4 21H20C21.1 21 22 20.1 22 19V7C22 5.9 21.1 5 20 5H16.83L15 3H9ZM12 18C9.24 18 7 15.76 7 13C7 10.24 9.24 8 12 8C14.76 8 17 10.24 17 13C17 15.76 14.76 18 12 18Z" fill="currentColor"/>
+    <circle cx="12" cy="13" r="3" fill="currentColor"/>
+  </svg>
+);
+
+
 // ══════════════════════════════════════════════════════════════════════
 function Dashboard({ me, phase, onShowTips, setTab }) {
   const isMobile = useIsMobile();
@@ -1173,7 +1179,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
         <div style={C.dashCardFixedBody}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
-          {users.slice(0, 8).map((r, i) => {
+          {users.map((r, i) => {
             const tipsLocked = !OPEN_PHASES.has(phase);
             const canView = tipsLocked || r.id === me.username;
             return (
@@ -1194,14 +1200,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             </div>
             );
           })}
-          {users.length > 8 && (
-            <div style={{ textAlign:'center', padding:'8px 0 4px', borderTop:'1px solid rgba(255,255,255,.05)', marginTop:4 }}>
-              <button onClick={() => setTab('leaderboard')}
-                style={{ background:'none', border:'none', color:'rgba(255,255,255,.35)', fontSize:12, cursor:'pointer', fontFamily:"'Fira Code',monospace" }}>
-                +{users.length - 8} til
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1235,8 +1233,13 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           })}
         </div>
         <div style={C.chatInputRow}>
-          <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}} title="Last opp bilde">
-            🖼️
+          <label style={{
+            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            width:38, height:38, flexShrink:0,
+            background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)',
+            borderRadius:8, color:'#FFB700', transition:'background .15s',
+          }} title="Last opp bilde eller ta foto">
+            <CameraIcon />
             <input type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{
               const file=e.target.files[0]; if(!file)return;
               const dataUrl = await compressImage(file);
@@ -1370,8 +1373,19 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <div ref={chatBot}/>
             </div>
             <div style={{ ...C.chatInputRow, flexShrink:0 }}>
-              <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}}>
-                🖼️<input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>sendChatMessage(me.displayName,'',ev.target.result);reader.readAsDataURL(file);e.target.value='';}}/>
+              <label style={{
+                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                width:38, height:38, flexShrink:0,
+                background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)',
+                borderRadius:8, color:'#FFB700',
+              }} title="Last opp bilde eller ta foto">
+                <CameraIcon />
+                <input type="file" accept="image/*,image/gif" style={{display:'none'}} onChange={async e=>{
+                  const file=e.target.files[0];if(!file)return;
+                  const dataUrl = await compressImage(file);
+                  sendChatMessage(me.displayName,'',dataUrl);
+                  e.target.value='';
+                }}/>
               </label>
               <input style={{...C.inp,marginBottom:0,flex:1,fontSize:13,padding:'8px 12px'}}
                 value={input} onChange={e=>setInput(e.target.value)}
@@ -3140,8 +3154,14 @@ function ChatPage({ me }) {
         })}
       </div>
       <div style={C.chatInputRow}>
-        <label style={{cursor:'pointer',padding:'6px 10px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:16,flexShrink:0}}>
-          🖼️<input type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{
+        <label style={{
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          width:38, height:38, flexShrink:0,
+          background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)',
+          borderRadius:8, color:'#FFB700',
+        }} title="Last opp bilde eller ta foto">
+          <CameraIcon />
+          <input type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{
             const file=e.target.files[0];if(!file)return;
             const dataUrl = await compressImage(file);
             sendChatMessage(me.displayName,'',dataUrl);
