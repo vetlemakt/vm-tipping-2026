@@ -3281,7 +3281,6 @@ function ChatPage({ me }) {
           <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
         </div>
       </div>
-      </div>
       <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => {
