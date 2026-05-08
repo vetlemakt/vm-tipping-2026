@@ -244,14 +244,11 @@ const VM_QUIZ_START = new Date('2026-06-11T06:00:00+02:00');
 // Get today's quiz player (rotates daily at 06:00 CEST = 04:00 UTC)
 export function getTodaysPlayer() {
   const now = new Date();
-  // Epoch of day 0: 2026-01-01 06:00 CEST = 2026-01-01 04:00 UTC
   const base = new Date('2026-01-01T04:00:00Z');
-  // Subtract base, then divide by 24h to get day number
-  // Each "quiz day" starts at 04:00 UTC (= 06:00 CEST)
   const msPerDay = 1000 * 60 * 60 * 24;
   let dayIndex = Math.floor((now.getTime() - base.getTime()) / msPerDay);
-  const idx = ((dayIndex % QUIZ_PLAYERS.length) + QUIZ_PLAYERS.length) % QUIZ_PLAYERS.length;
-  return QUIZ_PLAYERS[idx];
+  const idx = ((dayIndex % SHUFFLED_PLAYERS.length) + SHUFFLED_PLAYERS.length) % SHUFFLED_PLAYERS.length;
+  return SHUFFLED_PLAYERS[idx];
 }
 
 // Is the real scoring quiz active? (from VM start)
@@ -270,6 +267,18 @@ export function getQuizDayIndex() {
 }
 
 // Shuffle array
+// Seeded pseudo-random number generator (mulberry32)
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return function() {
+    s += 0x6D2B79F5;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -278,3 +287,15 @@ export function shuffle(arr) {
   }
   return a;
 }
+
+// Shuffled order – fixed seed so all users see same player same day
+const SEED = 20260101;
+const rng = seededRandom(SEED);
+const SHUFFLED_PLAYERS = (() => {
+  const a = [...QUIZ_PLAYERS];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+})();
