@@ -1119,7 +1119,7 @@ function InfoTooltip({ text }) {
             color:'rgba(255,255,255,.85)', lineHeight:1.6,
             boxShadow:'0 8px 24px rgba(0,0,0,.6)',
           }}>
-            <div style={{ position:'absolute', bottom:-6, left:'50%', transform:'translateX(-50%)',
+            <div style={{ position:'absolute', bottom:-6, left:'50%',
               width:10, height:10, background:'rgba(10,14,30,.97)',
               borderRight:'1px solid rgba(255,215,0,.3)', borderBottom:'1px solid rgba(255,215,0,.3)',
               transform:'translateX(-50%) rotate(45deg)' }} />
