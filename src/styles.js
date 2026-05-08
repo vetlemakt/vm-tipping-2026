@@ -449,7 +449,7 @@ export const C = {
     boxShadow: '0 24px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.09)',
   },
   authLogoWrap: { display: 'flex', justifyContent: 'center', marginBottom: 16 },
-  authLogoImg: { height: 120, width: 120, objectFit: 'contain' },
+  authLogoImg: { height: 180, width: 180, objectFit: 'contain' },
   authSub: {
     color: 'rgba(255,255,255,.35)',
     textAlign: 'center', fontSize: 10, letterSpacing: 3,
