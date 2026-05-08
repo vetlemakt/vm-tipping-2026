@@ -1175,7 +1175,118 @@ function ImageUploadButton({ onImage }) {
 
 
 // ══════════════════════════════════════════════════════════════════════
-function Dashboard({ me, phase, onShowTips, setTab }) {
+// ── Mål-chatbot: kommenterer tabellvesentlige mål ────────────────────
+function useGoalChatBot(users, results, me) {
+  const lastTsRef = useRef(null);
+
+  useEffect(() => {
+    if (!users.length) return;
+    const unsub = subscribeLiveEvent(async (ev) => {
+      if (!ev || ev.type !== 'goal') return;
+      if (ev.ts === lastTsRef.current) return; // already handled
+      lastTsRef.current = ev.ts;
+
+      // Build hypothetical results with this goal applied
+      const matchId = ev.matchId;
+      if (!matchId) return;
+      const hypoResults = {
+        ...results,
+        [matchId]: { home: ev.homeGoals, away: ev.awayGoals },
+      };
+
+      // Score all users with current and hypothetical results
+      const current = users.map(u => ({ ...u, ...calcScore(u, results) }));
+      const hypo    = users.map(u => ({ ...u, ...calcScore(u, hypoResults) }));
+
+      // Sort both tables
+      const sort = arr => [...arr].sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
+      const curSorted  = sort(current);
+      const hypoSorted = sort(hypo);
+
+      const curLeader  = curSorted[0];
+      const hypoLeader = hypoSorted[0];
+      const curLast    = curSorted[curSorted.length - 1];
+      const hypoLast   = hypoSorted[hypoSorted.length - 1];
+
+      const triggers = [];
+
+      hypoSorted.forEach((hUser, hIdx) => {
+        const cIdx = curSorted.findIndex(u => u.id === hUser.id);
+        const cUser = curSorted[cIdx];
+
+        // 1. Overtar ledelsen
+        if (hIdx === 0 && cIdx !== 0 && hypoLeader.total > (curLeader?.total || 0)) {
+          triggers.push(`${hUser.displayName} overtar ledelsen på tabellen!`);
+        }
+        // 2. Overtar sisteplassen
+        if (hIdx === hypoSorted.length - 1 && cIdx !== curSorted.length - 1) {
+          triggers.push(`${hUser.displayName} rykker ned til sisteplass på tabellen.`);
+        }
+        // 3. Hopper mer enn 3 plasser opp
+        if (cIdx - hIdx > 3) {
+          triggers.push(`${hUser.displayName} hopper ${cIdx - hIdx} plasser opp på tabellen!`);
+        }
+        // 4. Ett mål unna superbonus (nåværende kamp har 4 mål totalt = ett unna 5)
+        const totalGoals = ev.homeGoals + ev.awayGoals;
+        if (totalGoals === 4) {
+          const tip = hUser.tips?.[matchId];
+          if (tip && parseInt(tip.home) === ev.homeGoals && parseInt(tip.away) === ev.awayGoals) {
+            triggers.push(`${hUser.displayName} er ett mål unna superbonus på denne kampen!`);
+          }
+        }
+        // 5. Oppnår superbonus
+        if (totalGoals >= 5) {
+          const tip = hUser.tips?.[matchId];
+          if (tip && parseInt(tip.home) === ev.homeGoals && parseInt(tip.away) === ev.awayGoals) {
+            triggers.push(`${hUser.displayName} oppnår superbonus på denne kampen! 🎯`);
+          }
+        }
+        // 6. Tar innpå leder med mer enn 4 poeng foran
+        const curGap = (curLeader?.total || 0) - (cUser?.total || 0);
+        const hypoGap = (hypoLeader?.total || 0) - hUser.total;
+        if (curGap > 4 && hypoGap < curGap && hIdx !== 0) {
+          triggers.push(`${hUser.displayName} tar innpå lederen – nå bare ${hypoGap} poeng bak!`);
+        }
+      });
+
+      if (triggers.length === 0) return;
+
+      // Pick random expert and generate comment
+      const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+      const triggerText = triggers.slice(0, 2).join(' ');
+      const homeNor = ev.homeNor || ev.shortHome || '';
+      const awayNor = ev.awayNor || ev.shortAway || '';
+      const scoreStr = `${ev.homeGoals}-${ev.awayGoals}`;
+
+      const prompt = `${expert.personality}
+
+Det har nettopp blitt scoret mål i kampen ${homeNor} mot ${awayNor}. Stillingen er nå ${scoreStr} (${ev.playerName || 'ukjent'}, ${ev.minute}'). 
+Dette er tabellmessig interessant fordi: ${triggerText}
+
+Kommenter dette i chatten – kort og engasjert, maks 3 setninger. Skriv som deg selv, ikke nevn at du er en bot.`;
+
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 150,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+        const data = await res.json();
+        const text = data.content?.[0]?.text?.trim();
+        if (text) await sendChatMessage(expert.name, text);
+      } catch (e) {
+        console.error('GoalChatBot error:', e);
+      }
+    });
+    return unsub;
+  }, [users, results]); // eslint-disable-line
+}
+
+
   const isMobile = useIsMobile();
   const [users, setUsers] = useState([]);
   const [results, setResultsState] = useState({});
@@ -1189,6 +1300,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
   const { soundOn, toggleSound, playSound } = useChatSound();
   const prevMsgCount = useRef(0);
+  useGoalChatBot(users, results, me);
 
   useEffect(() => {
     if (msgs.length > 0 && prevMsgCount.current > 0 && msgs.length > prevMsgCount.current) {
