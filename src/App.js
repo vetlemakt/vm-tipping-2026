@@ -1205,8 +1205,6 @@ function useGoalChatBot(users, results, me) {
 
       const curLeader  = curSorted[0];
       const hypoLeader = hypoSorted[0];
-      const curLast    = curSorted[curSorted.length - 1];
-      const hypoLast   = hypoSorted[hypoSorted.length - 1];
 
       const triggers = [];
 
