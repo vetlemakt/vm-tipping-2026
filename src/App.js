@@ -1286,7 +1286,7 @@ Kommenter dette i chatten – kort og engasjert, maks 3 setninger. Skriv som deg
   }, [users, results]); // eslint-disable-line
 }
 
-
+function Dashboard({ me, phase, onShowTips, setTab }) {
   const isMobile = useIsMobile();
   const [users, setUsers] = useState([]);
   const [results, setResultsState] = useState({});
