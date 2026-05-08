@@ -210,9 +210,10 @@ export const WS_MSGS = {
 };
 
 export const SPEC_FIELDS = [
-  { key:'champion',    label:'🥇 Verdensmester',   pts:30 },
-  { key:'runner_up',   label:'🥈 Sølvvinner',       pts:20 },
-  { key:'third',       label:'🥉 Bronsevinner',      pts:10 },
-  { key:'topscorer',   label:'⚽ Toppscorer',         pts:20 },
-  { key:'most_carded', label:'🟨 Mest kort – lag',   pts:10 },
+  { key:'champion',    label:'🥇 Verdensmester',                pts:30 },
+  { key:'runner_up',   label:'🥈 Sølvvinner',                   pts:20 },
+  { key:'third',       label:'🥉 Bronsevinner',                  pts:10 },
+  { key:'topscorer',   label:'⚽ Toppscorer',                    pts:20 },
+  { key:'most_carded', label:'🟨 Flest gule/røde kort', pts:10,
+    tooltip:'Tipp hvilket lag som pådrar seg flest "kortpoeng" gjennom mesterskapet. Gule kort teller som 1 poeng, røde kort teller som 3 poeng. Får en spiller gult → rødt i samme kamp teller det kun 3 poeng (ikke 4).' },
 ];

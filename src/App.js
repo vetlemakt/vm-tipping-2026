@@ -1097,6 +1097,40 @@ function SoundToggle({ soundOn, onToggle }) {
   );
 }
 
+function InfoTooltip({ text }) {
+  const [show, setShow] = useState(false);
+  const isMobile = useIsMobile();
+  return (
+    <span style={{ position:'relative', display:'inline-flex', alignItems:'center', marginLeft:5 }}>
+      <span
+        onMouseEnter={() => !isMobile && setShow(true)}
+        onMouseLeave={() => !isMobile && setShow(false)}
+        onClick={() => setShow(s => !s)}
+        style={{ cursor:'pointer', color:'rgba(255,215,0,.7)', fontSize:13, lineHeight:1, userSelect:'none' }}
+        title={isMobile ? '' : text}
+      >ⓘ</span>
+      {show && (
+        <>
+          <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:998 }} />
+          <div style={{
+            position:'absolute', bottom:'130%', left:'50%', transform:'translateX(-50%)',
+            zIndex:999, background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.3)',
+            borderRadius:10, padding:'10px 14px', width:260, fontSize:12,
+            color:'rgba(255,255,255,.85)', lineHeight:1.6,
+            boxShadow:'0 8px 24px rgba(0,0,0,.6)',
+          }}>
+            <div style={{ position:'absolute', bottom:-6, left:'50%', transform:'translateX(-50%)',
+              width:10, height:10, background:'rgba(10,14,30,.97)',
+              borderRight:'1px solid rgba(255,215,0,.3)', borderBottom:'1px solid rgba(255,215,0,.3)',
+              transform:'translateX(-50%) rotate(45deg)' }} />
+            {text}
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
+
 const CardIcon = ({ src, size = 18 }) => (
   <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 4px rgba(255,215,0,.4))' }} />
 );
@@ -1961,14 +1995,14 @@ function TipsForm({ me, phase, viewUser }) {
         {/* Spesialtips */}
         <div style={C.specBox}>
           <span style={C.secH}>🌟 Spesialtips – låses før gruppespillet</span>
-          {SPEC_FIELDS.map(({ key, label, pts }) => {
+          {SPEC_FIELDS.map(({ key, label, pts, tooltip }) => {
             const correctVal = results[key];
             const tipVal = spec[key];
             const correct = correctVal && tipVal && tipVal === correctVal;
             const specPts = correct ? pts : null;
             return (
               <div key={key} style={C.specRow}>
-                <span style={C.specLabel}>{label}</span>
+                <span style={C.specLabel}>{label}{tooltip && <InfoTooltip text={tooltip} />}</span>
                 <span style={C.ptsBadge}>{pts}p</span>
                 {grpOk ? (
                   key === 'topscorer' ? (
@@ -2485,7 +2519,7 @@ function AdminPanel() {
         {aTab === 'special' && (
           <div style={C.specBox}>
             {[{ key: 'champion', label: '🥇 Verdensmester' }, { key: 'runner_up', label: '🥈 Sølvvinner' },
-              { key: 'third', label: '🥉 Bronsevinner' }, { key: 'most_carded', label: '🟨 Mest kort – lag' }].map(({ key, label }) => (
+              { key: 'third', label: '🥉 Bronsevinner' }, { key: 'most_carded', label: '🟨 Flest gule/røde kort' }].map(({ key, label }) => (
               <div key={key} style={C.specRow}>
                 <span style={C.specLabel}>{label}</span>
                 <select style={C.sel} value={results[key] || ''} onChange={e => setSpec(key, e.target.value)}>
