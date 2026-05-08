@@ -1102,28 +1102,28 @@ function InfoTooltip({ text }) {
   const isMobile = useIsMobile();
   const hideTimer = useRef(null);
 
-  const handleEnter = () => {
-    clearTimeout(hideTimer.current);
-    setShow(true);
-  };
-  const handleLeave = () => {
-    hideTimer.current = setTimeout(() => setShow(false), 150);
-  };
+  const enter = () => { clearTimeout(hideTimer.current); setShow(true); };
+  const leave = () => { hideTimer.current = setTimeout(() => setShow(false), 300); };
 
   return (
     <span style={{ position:'relative', display:'inline-flex', alignItems:'center', marginLeft:5 }}>
       <span
-        onMouseEnter={() => !isMobile && handleEnter()}
-        onMouseLeave={() => !isMobile && handleLeave()}
-        onClick={() => setShow(s => !s)}
+        onMouseEnter={() => !isMobile && enter()}
+        onMouseLeave={() => !isMobile && leave()}
+        onClick={() => isMobile && setShow(s => !s)}
         style={{ cursor:'pointer', color:'rgba(255,215,0,.7)', fontSize:13, lineHeight:1, userSelect:'none' }}
       >ⓘ</span>
       {show && (
         <>
-          <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:998 }} />
+          {isMobile && <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:998 }} />}
+          {/* Invisible bridge between icon and popup to prevent mouseLeave firing */}
+          <div style={{ position:'absolute', bottom:'100%', left:'50%', transform:'translateX(-50%)', width:40, height:16, zIndex:999 }}
+            onMouseEnter={() => !isMobile && enter()}
+            onMouseLeave={() => !isMobile && leave()}
+          />
           <div
-            onMouseEnter={() => !isMobile && handleEnter()}
-            onMouseLeave={() => !isMobile && handleLeave()}
+            onMouseEnter={() => !isMobile && enter()}
+            onMouseLeave={() => !isMobile && leave()}
             style={{
               position:'absolute', bottom:'130%', left:'50%', transform:'translateX(-50%)',
               zIndex:999, background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.3)',
