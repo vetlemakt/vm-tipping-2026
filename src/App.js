@@ -2604,10 +2604,11 @@ function AdminPanel() {
 
 // ── Info Page ────────────────────────────────────────────────────────
 function InfoPage() {
+  const nyRegel = <em style={{ color:'#FFD700', fontStyle:'italic', fontSize:11, marginLeft:8, textShadow:'0 0 8px rgba(255,215,0,0.7)', letterSpacing:1 }}>NY REGEL!</em>;
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
       <div style={{ background:'rgba(22,27,44,.75)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28, marginBottom:16 }}>
-        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, marginBottom:20 }}>ℹ️ Om VM-tipping 2026</h2>
+        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, marginBottom:20 }}>Om VM-tipping 2026</h2>
 
         <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🏆 Poengsystem – Kamper</h3>
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
@@ -2615,14 +2616,15 @@ function InfoPage() {
           <div>⚽ Riktig antall mål hjemmelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
           <div>⚽ Riktig antall mål bortelag: <strong style={{color:'#FFD700'}}>1 poeng</strong></div>
           <div style={{marginTop:6}}>⚡ Fulltreffer (rett resultat): <strong style={{color:'#FFD700'}}>4 poeng totalt</strong></div>
-          <div style={{background:'rgba(255,215,0,.07)',borderRadius:8,padding:'8px 12px',marginTop:8,border:'1px solid rgba(255,215,0,.2)'}}>
+          <div style={{marginTop:6}}>
             <strong style={{color:'#FFD700'}}>⚡ SUPERBONUS:</strong> <span style={{color:'rgba(255,255,255,.8)'}}>Tipp rett resultat i en kamp med 5 mål eller mer og du får <strong style={{color:'#FFD700'}}>5 poeng</strong> – ett ekstra for å tørre å tippe høyt!</span>
+            {nyRegel}
           </div>
         </div>
 
         <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>📋 Poengsystem – Grupper</h3>
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
-          <div>🎯 Riktig grupplassering: <strong style={{color:'#FFD700'}}>5 poeng per lag</strong></div>
+          <div>🎯 Riktig gruppeplassering: <strong style={{color:'#FFD700'}}>5 poeng per lag</strong></div>
           <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Maks per gruppe: 20 poeng (4 lag × 5p)</div>
         </div>
 
@@ -2632,20 +2634,21 @@ function InfoPage() {
           <div>🥈 Riktig sølvvinner: <strong style={{color:'#FFD700'}}>20 poeng</strong></div>
           <div>🥉 Riktig bronsevinner: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
           <div>⚽ Riktig toppscorer (spillernavn): <strong style={{color:'#FFD700'}}>20 poeng</strong></div>
-          <div>🟨 Riktig lag med mest kort: <strong style={{color:'#FFD700'}}>10 poeng</strong></div>
+          <div>🟨 Riktig lag med flest kort: <strong style={{color:'#FFD700'}}>10 poeng</strong>{nyRegel}</div>
         </div>
 
-        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🃏 Daglig Quiz</h3>
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
-          <div>Gjett VM-spilleren fra Panini-kortet! Ny spiller hver dag kl. 06:00.</div>
-          <div style={{marginTop:4}}>🏆 Spilleren med flest rette svar ved slutten av finalen (19. juli 2026) tildeles <strong style={{color:'#FFD700'}}>0,5 ekstrapoeng</strong> i sammendraget.</div>
-          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Ved delt førsteplass i quizzen deles det halve poenget mellom vinnerne. VM-quiz starter 11. juni og avsluttes 19. juli.</div>
-        </div>
-        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
-          <div>• Alle tips leveres <strong style={{color:'#FFD700'}}>før</strong> gruppespillet starter</div>
+          <div>• Tips leveres <strong style={{color:'#FFD700'}}>før</strong> gruppespillet starter</div>
           <div>• Sluttspill-tips kan endres mellom hver runde</div>
           <div>• Vinduet stenges 2 timer før kampstart i hver ny runde</div>
           <div>• Spesialtips (VM-vinner, toppscorer osv.) kan <strong style={{color:'#f87171'}}>ikke</strong> endres etter at gruppespillet starter</div>
+        </div>
+
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🃏 Daglig Quiz {nyRegel}</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div>Gjett VM-spilleren fra Panini-kortet! Ny spiller hver dag kl. 06:00.</div>
+          <div style={{marginTop:4}}>🏆 Spilleren med flest rette svar ved slutten av finalen (19. juli 2026) tildeles <strong style={{color:'#FFD700'}}>0,5 ekstrapoeng</strong> i sammendraget.</div>
+          <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:4}}>Ved delt førsteplass i quizzen deles det halve poenget mellom vinnerne. VM-quiz starter 11. juni og avsluttes 19. juli.</div>
         </div>
       </div>
 
