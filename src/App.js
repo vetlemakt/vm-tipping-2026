@@ -1100,25 +1100,37 @@ function SoundToggle({ soundOn, onToggle }) {
 function InfoTooltip({ text }) {
   const [show, setShow] = useState(false);
   const isMobile = useIsMobile();
+  const hideTimer = useRef(null);
+
+  const handleEnter = () => {
+    clearTimeout(hideTimer.current);
+    setShow(true);
+  };
+  const handleLeave = () => {
+    hideTimer.current = setTimeout(() => setShow(false), 150);
+  };
+
   return (
     <span style={{ position:'relative', display:'inline-flex', alignItems:'center', marginLeft:5 }}>
       <span
-        onMouseEnter={() => !isMobile && setShow(true)}
-        onMouseLeave={() => !isMobile && setShow(false)}
+        onMouseEnter={() => !isMobile && handleEnter()}
+        onMouseLeave={() => !isMobile && handleLeave()}
         onClick={() => setShow(s => !s)}
         style={{ cursor:'pointer', color:'rgba(255,215,0,.7)', fontSize:13, lineHeight:1, userSelect:'none' }}
-        title={isMobile ? '' : text}
       >ⓘ</span>
       {show && (
         <>
           <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:998 }} />
-          <div style={{
-            position:'absolute', bottom:'130%', left:'50%', transform:'translateX(-50%)',
-            zIndex:999, background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.3)',
-            borderRadius:10, padding:'10px 14px', width:260, fontSize:12,
-            color:'rgba(255,255,255,.85)', lineHeight:1.6,
-            boxShadow:'0 8px 24px rgba(0,0,0,.6)',
-          }}>
+          <div
+            onMouseEnter={() => !isMobile && handleEnter()}
+            onMouseLeave={() => !isMobile && handleLeave()}
+            style={{
+              position:'absolute', bottom:'130%', left:'50%', transform:'translateX(-50%)',
+              zIndex:999, background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.3)',
+              borderRadius:10, padding:'10px 14px', width:260, fontSize:12,
+              color:'rgba(255,255,255,.85)', lineHeight:1.6,
+              boxShadow:'0 8px 24px rgba(0,0,0,.6)',
+            }}>
             <div style={{ position:'absolute', bottom:-6, left:'50%',
               width:10, height:10, background:'rgba(10,14,30,.97)',
               borderRight:'1px solid rgba(255,215,0,.3)', borderBottom:'1px solid rgba(255,215,0,.3)',
