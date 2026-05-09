@@ -2403,31 +2403,61 @@ function TipsForm({ me, phase, viewUser }) {
                 const rightAway    = hasAct && hasTip && tA === aA;
                 const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
 
-                // Resolve placeholder to actual team from user's group picks
+                // Resolve placeholder to actual team only when group is fully played
+                const groupIsFinished = (grpLetter) => {
+                  if (!grpLetter) return false;
+                  return GROUP_MATCHES.filter(m => m.group === grpLetter).every(m => results[m.id]?.home !== undefined);
+                };
                 const resolveSlot = (slot) => {
                   if (!slot) return null;
                   const vinnerMatch = slot.match(/^Vinner ([A-L])$/);
-                  const toerMatch = slot.match(/^Toer ([A-L])$/);
-                  if (vinnerMatch) { const g = vinnerMatch[1]; return (grpO[g] || [])[0] || null; }
-                  if (toerMatch)   { const g = toerMatch[1];   return (grpO[g] || [])[1] || null; }
+                  const toerMatch   = slot.match(/^Toer ([A-L])$/);
+                  if (vinnerMatch) {
+                    const g = vinnerMatch[1];
+                    if (!groupIsFinished(g)) return null;
+                    return results[`grp_${g}`]?.[0] || (grpO[g] || [])[0] || null;
+                  }
+                  if (toerMatch) {
+                    const g = toerMatch[1];
+                    if (!groupIsFinished(g)) return null;
+                    return results[`grp_${g}`]?.[1] || (grpO[g] || [])[1] || null;
+                  }
+                  return null;
+                };
+                // User's tip for the slot (shown in parens before group is done)
+                const tipForSlot = (slot) => {
+                  if (!slot) return null;
+                  const vinnerMatch = slot.match(/^Vinner ([A-L])$/);
+                  const toerMatch   = slot.match(/^Toer ([A-L])$/);
+                  if (vinnerMatch) return (grpO[vinnerMatch[1]] || [])[0] || null;
+                  if (toerMatch)   return (grpO[toerMatch[1]] || [])[1] || null;
                   return null;
                 };
                 const resolvedHome = hasAct ? act.homeTeam : resolveSlot(m.home);
                 const resolvedAway = hasAct ? act.awayTeam : resolveSlot(m.away);
+                const tipHome = !resolvedHome ? tipForSlot(m.home) : null;
+                const tipAway = !resolvedAway ? tipForSlot(m.away) : null;
 
-                const TeamLabel = ({ slot, resolved, align }) => {
+                const TeamLabel = ({ slot, resolved, tip, align }) => {
                   const code = resolved ? COUNTRY_CODES[resolved] : null;
+                  const tipCode = tip ? COUNTRY_CODES[tip] : null;
                   return (
                     <div style={{display:'flex',flexDirection:'column',alignItems: align==='right' ? 'flex-end' : 'flex-start',minWidth:0,flex:1}}>
+                      {/* Placeholder or resolved team */}
                       <div style={{display:'flex',alignItems:'center',gap:3,justifyContent: align==='right' ? 'flex-end' : 'flex-start'}}>
-                        {align==='right' && <span style={{fontSize:11,color:'rgba(255,255,255,.7)',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{resolved || slot}</span>}
-                        {code
+                        {align==='right' && <span style={{fontSize:11,color: resolved ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.4)',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{resolved || slot}</span>}
+                        {resolved && code
                           ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{width:18,height:13,objectFit:'cover',borderRadius:2,flexShrink:0}} />
-                          : <Flag team={resolved || slot} size={18}/>}
-                        {align==='left' && <span style={{fontSize:11,color:'rgba(255,255,255,.7)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{resolved || slot}</span>}
+                          : !resolved && <span style={{fontSize:14}}>🏳️</span>}
+                        {align==='left' && <span style={{fontSize:11,color: resolved ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.4)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{resolved || slot}</span>}
                       </div>
-                      {!resolved && !hasAct && (
-                        <span style={{fontSize:9,color:'rgba(255,255,255,.3)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>{slot}</span>
+                      {/* User's tip in parens when group not done */}
+                      {!resolved && tip && (
+                        <div style={{display:'flex',alignItems:'center',gap:3,marginTop:2,justifyContent: align==='right' ? 'flex-end' : 'flex-start'}}>
+                          {align==='right' && <span style={{fontSize:9,color:'rgba(255,215,0,.5)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>({tip})</span>}
+                          {tipCode && <img src={`https://flagcdn.com/w20/${tipCode}.png`} alt="" style={{width:14,height:10,objectFit:'cover',borderRadius:1,flexShrink:0,opacity:0.6}} />}
+                          {align==='left' && <span style={{fontSize:9,color:'rgba(255,215,0,.5)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>({tip})</span>}
+                        </div>
                       )}
                     </div>
                   );
@@ -2445,7 +2475,7 @@ function TipsForm({ me, phase, viewUser }) {
                       {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
                     </div>
                     {/* Home */}
-                    <TeamLabel slot={m.home} resolved={resolvedHome} align="right" />
+                    <TeamLabel slot={m.home} resolved={resolvedHome} tip={tipHome} align="right" />
                     {/* Score box */}
                     <div style={{
                       display:'flex', flexDirection:'column', alignItems:'center', gap:1,
@@ -2463,7 +2493,7 @@ function TipsForm({ me, phase, viewUser }) {
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
                     </div>
                     {/* Away */}
-                    <TeamLabel slot={m.away} resolved={resolvedAway} align="left" />
+                    <TeamLabel slot={m.away} resolved={resolvedAway} tip={tipAway} align="left" />
                     {/* Points */}
                     <div style={{width:20,flexShrink:0,textAlign:'right'}}>
                       {renderPtsBadge(pts)}
