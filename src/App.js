@@ -2457,6 +2457,7 @@ function TipsForm({ me, phase, viewUser }) {
           {dirty && <p style={{ color:'#f59e0b', fontSize:11, textAlign:'center', marginTop:6, fontFamily:"'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
         </>}
       </div>
+    </div>
 
       {/* Flytende lagre-knapp */}
       {isOwn && (
@@ -2477,8 +2478,6 @@ function TipsForm({ me, phase, viewUser }) {
           </button>
         </div>
       )}
-
-      {/* Flytende lagre-knapp */}
 
       {grpPopup && (
         <GroupOrderPopup group={grpPopup} grpO={grpO} setOrd={setOrd} results={results} grpOk={grpOk} onClose={() => setGrpPopup(null)} />
