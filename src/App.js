@@ -2254,13 +2254,12 @@ function TipsForm({ me, phase, viewUser }) {
         </div>
         {/* VM-vinner bildekarusell */}
         {(() => {
-          const WC_WINNER_IMGS = [
-            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Goles_argentina_campeon_mundial.jpg/800px-Goles_argentina_campeon_mundial.jpg', caption: 'Argentina 2022' },
-            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Germany_lifts_the_2014_FIFA_World_Cup.jpg/800px-Germany_lifts_the_2014_FIFA_World_Cup.jpg', caption: 'Tyskland 2014' },
-            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/2010_FIFA_World_Cup_Spain_with_cup.JPG/800px-2010_FIFA_World_Cup_Spain_with_cup.JPG', caption: 'Spania 2010' },
-            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Corentin_Tolisso_World_Cup_Trophy.jpg/600px-Corentin_Tolisso_World_Cup_Trophy.jpg', caption: 'Frankrike 2018' },
-          ];
-          const img = WC_WINNER_IMGS[Math.floor(Date.now() / 86400000) % WC_WINNER_IMGS.length];
+          // Daglig seed gir samme bilde for alle brukere samme dag
+          const daySeed = Math.floor(Date.now() / 86400000);
+          const keywords = ['soccer world cup trophy', 'football world cup celebration', 'FIFA world cup stadium', 'world cup football fans'];
+          const keyword = keywords[daySeed % keywords.length];
+          const imgUrl = `https://source.unsplash.com/800x500/?${encodeURIComponent(keyword)}&sig=${daySeed}`;
+          const img = { url: imgUrl, caption: 'FIFA World Cup' };
           return (
             <div className="hide-portrait" style={{
               background: 'rgba(0,0,0,.2)', borderRadius: 12,
