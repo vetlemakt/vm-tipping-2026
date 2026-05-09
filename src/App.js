@@ -1185,7 +1185,7 @@ function PlayerAutocomplete({ value, onChange, placeholder }) {
   const posColor = { GK: '#94a3b8', DEF: '#60a5fa', MID: '#34d399', FWD: '#f87171' };
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', flex: 1 }}>
+    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', minWidth: 160 }}>
       <div style={{ position: 'relative' }}>
         <input
           style={{ ...C.inp, marginBottom: 0, width: '100%', fontSize: 13, padding: '6px 32px 6px 10px',
@@ -2078,10 +2078,11 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
             <div key={pos} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={{ color:'rgba(255,255,255,.4)', fontSize:12, width:16 }}>{pos+1}.</span>
               {grpOk ? (
-                <select style={{ ...C.sel, flex:1, opacity:1 }} value={picked} onChange={e => setOrd(group, pos, e.target.value)}>
-                  <option value=''>– Velg –</option>
-                  {teams.map(t => <option key={t} value={t}>{FLAGS[t]||''} {t}</option>)}
-                </select>
+                <TeamSelect
+                  value={picked}
+                  onChange={val => setOrd(group, pos, val)}
+                  teams={teams}
+                />
               ) : (
                 <span style={{ flex:1, fontSize:13, color:'#e8edf8', display:'flex', alignItems:'center', gap:6 }}>
                   {picked ? <><Flag team={picked} /> {picked}</> : <span style={{color:'rgba(255,255,255,.3)'}}>–</span>}
@@ -2642,10 +2643,11 @@ function AdminPanel() {
           {[0, 1, 2, 3].map(pos => (
             <div key={pos} style={C.plRow}>
               <span style={C.plPos}>{pos + 1}.</span>
-              <select style={C.sel} value={results[`grp_${ag}`]?.[pos] || ''} onChange={e => setGrpResult(ag, pos, e.target.value)}>
-                <option value=''>– Velg –</option>
-                {GROUPS[ag].map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <TeamSelect
+                value={results[`grp_${ag}`]?.[pos] || ''}
+                onChange={val => setGrpResult(ag, pos, val)}
+                teams={GROUPS[ag]}
+              />
             </div>
           ))}
         </>}
