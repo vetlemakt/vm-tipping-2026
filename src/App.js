@@ -2256,18 +2256,34 @@ function TipsForm({ me, phase, viewUser }) {
         {(() => {
           // Daglig seed gir samme bilde for alle brukere samme dag
           const daySeed = Math.floor(Date.now() / 86400000);
-          // Verifiserte Unsplash football/VM-bilder
           const WC_IMGS = [
+            '/arg.jfif',                                                          // Argentina 2022
             'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&fit=crop', // stadium crowd
             'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&fit=crop', // soccer ball
             'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800&fit=crop', // football match
             'https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?w=800&fit=crop', // stadium lights
             'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&fit=crop', // football game
-            'https://images.unsplash.com/photo-1434648957308-5e6a859697e8?w=800&fit=crop', // trophy cup
-            '/arg.jfif', // Argentina 2022
+            'https://images.unsplash.com/photo-1434648957308-5e6a859697e8?w=800&fit=crop', // trophy
+            'https://images.unsplash.com/photo-1541252260730-0412e8e2108e?w=800&fit=crop', // MPhf5gE1qrI – WC 2022 fans
+            'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&fit=crop', // 65yjpk2HSlA – stadium night
+            'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=800&fit=crop', // IM2lm0RbbgA – packed stadium
+            'https://images.unsplash.com/photo-1610201429753-a2bbbf01d5b0?w=800&fit=crop', // QcJ56_7JgFQ – world cup trophy
+            'https://images.unsplash.com/photo-1580847097346-72d80f164702?w=800&fit=crop', // pTK5zcOMESQ – Berlin stadium
+            'https://images.unsplash.com/photo-1551958219-acbc595d0a7c?w=800&fit=crop', // CVR95rpcJoo – Lofoten stadium
+            'https://images.unsplash.com/photo-1522778526097-ce0a22ceb253?w=800&fit=crop', // K4IVAFtu9GA – aerial stadium Brazil
+            'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800&fit=crop', // rFehnP5wN4Q – stadium daytime
+            'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=800&fit=crop', // YpHQAk29xt4 – WC trophy
+            'https://images.unsplash.com/photo-1588392382834-a891154bca4d?w=800&fit=crop', // _t4qb96wc14 – crowd cheering
+            'https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=800&fit=crop', // autxSXluVvc – fans flag
+            'https://images.unsplash.com/photo-1623136564798-34e3d596e3cf?w=800&fit=crop', // RHd9lycurdI – Brazil fans
+            'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&fit=crop', // MPhf5gE1qrI – fans stadium
+            'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=800&fit=crop', // oc8m9Cj8dsc – celebration
+            'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&fit=crop', // NPyS9whm_Yw – stadium
+            'https://images.unsplash.com/photo-1593341646782-e0b495cff86d?w=800&fit=crop', // dRVkXPa3a1A – fans streets
+            'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=800&fit=crop', // L_Z0Sb2xcj0 – crowd banner
+            'https://images.unsplash.com/photo-1626248801379-51a0748a5f96?w=800&fit=crop', // stadium action
           ];
-          const imgUrl = WC_IMGS[daySeed % WC_IMGS.length];
-          const img = { url: imgUrl, caption: 'FIFA World Cup' };
+          const img = { url: WC_IMGS[daySeed % WC_IMGS.length], caption: 'FIFA World Cup' };
           return (
             <div className="hide-portrait" style={{
               background: 'rgba(0,0,0,.2)', borderRadius: 12,
