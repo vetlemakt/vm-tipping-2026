@@ -2279,35 +2279,36 @@ function TipsForm({ me, phase, viewUser }) {
 
         {tab === 'group' && <>
           {/* Group cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(12, 1fr)', gap: 6, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(12, 1fr)', gap: isMobile ? 6 : 10, marginBottom: 14 }}>
             {Object.entries(GROUPS).map(([g, teams]) => {
               const order = grpO[g] || [];
               const filled = order.filter(Boolean).length === 4;
-              const displayTeams = filled ? order : teams;
+              const groupDone = GROUP_MATCHES.filter(m => m.group === g).every(m => results[m.id]?.home !== undefined);
               return (
                 <button
                   key={g}
                   onClick={e => { e.stopPropagation(); setGrpPopup(g); }}
                   style={{
                     background: 'rgba(255,255,255,.05)',
-                    border: '1px solid rgba(255,255,255,.12)',
-                    borderRadius: 8, padding: '6px 4px',
+                    border: groupDone ? '1px solid rgba(255,215,0,.6)' : '1px solid rgba(255,255,255,.1)',
+                    borderRadius: 8, padding: '5px 3px',
                     cursor: 'pointer', textAlign: 'center',
                     transition: 'all .15s', minWidth: 0,
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.1)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 800, color: filled ? '#FFD700' : '#e8edf8', fontFamily: "'Kanit',sans-serif", marginBottom: 4, lineHeight: 1 }}>{g}</div>
-                  {displayTeams.map((team, i) => {
+                  <div style={{ fontSize: 12, fontWeight: 800, color: filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Kanit',sans-serif", marginBottom: 3, lineHeight: 1 }}>{g}</div>
+                  {teams.map((team, i) => {
                     const code = COUNTRY_CODES[team];
                     const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
+                    const placed = order.indexOf(team) !== -1;
                     return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2, justifyContent: 'flex-start' }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2, justifyContent: 'center' }}>
                         {code
-                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 14, height: 10, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
-                          : <span style={{ width: 14 }} />}
-                        <span style={{ fontSize: 9, color: filled ? '#e8edf8' : 'rgba(255,255,255,.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
+                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 13, height: 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
+                          : <span style={{ width: 13 }} />}
+                        <span style={{ fontSize: 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
                       </div>
                     );
                   })}
