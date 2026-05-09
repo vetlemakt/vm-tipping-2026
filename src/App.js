@@ -2212,8 +2212,8 @@ function TipsForm({ me, phase, viewUser }) {
         )}
 
         {/* Spesialtips */}
-        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-        <div style={{ ...C.specBox, flex: 1 }}>
+        <div style={{ display: 'flex', gap: 20, alignItems: 'stretch' }}>
+        <div style={{ ...C.specBox, flex: '0 0 auto' }}>
           <span style={C.secH}>🌟 Spesialtips – låses før gruppespillet</span>
           {SPEC_FIELDS.map(({ key, label, pts, tooltip }) => {
             const correctVal = results[key];
@@ -2251,17 +2251,20 @@ function TipsForm({ me, phase, viewUser }) {
           })}
         </div>
         {/* Dekorativt bilde – skjules på stående mobil */}
-        <img
-          src="/arg.jfif"
-          alt=""
-          className="hide-portrait"
-          style={{
-            width: 220, borderRadius: 16, objectFit: 'cover',
-            alignSelf: 'stretch',
-            boxShadow: '0 8px 32px rgba(0,0,0,.5)',
-            flexShrink: 0,
-          }}
-        />
+        <div className="hide-portrait" style={{
+          flex: 1, minWidth: 0, borderRadius: 16, overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0,0,0,.5)',
+        }}>
+          <img
+            src="/arg.jfif"
+            alt=""
+            style={{
+              width: '100%', height: '100%',
+              objectFit: 'cover', objectPosition: 'center top',
+              display: 'block',
+            }}
+          />
+        </div>
         </div>
 
         {/* Tabs */}
