@@ -1188,8 +1188,8 @@ function PlayerAutocomplete({ value, onChange, placeholder }) {
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', minWidth: 160 }}>
       <div style={{ position: 'relative' }}>
         <input
-          style={{ ...C.inp, marginBottom: 0, width: '100%', fontSize: 13, padding: '6px 32px 6px 10px',
-            borderColor: selected ? 'rgba(74,222,128,.5)' : undefined }}
+          style={{ ...C.inp, marginBottom: 0, width: '100%', fontSize: 14, padding: '8px 32px 8px 12px',
+            borderColor: selected ? 'rgba(74,222,128,.5)' : undefined, whiteSpace: 'nowrap' }}
           value={query}
           onChange={handleChange}
           onFocus={() => query.length >= 2 && setOpen(true)}
@@ -2208,7 +2208,7 @@ function TipsForm({ me, phase, viewUser }) {
                     <PlayerAutocomplete
                       value={spec[key] || ''}
                       onChange={val => setSp(key, val)}
-                      placeholder="Søk etter spiller (f.eks. Haaland)"
+                      placeholder="Søk etter spiller..."
                     />
                   ) : (
                     <>
