@@ -1250,9 +1250,11 @@ function PlayerAutocomplete({ value, onChange, placeholder }) {
 }
 
 
-function TeamSelect({ value, onChange, teams }) {
+function TeamSelect({ value, onChange, teams, dimmed = [] }) {
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const wrapRef = useRef(null);
+  const listRef = useRef(null);
 
   useEffect(() => {
     const handler = (e) => {
@@ -1262,6 +1264,15 @@ function TeamSelect({ value, onChange, teams }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const handleToggle = () => {
+    if (!open && wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUp(spaceBelow < 280);
+    }
+    setOpen(o => !o);
+  };
+
   const flagUrl = (team) => {
     const code = COUNTRY_CODES[team];
     return code ? `https://flagcdn.com/w20/${code}.png` : null;
@@ -1270,7 +1281,7 @@ function TeamSelect({ value, onChange, teams }) {
   return (
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block' }}>
       <div
-        onClick={() => setOpen(o => !o)}
+        onClick={handleToggle}
         style={{
           display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
           userSelect: 'none', justifyContent: 'space-between',
@@ -1290,14 +1301,20 @@ function TeamSelect({ value, onChange, teams }) {
         <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 8 }}>{open ? '▲' : '▼'}</span>
       </div>
       {open && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0,
-          minWidth: '100%', width: 'max-content',
-          zIndex: 1000,
+        <div ref={listRef} style={{
+          position: 'fixed',
+          width: 200,
+          zIndex: 2000,
           background: 'rgba(10,14,30,.99)', border: '1px solid rgba(255,215,0,.25)',
-          borderRadius: 10, marginTop: 4, maxHeight: 260, overflowY: 'auto',
+          borderRadius: 10, maxHeight: 260, overflowY: 'auto',
           boxShadow: '0 8px 32px rgba(0,0,0,.8)',
           WebkitOverflowScrolling: 'touch',
+          ...((() => {
+            if (!wrapRef.current) return {};
+            const rect = wrapRef.current.getBoundingClientRect();
+            if (openUp) return { bottom: window.innerHeight - rect.top + 4, left: rect.left };
+            return { top: rect.bottom + 4, left: rect.left };
+          })()),
         }}>
           <div
             onClick={() => { onChange(''); setOpen(false); }}
@@ -1318,9 +1335,10 @@ function TeamSelect({ value, onChange, teams }) {
               }}
             >
               {flagUrl(t)
-                ? <img src={flagUrl(t)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />
+                ? <img src={flagUrl(t)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2, flexShrink: 0, opacity: dimmed.includes(t) ? 0.4 : 1 }} />
                 : <span style={{ width: 20, flexShrink: 0 }} />}
-              {t}
+              <span style={{ opacity: dimmed.includes(t) ? 0.4 : 1 }}>{t}</span>
+              {dimmed.includes(t) && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>valgt</span>}
             </div>
           ))}
         </div>
@@ -2074,6 +2092,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
         {[0,1,2,3].map(pos => {
           const picked = tipOrder[pos] || '';
           const correct = allGroupPlayed && actOrder && picked && picked === actOrder[pos];
+          const pickedTeams = [0,1,2,3].map(p => tipOrder[p]).filter(t => t && t !== picked);
           return (
             <div key={pos} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={{ color:'rgba(255,255,255,.4)', fontSize:12, width:16 }}>{pos+1}.</span>
@@ -2082,6 +2101,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
                   value={picked}
                   onChange={val => setOrd(group, pos, val)}
                   teams={teams}
+                  dimmed={pickedTeams}
                 />
               ) : (
                 <span style={{ flex:1, fontSize:13, color:'#e8edf8', display:'flex', alignItems:'center', gap:6 }}>
