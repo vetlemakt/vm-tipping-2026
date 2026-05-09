@@ -2402,6 +2402,37 @@ function TipsForm({ me, phase, viewUser }) {
                 const rightHome    = hasAct && hasTip && tH === aH;
                 const rightAway    = hasAct && hasTip && tA === aA;
                 const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
+
+                // Resolve placeholder to actual team from user's group picks
+                const resolveSlot = (slot) => {
+                  if (!slot) return null;
+                  const vinnerMatch = slot.match(/^Vinner ([A-L])$/);
+                  const toerMatch = slot.match(/^Toer ([A-L])$/);
+                  if (vinnerMatch) { const g = vinnerMatch[1]; return (grpO[g] || [])[0] || null; }
+                  if (toerMatch)   { const g = toerMatch[1];   return (grpO[g] || [])[1] || null; }
+                  return null;
+                };
+                const resolvedHome = hasAct ? act.homeTeam : resolveSlot(m.home);
+                const resolvedAway = hasAct ? act.awayTeam : resolveSlot(m.away);
+
+                const TeamLabel = ({ slot, resolved, align }) => {
+                  const code = resolved ? COUNTRY_CODES[resolved] : null;
+                  return (
+                    <div style={{display:'flex',flexDirection:'column',alignItems: align==='right' ? 'flex-end' : 'flex-start',minWidth:0,flex:1}}>
+                      <div style={{display:'flex',alignItems:'center',gap:3,justifyContent: align==='right' ? 'flex-end' : 'flex-start'}}>
+                        {align==='right' && <span style={{fontSize:11,color:'rgba(255,255,255,.7)',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{resolved || slot}</span>}
+                        {code
+                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{width:18,height:13,objectFit:'cover',borderRadius:2,flexShrink:0}} />
+                          : <Flag team={resolved || slot} size={18}/>}
+                        {align==='left' && <span style={{fontSize:11,color:'rgba(255,255,255,.7)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{resolved || slot}</span>}
+                      </div>
+                      {!resolved && !hasAct && (
+                        <span style={{fontSize:9,color:'rgba(255,255,255,.3)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>{slot}</span>
+                      )}
+                    </div>
+                  );
+                };
+
                 return (
                   <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px', alignItems:'center'}}>
                     {/* Info box */}
@@ -2414,10 +2445,7 @@ function TipsForm({ me, phase, viewUser }) {
                       {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
                     </div>
                     {/* Home */}
-                    <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end',minWidth:0}}>
-                      <span style={{fontSize:11,color:'rgba(255,255,255,.7)',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.home}</span>
-                      <Flag team={m.home} size={18}/>
-                    </div>
+                    <TeamLabel slot={m.home} resolved={resolvedHome} align="right" />
                     {/* Score box */}
                     <div style={{
                       display:'flex', flexDirection:'column', alignItems:'center', gap:1,
@@ -2435,10 +2463,7 @@ function TipsForm({ me, phase, viewUser }) {
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
                     </div>
                     {/* Away */}
-                    <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start',minWidth:0}}>
-                      <Flag team={m.away} size={18}/>
-                      <span style={{fontSize:11,color:'rgba(255,255,255,.7)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.away}</span>
-                    </div>
+                    <TeamLabel slot={m.away} resolved={resolvedAway} align="left" />
                     {/* Points */}
                     <div style={{width:20,flexShrink:0,textAlign:'right'}}>
                       {renderPtsBadge(pts)}
@@ -2461,7 +2486,7 @@ function TipsForm({ me, phase, viewUser }) {
 
       {/* Flytende lagre-knapp */}
       {isOwn && (
-        <div style={{ position:'fixed', bottom:20, left:'50%', transform:'translateX(-50%)', zIndex:500, pointerEvents:'none' }}>
+        <div style={{ position:'fixed', bottom:20, left:0, right:0, zIndex:500, display:'flex', justifyContent:'center', pointerEvents:'none' }}>
           <button
             style={{
               ...C.btnGold,
@@ -4216,7 +4241,7 @@ export default function App() {
         VM-tipping 2026 · <a href="https://heiarosenb.org" style={{ color:'rgba(255,255,255,.25)', textDecoration:'none' }}>HeiaRosenb.org</a>
         {' '}© 2026 Vetle Baden Skatvoldsmyr · Ønsker du å bruke koden så spør :)
       </div>
-      <StatusBar phase={phase} isAdmin={user.isAdmin} />
+      {tab !== 'tips' && <StatusBar phase={phase} isAdmin={user.isAdmin} />}
       <YouTubePlayer />
       {showMsgPopup && <AdminMessagePopup message={adminMessage} onClose={() => setShowMsgPopup(false)} />}
     </div>
