@@ -2252,21 +2252,37 @@ function TipsForm({ me, phase, viewUser }) {
             );
           })}
         </div>
-        {/* Dekorativt bilde – skjules på stående mobil */}
-        <div className="hide-portrait" style={{
-          flex: 1, minWidth: 0, borderRadius: 16, overflow: 'hidden',
-          boxShadow: '0 8px 32px rgba(0,0,0,.5)',
-        }}>
-          <img
-            src="/arg.jfif"
-            alt=""
-            style={{
-              width: '100%', height: '100%',
-              objectFit: 'cover', objectPosition: 'center top',
-              display: 'block',
-            }}
-          />
-        </div>
+        {/* VM-vinner bildekarusell */}
+        {(() => {
+          const WC_WINNER_IMGS = [
+            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Goles_argentina_campeon_mundial.jpg/800px-Goles_argentina_campeon_mundial.jpg', caption: 'Argentina 2022' },
+            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Germany_lifts_the_2014_FIFA_World_Cup.jpg/800px-Germany_lifts_the_2014_FIFA_World_Cup.jpg', caption: 'Tyskland 2014' },
+            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/2010_FIFA_World_Cup_Spain_with_cup.JPG/800px-2010_FIFA_World_Cup_Spain_with_cup.JPG', caption: 'Spania 2010' },
+            { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Corentin_Tolisso_World_Cup_Trophy.jpg/600px-Corentin_Tolisso_World_Cup_Trophy.jpg', caption: 'Frankrike 2018' },
+          ];
+          const img = WC_WINNER_IMGS[Math.floor(Date.now() / 86400000) % WC_WINNER_IMGS.length];
+          return (
+            <div className="hide-portrait" style={{
+              background: 'rgba(0,0,0,.2)', borderRadius: 12,
+              border: '1px solid rgba(255,255,255,.07)',
+              padding: 25, flex: 1, minWidth: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexDirection: 'column', gap: 0,
+            }}>
+              <div style={{ width:'100%', height:'100%', borderRadius: 10, overflow:'hidden', position:'relative' }}>
+                <img
+                  src={img.url}
+                  alt={img.caption}
+                  style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block', borderRadius: 10 }}
+                  onError={e => { e.target.src = '/arg.jfif'; }}
+                />
+                <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'6px 10px', background:'rgba(0,0,0,.55)', fontSize:10, color:'rgba(255,255,255,.6)', fontFamily:"'Fira Code',monospace", letterSpacing:1, borderRadius:'0 0 10px 10px' }}>
+                  {img.caption}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         </div>
 
         {/* Tabs */}
@@ -2516,21 +2532,23 @@ function TipsForm({ me, phase, viewUser }) {
 
       {/* Flytende lagre-knapp */}
       {isOwn && (
-        <div style={{ position:'fixed', bottom:20, left:0, right:0, zIndex:500, display:'flex', justifyContent:'center', pointerEvents:'none' }}>
-          <button
-            style={{
-              ...C.btnGold,
-              pointerEvents:'all',
-              padding:'10px 28px',
-              fontSize:13,
-              opacity: dirty ? 1 : 0.45,
-              boxShadow:'0 4px 20px rgba(255,215,0,.3)',
-              whiteSpace:'nowrap',
-            }}
-            onClick={save}
-          >
-            {saved ? '✅ Lagret!' : '💾 Lagre tips'}
-          </button>
+        <div style={{ position:'fixed', bottom:20, left:0, right:0, zIndex:500, pointerEvents:'none', display:'flex', justifyContent:'center' }}>
+          <div style={{ width:'100%', maxWidth:1200, display:'flex', justifyContent:'center', padding:'0 16px', boxSizing:'border-box' }}>
+            <button
+              style={{
+                ...C.btnGold,
+                pointerEvents:'all',
+                padding:'10px 28px',
+                fontSize:13,
+                opacity: dirty ? 1 : 0.45,
+                boxShadow:'0 4px 20px rgba(255,215,0,.3)',
+                whiteSpace:'nowrap',
+              }}
+              onClick={save}
+            >
+              {saved ? '✅ Lagret!' : '💾 Lagre tips'}
+            </button>
+          </div>
         </div>
       )}
 
