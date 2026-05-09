@@ -2212,8 +2212,8 @@ function TipsForm({ me, phase, viewUser }) {
         )}
 
         {/* Spesialtips */}
-        <div style={{ display: 'flex', gap: 20, alignItems: 'stretch' }}>
-        <div style={{ ...C.specBox, flex: '0 0 auto' }}>
+        <div style={{ display: 'flex', gap: 20, alignItems: 'stretch', height: 340 }}>
+        <div style={{ ...C.specBox, flex: '0 0 auto', marginBottom: 0, overflowY: 'auto' }}>
           <span style={C.secH}>🌟 Spesialtips – låses før gruppespillet</span>
           {SPEC_FIELDS.map(({ key, label, pts, tooltip }) => {
             const correctVal = results[key];
