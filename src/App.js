@@ -1262,60 +1262,64 @@ function TeamSelect({ value, onChange, teams }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const selected = teams.find(t => t === value);
   const flagUrl = (team) => {
     const code = COUNTRY_CODES[team];
     return code ? `https://flagcdn.com/w20/${code}.png` : null;
   };
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', flex: 1 }}>
+    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block' }}>
       <div
         onClick={() => setOpen(o => !o)}
         style={{
-          ...C.sel, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
           userSelect: 'none', justifyContent: 'space-between',
+          background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.15)',
+          borderRadius: 8, padding: '8px 12px', fontSize: 14, color: '#e8edf8',
+          minWidth: 160, whiteSpace: 'nowrap',
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {selected ? (
+          {value ? (
             <>
-              {flagUrl(selected) && <img src={flagUrl(selected)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2 }} />}
-              {selected}
+              {flagUrl(value) && <img src={flagUrl(value)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />}
+              {value}
             </>
-          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>– Velg –</span>}
+          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>– Velg lag –</span>}
         </span>
-        <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 8 }}>{open ? '▲' : '▼'}</span>
       </div>
       {open && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000,
-          background: 'rgba(10,14,30,.97)', border: '1px solid rgba(255,215,0,.25)',
-          borderRadius: 10, marginTop: 4, maxHeight: 220, overflowY: 'auto',
-          boxShadow: '0 8px 24px rgba(0,0,0,.6)',
+          position: 'absolute', top: '100%', left: 0,
+          minWidth: '100%', width: 'max-content',
+          zIndex: 1000,
+          background: 'rgba(10,14,30,.99)', border: '1px solid rgba(255,215,0,.25)',
+          borderRadius: 10, marginTop: 4, maxHeight: 260, overflowY: 'auto',
+          boxShadow: '0 8px 32px rgba(0,0,0,.8)',
+          WebkitOverflowScrolling: 'touch',
         }}>
           <div
             onClick={() => { onChange(''); setOpen(false); }}
-            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,.4)',
-              borderBottom: '1px solid rgba(255,255,255,.05)' }}
-          >– Velg –</div>
+            style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,.4)',
+              borderBottom: '1px solid rgba(255,255,255,.07)', whiteSpace: 'nowrap' }}
+          >– Velg lag –</div>
           {teams.map(t => (
             <div
               key={t}
               onClick={() => { onChange(t); setOpen(false); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '7px 12px', cursor: 'pointer', fontSize: 13,
+                padding: '9px 14px', cursor: 'pointer', fontSize: 14,
                 color: t === value ? '#FFD700' : '#e8edf8',
                 background: t === value ? 'rgba(255,215,0,.08)' : 'transparent',
                 borderBottom: '1px solid rgba(255,255,255,.04)',
+                whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => { if (t !== value) e.currentTarget.style.background = 'rgba(255,255,255,.05)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = t === value ? 'rgba(255,215,0,.08)' : 'transparent'; }}
             >
               {flagUrl(t)
                 ? <img src={flagUrl(t)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />
-                : <span style={{ width: 20 }} />}
+                : <span style={{ width: 20, flexShrink: 0 }} />}
               {t}
             </div>
           ))}
