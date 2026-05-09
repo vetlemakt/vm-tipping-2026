@@ -2277,14 +2277,61 @@ function TipsForm({ me, phase, viewUser }) {
         </div>
 
         {tab === 'group' && <>
-          {/* Group buttons */}
-          <div style={C.gTabs}>
-            {Object.keys(GROUPS).map(g => (
-              <button key={g} style={{ ...C.gTab }}
-                onClick={e => { e.stopPropagation(); setGrpPopup(g); }}>
-                Gr.{g}
-              </button>
-            ))}
+          {/* Group cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)', gap: 8, marginBottom: 14 }}>
+            {Object.entries(GROUPS).map(([g, teams]) => {
+              const order = grpO[g] || [];
+              const filled = order.filter(Boolean).length === 4;
+              return (
+                <button
+                  key={g}
+                  onClick={e => { e.stopPropagation(); setGrpPopup(g); }}
+                  style={{
+                    background: 'rgba(255,255,255,.05)',
+                    border: '1px solid rgba(255,255,255,.12)',
+                    borderRadius: 10, padding: '8px 6px',
+                    cursor: 'pointer', textAlign: 'left',
+                    transition: 'all .15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.08)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
+                >
+                  {/* Overskrift */}
+                  {filled ? (
+                    <div style={{ fontSize: 9, color: 'rgba(255,215,0,.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5, fontFamily: "'Fira Code',monospace" }}>GRUPPE {g}</div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                      <div style={{ fontSize: 8, color: 'rgba(255,255,255,.4)', letterSpacing: 1, textTransform: 'uppercase', lineHeight: 1.4 }}>GRUPPE</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#e8edf8', lineHeight: 1.1, fontFamily: "'Kanit',sans-serif" }}>{g}</div>
+                    </div>
+                  )}
+                  {/* Lag */}
+                  {filled && (order).map((team, i) => {
+                    const code = COUNTRY_CODES[team];
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', width: 10, flexShrink: 0 }}>{i+1}.</span>
+                        {code
+                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 16, height: 11, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
+                          : <span style={{ width: 16 }} />}
+                        <span style={{ fontSize: 10, color: '#e8edf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team}</span>
+                      </div>
+                    );
+                  })}
+                  {!filled && teams.map((team, i) => {
+                    const code = COUNTRY_CODES[team];
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                        {code
+                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 16, height: 11, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
+                          : <span style={{ width: 16 }} />}
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team}</span>
+                      </div>
+                    );
+                  })}
+                </button>
+              );
+            })}
           </div>
 
           {/* Chronological matches */}
