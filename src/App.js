@@ -12,6 +12,7 @@ import {
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
+import { searchPlayers } from './squads';
 import {
   INVITE_CODE, ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
@@ -1143,7 +1144,112 @@ function InfoTooltip({ text }) {
   );
 }
 
-const CardIcon = ({ src, size = 18 }) => (
+function PlayerAutocomplete({ value, onChange, placeholder }) {
+  const [query, setQuery] = useState(value || '');
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(!!value);
+  const wrapRef = useRef(null);
+
+  // Sync hvis value endres utenfra
+  useEffect(() => { setQuery(value || ''); setSelected(!!value); }, [value]);
+
+  const handleChange = (e) => {
+    const q = e.target.value;
+    setQuery(q);
+    setSelected(false);
+    onChange(''); // nullstill lagret verdi til bruker velger fra liste
+    if (q.length >= 2) {
+      setResults(searchPlayers(q));
+      setOpen(true);
+    } else {
+      setResults([]);
+      setOpen(false);
+    }
+  };
+
+  const handleSelect = (player) => {
+    setQuery(player.name);
+    setSelected(true);
+    setOpen(false);
+    setResults([]);
+    onChange(player.name);
+  };
+
+  const handleBlur = (e) => {
+    // Ikke lukk hvis klikk er inni wrapperen
+    if (wrapRef.current && wrapRef.current.contains(e.relatedTarget)) return;
+    setTimeout(() => setOpen(false), 150);
+  };
+
+  const posColor = { GK: '#94a3b8', DEF: '#60a5fa', MID: '#34d399', FWD: '#f87171' };
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', flex: 1 }}>
+      <div style={{ position: 'relative' }}>
+        <input
+          style={{ ...C.inp, marginBottom: 0, width: '100%', fontSize: 13, padding: '6px 32px 6px 10px',
+            borderColor: selected ? 'rgba(74,222,128,.5)' : undefined }}
+          value={query}
+          onChange={handleChange}
+          onFocus={() => query.length >= 2 && setOpen(true)}
+          onBlur={handleBlur}
+          placeholder={placeholder || 'Søk etter spiller...'}
+          autoComplete="off"
+        />
+        {selected && (
+          <span style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)',
+            fontSize:14, color:'#4ade80', pointerEvents:'none' }}>✓</span>
+        )}
+        {query && !selected && (
+          <button
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => { setQuery(''); setResults([]); setOpen(false); onChange(''); }}
+            style={{ position:'absolute', right:6, top:'50%', transform:'translateY(-50%)',
+              background:'none', border:'none', color:'rgba(255,255,255,.4)', cursor:'pointer', fontSize:14, padding:0 }}>×</button>
+        )}
+      </div>
+      {open && results.length > 0 && (
+        <div style={{
+          position:'absolute', top:'100%', left:0, right:0, zIndex:1000,
+          background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.25)',
+          borderRadius:10, marginTop:4, overflow:'hidden',
+          boxShadow:'0 8px 24px rgba(0,0,0,.6)',
+        }}>
+          {results.map((p, i) => (
+            <div
+              key={i}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => handleSelect(p)}
+              style={{
+                display:'flex', alignItems:'center', gap:10,
+                padding:'9px 12px', cursor:'pointer', fontSize:13,
+                borderBottom: i < results.length-1 ? '1px solid rgba(255,255,255,.05)' : 'none',
+                transition:'background .1s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background='rgba(255,215,0,.08)'}
+              onMouseLeave={e => e.currentTarget.style.background='transparent'}
+            >
+              <span style={{ fontSize:10, fontWeight:700, color: posColor[p.pos] || '#fff',
+                background:'rgba(255,255,255,.08)', borderRadius:4, padding:'1px 5px', minWidth:30, textAlign:'center' }}>
+                {p.pos}
+              </span>
+              <span style={{ flex:1, color:'#e8edf8' }}>{p.name}</span>
+              <span style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>{p.team}</span>
+            </div>
+          ))}
+          {query.length >= 2 && results.length === 0 && (
+            <div style={{ padding:'10px 12px', fontSize:12, color:'rgba(255,255,255,.4)' }}>
+              Ingen spillere funnet for "{query}"
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 4px rgba(255,215,0,.4))' }} />
 );
 
@@ -2018,9 +2124,11 @@ function TipsForm({ me, phase, viewUser }) {
                 <span style={C.ptsBadge}>{pts}p</span>
                 {grpOk ? (
                   key === 'topscorer' ? (
-                    <input style={{ ...C.inp, marginBottom:0, flex:1, fontSize:13, padding:'6px 10px' }}
-                      value={spec[key]||''} onChange={e => setSp(key, e.target.value)}
-                      placeholder="Skriv spillernavn (f.eks. Mbappé)" />
+                    <PlayerAutocomplete
+                      value={spec[key] || ''}
+                      onChange={val => setSp(key, val)}
+                      placeholder="Søk etter spiller (f.eks. Haaland)"
+                    />
                   ) : (
                     <>
                       <select style={C.sel} value={spec[key]||''} onChange={e => setSp(key, e.target.value)}>
