@@ -1188,8 +1188,8 @@ function PlayerAutocomplete({ value, onChange, placeholder }) {
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', minWidth: 160 }}>
       <div style={{ position: 'relative' }}>
         <input
-          style={{ ...C.inp, marginBottom: 0, width: '100%', fontSize: 14, padding: '8px 32px 8px 12px',
-            borderColor: selected ? 'rgba(74,222,128,.5)' : undefined, whiteSpace: 'nowrap' }}
+          style={{ ...C.inp, marginBottom: 0, width: 200, fontSize: 14, padding: '8px 32px 8px 12px',
+            borderColor: selected ? 'rgba(74,222,128,.5)' : undefined }}
           value={query}
           onChange={handleChange}
           onFocus={() => query.length >= 2 && setOpen(true)}
@@ -1276,7 +1276,7 @@ function TeamSelect({ value, onChange, teams }) {
           userSelect: 'none', justifyContent: 'space-between',
           background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.15)',
           borderRadius: 8, padding: '8px 12px', fontSize: 14, color: '#e8edf8',
-          minWidth: 160, whiteSpace: 'nowrap',
+          width: 200, boxSizing: 'border-box',
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
