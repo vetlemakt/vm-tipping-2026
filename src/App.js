@@ -2450,14 +2450,32 @@ function TipsForm({ me, phase, viewUser }) {
         </>}
 
         {isOwn && <>
-          <button style={{ ...C.btnGold, width:'100%', marginTop:16, opacity:dirty?1:.5 }} onClick={save}>
-            {saved ? '✅ Lagret!' : '💾 Lagre mine tips'}
-          </button>
-          <button style={{ ...C.btnDanger, width:'100%', marginTop:8 }} onClick={resetTips}>
+          <button style={{ ...C.btnDanger, width:'100%', marginTop:16 }} onClick={resetTips}>
             🗑️ Nullstill tips
           </button>
           {dirty && <p style={{ color:'#f59e0b', fontSize:11, textAlign:'center', marginTop:6, fontFamily:"'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
         </>}
+      </div>
+
+      {/* Flytende lagre-knapp */}
+      {isOwn && (
+        <div style={{ position:'fixed', bottom:20, left:'50%', transform:'translateX(-50%)', zIndex:500, pointerEvents:'none' }}>
+          <button
+            style={{
+              ...C.btnGold,
+              pointerEvents:'all',
+              padding:'10px 28px',
+              fontSize:13,
+              opacity: dirty ? 1 : 0.45,
+              boxShadow:'0 4px 20px rgba(255,215,0,.3)',
+              whiteSpace:'nowrap',
+            }}
+            onClick={save}
+          >
+            {saved ? '✅ Lagret!' : '💾 Lagre tips'}
+          </button>
+        </div>
+      )}
       </div>
 
       {grpPopup && (
