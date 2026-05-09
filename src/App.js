@@ -2203,6 +2203,7 @@ function TipsForm({ me, phase, viewUser }) {
   });
 
   return (
+    <>
     <div style={C.card}>
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot} /> {isOwn ? 'Mine tips' : `${displayName}s tips`}</span>
@@ -2476,7 +2477,8 @@ function TipsForm({ me, phase, viewUser }) {
           </button>
         </div>
       )}
-      </div>
+
+      {/* Flytende lagre-knapp */}
 
       {grpPopup && (
         <GroupOrderPopup group={grpPopup} grpO={grpO} setOrd={setOrd} results={results} grpOk={grpOk} onClose={() => setGrpPopup(null)} />
@@ -2484,7 +2486,7 @@ function TipsForm({ me, phase, viewUser }) {
       {matchPopup && (
         <MatchInfoPopup match={matchPopup} onClose={() => setMatchPopup(null)} />
       )}
-    </div>
+    </>
   );
 }
 
