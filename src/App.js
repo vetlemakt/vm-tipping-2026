@@ -2127,6 +2127,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
 }
 
 function TipsForm({ me, phase, viewUser }) {
+  const isMobile = useIsMobile();
   const isOwn = !viewUser || viewUser.id === me.username;
   const userId = viewUser ? viewUser.id : me.username;
 
