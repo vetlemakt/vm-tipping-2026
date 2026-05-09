@@ -2256,9 +2256,17 @@ function TipsForm({ me, phase, viewUser }) {
         {(() => {
           // Daglig seed gir samme bilde for alle brukere samme dag
           const daySeed = Math.floor(Date.now() / 86400000);
-          const keywords = ['soccer world cup trophy', 'football world cup celebration', 'FIFA world cup stadium', 'world cup football fans'];
-          const keyword = keywords[daySeed % keywords.length];
-          const imgUrl = `https://source.unsplash.com/800x500/?${encodeURIComponent(keyword)}&sig=${daySeed}`;
+          // Verifiserte Unsplash football/VM-bilder
+          const WC_IMGS = [
+            'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&fit=crop', // stadium crowd
+            'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&fit=crop', // soccer ball
+            'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800&fit=crop', // football match
+            'https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?w=800&fit=crop', // stadium lights
+            'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&fit=crop', // football game
+            'https://images.unsplash.com/photo-1434648957308-5e6a859697e8?w=800&fit=crop', // trophy cup
+            '/arg.jfif', // Argentina 2022
+          ];
+          const imgUrl = WC_IMGS[daySeed % WC_IMGS.length];
           const img = { url: imgUrl, caption: 'FIFA World Cup' };
           return (
             <div className="hide-portrait" style={{
