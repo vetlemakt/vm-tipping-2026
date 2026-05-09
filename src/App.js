@@ -2279,10 +2279,11 @@ function TipsForm({ me, phase, viewUser }) {
 
         {tab === 'group' && <>
           {/* Group cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)', gap: 8, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(12, 1fr)', gap: 6, marginBottom: 14 }}>
             {Object.entries(GROUPS).map(([g, teams]) => {
               const order = grpO[g] || [];
               const filled = order.filter(Boolean).length === 4;
+              const displayTeams = filled ? order : teams;
               return (
                 <button
                   key={g}
@@ -2290,43 +2291,23 @@ function TipsForm({ me, phase, viewUser }) {
                   style={{
                     background: 'rgba(255,255,255,.05)',
                     border: '1px solid rgba(255,255,255,.12)',
-                    borderRadius: 10, padding: '8px 6px',
-                    cursor: 'pointer', textAlign: 'left',
-                    transition: 'all .15s',
+                    borderRadius: 8, padding: '6px 4px',
+                    cursor: 'pointer', textAlign: 'center',
+                    transition: 'all .15s', minWidth: 0,
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.08)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.1)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
                 >
-                  {/* Overskrift */}
-                  {filled ? (
-                    <div style={{ fontSize: 9, color: 'rgba(255,215,0,.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5, fontFamily: "'Fira Code',monospace" }}>GRUPPE {g}</div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '4px 0' }}>
-                      <div style={{ fontSize: 8, color: 'rgba(255,255,255,.4)', letterSpacing: 1, textTransform: 'uppercase', lineHeight: 1.4 }}>GRUPPE</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#e8edf8', lineHeight: 1.1, fontFamily: "'Kanit',sans-serif" }}>{g}</div>
-                    </div>
-                  )}
-                  {/* Lag */}
-                  {filled && (order).map((team, i) => {
+                  <div style={{ fontSize: 13, fontWeight: 800, color: filled ? '#FFD700' : '#e8edf8', fontFamily: "'Kanit',sans-serif", marginBottom: 4, lineHeight: 1 }}>{g}</div>
+                  {displayTeams.map((team, i) => {
                     const code = COUNTRY_CODES[team];
+                    const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
                     return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', width: 10, flexShrink: 0 }}>{i+1}.</span>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2, justifyContent: 'flex-start' }}>
                         {code
-                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 16, height: 11, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
-                          : <span style={{ width: 16 }} />}
-                        <span style={{ fontSize: 10, color: '#e8edf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team}</span>
-                      </div>
-                    );
-                  })}
-                  {!filled && teams.map((team, i) => {
-                    const code = COUNTRY_CODES[team];
-                    return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                        {code
-                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 16, height: 11, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
-                          : <span style={{ width: 16 }} />}
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team}</span>
+                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 14, height: 10, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
+                          : <span style={{ width: 14 }} />}
+                        <span style={{ fontSize: 9, color: filled ? '#e8edf8' : 'rgba(255,255,255,.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
                       </div>
                     );
                   })}
