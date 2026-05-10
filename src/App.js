@@ -1144,7 +1144,7 @@ function InfoTooltip({ text }) {
   );
 }
 
-function PlayerAutocomplete({ value, onChange, placeholder }) {
+function PlayerAutocomplete({ value, onChange, placeholder, compact = false }) {
   const [query, setQuery] = useState(value || '');
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -1188,7 +1188,9 @@ function PlayerAutocomplete({ value, onChange, placeholder }) {
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', minWidth: 160 }}>
       <div style={{ position: 'relative' }}>
         <input
-          style={{ ...C.inp, marginBottom: 0, width: '100%', fontSize: 14, padding: '8px 32px 8px 12px',
+          style={{ ...C.inp, marginBottom: 0, width: '100%',
+            fontSize: compact ? 11 : 14,
+            padding: compact ? '6px 28px 6px 7px' : '8px 32px 8px 12px',
             borderColor: selected ? 'rgba(74,222,128,.5)' : undefined }}
           value={query}
           onChange={handleChange}
@@ -1250,7 +1252,7 @@ function PlayerAutocomplete({ value, onChange, placeholder }) {
 }
 
 
-function TeamSelect({ value, onChange, teams, dimmed = [] }) {
+function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
   const [open, setOpen] = useState(false);
   const [openUp, setOpenUp] = useState(false);
   const wrapRef = useRef(null);
@@ -1283,11 +1285,12 @@ function TeamSelect({ value, onChange, teams, dimmed = [] }) {
       <div
         onClick={handleToggle}
         style={{
-          display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: compact ? 4 : 8, cursor: 'pointer',
           userSelect: 'none', justifyContent: 'space-between',
           background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.15)',
-          borderRadius: 8, padding: '8px 12px', fontSize: 14, color: '#e8edf8',
-          width: '100%', boxSizing: 'border-box',
+          borderRadius: 8, padding: compact ? '6px 7px' : '8px 12px',
+          fontSize: compact ? 11 : 14, color: '#e8edf8',
+          width: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap',
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1296,7 +1299,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [] }) {
               {flagUrl(value) && <img src={flagUrl(value)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />}
               {value}
             </>
-          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>– Velg lag –</span>}
+          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>{compact ? '– Velg –' : '– Velg lag –'}</span>}
         </span>
         <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 8 }}>{open ? '▲' : '▼'}</span>
       </div>
@@ -2232,7 +2235,8 @@ function TipsForm({ me, phase, viewUser }) {
                     <PlayerAutocomplete
                       value={spec[key] || ''}
                       onChange={val => setSp(key, val)}
-                      placeholder="Søk etter spiller..."
+                      placeholder={isMobile ? 'Spiller...' : 'Søk etter spiller...'}
+                      compact={isMobile}
                     />
                     </div>
                   ) : (
@@ -2241,6 +2245,7 @@ function TipsForm({ me, phase, viewUser }) {
                         value={spec[key] || ''}
                         onChange={val => setSp(key, val)}
                         teams={ALL_TEAMS}
+                        compact={isMobile}
                       />
                     </div>
                   )
