@@ -23,16 +23,16 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      padding-top: 62%;
       gap: 14px;
-      padding: 20px;
     }
     #name-input {
-      width: min(300px, 75%);
-      padding: 13px 16px;
-      border-radius: 8px;
-      border: 2px solid rgba(0,0,0,0.4);
-      background: rgba(255,255,255,0.25);
+      width: min(280px, 72%);
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: none;
+      background: rgba(255,255,255,0.0);
       color: #000;
       font-size: 20px;
       font-family: 'Nunito', sans-serif;
@@ -40,22 +40,20 @@
       text-align: center;
       outline: none;
     }
-    #name-input::placeholder { color: rgba(0,0,0,0.35); }
-    #name-input:focus { background: rgba(255,255,255,0.4); }
+    #name-input::placeholder { color: rgba(0,0,0,0.3); }
     #start-btn {
-      width: min(300px, 75%);
-      padding: 13px;
-      border-radius: 8px;
-      border: 2px solid rgba(0,0,0,0.4);
-      background: rgba(255,255,255,0.25);
+      padding: 8px 28px;
+      border-radius: 20px;
+      border: 2px solid rgba(0,0,0,0.5);
+      background: rgba(255,255,255,0.3);
       color: #000;
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 800;
       font-family: 'Nunito', sans-serif;
       cursor: pointer;
-      letter-spacing: 3px;
+      letter-spacing: 2px;
     }
-    #start-btn:active { background: rgba(255,255,255,0.45); }
+    #start-btn:active { background: rgba(255,255,255,0.5); }
 
     /* Spillskjerm */
     #game-screen { display: none; }
