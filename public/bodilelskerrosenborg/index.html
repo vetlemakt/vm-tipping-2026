@@ -7,180 +7,61 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1a0a2e; font-family: 'Nunito', sans-serif; color: #fff; }
 
-    body {
-      min-height: 100vh;
-      background: #1a0a2e;
-      font-family: 'Nunito', sans-serif;
-      color: #fff;
-    }
-
-    #bg-img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
-    /* Velkomstskjerm */
     #name-screen {
       position: fixed; inset: 0;
       background: url('https://www.heiarosenb.org/bodilelskerrosenborg/hvemerdu.png') center/cover no-repeat;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding-top: 82%;
-      gap: 12px;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: flex-start; padding-top: 82%; gap: 12px;
     }
     #name-input {
-      width: min(280px, 72%);
-      padding: 10px 14px;
-      border-radius: 6px;
-      border: none;
-      background: rgba(255,255,255,0.0);
-      color: #000;
-      font-size: 28px;
-      font-family: 'Nunito', sans-serif;
-      font-weight: 700;
-      text-align: center;
-      outline: none;
+      width: min(280px, 72%); padding: 10px 14px; border-radius: 6px;
+      border: none; background: rgba(255,255,255,0.0); color: #000;
+      font-size: 28px; font-family: 'Nunito', sans-serif; font-weight: 700;
+      text-align: center; outline: none;
     }
     #name-input::placeholder { color: rgba(0,0,0,0.35); }
     #start-btn {
-      padding: 10px 36px;
-      border-radius: 20px;
-      border: 2px solid rgba(0,0,0,0.5);
-      background: rgba(255,255,255,0.3);
-      color: #000;
-      font-size: 20px;
-      font-weight: 800;
-      font-family: 'Nunito', sans-serif;
-      cursor: pointer;
-      letter-spacing: 2px;
-    }
-    #start-btn:active { background: rgba(255,255,255,0.5); }
-
-    #game-screen {
-      display: none;
-      position: relative;
-      width: 100%;
+      padding: 10px 36px; border-radius: 20px; border: 2px solid rgba(0,0,0,0.5);
+      background: rgba(255,255,255,0.3); color: #000; font-size: 20px;
+      font-weight: 800; font-family: 'Nunito', sans-serif; cursor: pointer;
     }
 
-    .player-bar {
-      position: absolute;
-      top: 2%;
-      width: 100%;
-      text-align: center;
-      z-index: 10;
-    }
-    .player-bar span { font-size: 15px; font-weight: 700; color: #fbbf24; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
-    .player-bar button { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; margin-left: 8px; font-family: 'Nunito', sans-serif; }
+    #game-screen { display: none; position: relative; width: 100%; }
+    #bg-img { display: block; width: 100%; height: auto; }
 
-    .bingo-shout {
-      position: absolute;
-      top: 6%;
-      width: 100%;
-      text-align: center;
-      font-size: clamp(1.8rem, 7vw, 2.8rem);
-      color: #fbbf24;
-      text-shadow: 2px 2px 12px rgba(0,0,0,0.9);
-      font-weight: 800;
-      display: none;
-      z-index: 10;
-    }
-
-    .bingo-overlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 5;
-    }
-
+    .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
     .cell {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      pointer-events: all !important;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 4px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      user-select: none;
+      position: absolute; transform: translate(-50%, -50%);
+      pointer-events: all; cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      z-index: 6;
+      background: transparent; border: none;
     }
-    .cell.free { pointer-events: none; }
     .cell.checked::after {
       content: '✓';
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      font-size: 8vw;
-      color: #c00;
-      font-weight: 900;
+      font-size: 8vw; color: #c00; font-weight: 900;
+      background: rgba(255,20,20,0.25); border-radius: 4px;
     }
-    .cell.line::after { color: #FFD700; }
+    .cell.line.checked::after { color: #ffd700; background: rgba(255,215,0,0.25); }
 
-    .others-title {
-      position: absolute;
-      bottom: 14%;
-      width: 100%;
-      text-align: center;
-      font-size: 11px; font-weight: 800;
-      color: rgba(255,255,255,0.6); text-transform: uppercase;
-      letter-spacing: 2px;
-      text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
-      z-index: 10;
-    }
-    .others-wrap {
-      position: absolute;
-      bottom: 3%;
-      left: 5%; right: 5%;
-      z-index: 10;
-    }
-    .other { background: rgba(0,0,0,0.55); border-radius: 10px; padding: 6px 10px; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-    .other-name { font-weight: 700; font-size: 13px; min-width: 70px; }
+    .player-bar { position: absolute; top: 1%; width: 100%; text-align: center; z-index: 10; }
+    .player-bar span { font-size: 14px; font-weight: 700; color: #fbbf24; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
+    .player-bar button { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; margin-left: 6px; font-family: 'Nunito', sans-serif; }
+
+    #shout { position: absolute; top: 5%; width: 100%; text-align: center; font-size: 2rem; color: #fbbf24; font-weight: 800; display: none; z-index: 10; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); }
+
+    #others-section { background: rgba(0,0,0,0.6); padding: 12px 16px; }
+    .others-title { text-align: center; font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+    .other { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .other-name { font-weight: 700; font-size: 13px; min-width: 80px; }
     .pbar { flex: 1; height: 5px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
-    .pbar-fill { height: 100%; background: #ff6eb4; border-radius: 3px; transition: width .4s; }
-    .other-score { font-size: 12px; color: rgba(255,255,255,0.6); white-space: nowrap; }
-    .bingo-tag { font-size: 11px; font-weight: 800; color: #fbbf24; white-space: nowrap; }
-    .refresh-btn { display: none; }
-
-    .score { display: none; }
-
-    .bingo-shout { font-size: clamp(1.8rem, 7vw, 2.8rem); text-align: center; color: #fbbf24; text-shadow: 2px 2px 12px rgba(0,0,0,0.9); margin-bottom: 12px; display: none; font-weight: 800; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 2px;
-      width: 91%;
-      margin: 0 auto 16px;
-    }
-    .cell {
-      display: flex; align-items: center; justify-content: center;
-      text-align: center; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
-      background: transparent;
-      font-size: clamp(6px, 2.5vw, 11px); font-weight: 700;
-      line-height: 1.2; padding: 2px; cursor: pointer; position: relative; overflow: hidden;
-      user-select: none; color: #fff; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
-    }
-    .cell.free { background: transparent; border-color: transparent; color: transparent; pointer-events: none; }
-    .cell.free.checked::after { display: none; }
-    .cell.checked { background: rgba(255,110,180,0.3); border-color: #ff6eb4; }
-    .cell.checked::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(20px,5vw,32px); color: #ff6eb4; background: rgba(0,0,0,0.2); }
-    .cell.line { border-color: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.6); }
-
-    .others-title { text-align: center; font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
-    .others-wrap { max-width: 480px; margin: 0 auto; }
-    .other { background: rgba(0,0,0,0.55); border-radius: 10px; padding: 9px 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-    .other-name { font-weight: 700; font-size: 14px; min-width: 80px; }
-    .pbar { flex: 1; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
-    .pbar-fill { height: 100%; background: #ff6eb4; border-radius: 3px; transition: width .4s; }
-    .other-score { font-size: 13px; color: rgba(255,255,255,0.6); white-space: nowrap; }
-    .bingo-tag { font-size: 11px; font-weight: 800; color: #fbbf24; white-space: nowrap; }
-    .refresh-btn { display: block; margin: 12px auto 0; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); padding: 8px 20px; border-radius: 20px; font-family: 'Nunito', sans-serif; font-size: 13px; cursor: pointer; }
+    .pbar-fill { height: 100%; background: #ff6eb4; border-radius: 3px; }
+    .other-score { font-size: 12px; color: rgba(255,255,255,0.6); }
+    .bingo-tag { font-size: 11px; font-weight: 800; color: #fbbf24; }
+    .refresh-btn { display: block; margin: 10px auto 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); padding: 6px 16px; border-radius: 20px; font-family: 'Nunito', sans-serif; font-size: 12px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -196,10 +77,14 @@
     <span id="disp-name"></span>
     <button onclick="changeName()">bytt navn</button>
   </div>
-  <div class="bingo-shout" id="shout">BINGO! 🎉</div>
-  <div class="bingo-overlay" id="overlay"></div>
+  <div id="shout">BINGO! 🎉</div>
+  <div class="overlay" id="overlay"></div>
+</div>
+
+<div id="others-section" style="display:none">
   <div class="others-title">Venninners fremgang</div>
-  <div class="others-wrap" id="others"></div>
+  <div id="others"></div>
+  <button class="refresh-btn" onclick="loadOthers()">↻ Oppdater</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
@@ -215,66 +100,102 @@
   });
   var db = firebase.firestore();
 
-  var ITEMS = [
-    "Noen mister mobilen","Regnbue-paraplyen","Noen synger feil tekst",
-    "Matkø på 20+ min","Møter noen fra hjembyen","Gummistøvler med glitter",
-    "Folk sover i gresset","Noen gråter av glede","Fyller opp vattenflasken",
-    "Tattoo-kø","Noen blir båret hjem","Regnbyge midt i konsert",
-    "Overpriced øl (100kr+)","Festivalbånd-bytte","Noen mister hatten",
-    "Dofast ved toalett","Artistkopi av publikum","Noen klatrer på skuldrene",
-    "Flagg fra annet land","Glitter på fremmede","Noen spiser bare pommes",
-    "Kjenning fra barneskolen","Spontant vennskap i kø","Solstikk-drama"
-  ];
-  var GRID = ITEMS.slice(0,12).concat(["GRATISFELT 🌟"]).concat(ITEMS.slice(12));
+  // Original image dimensions
+  var IMG_W = 572;
+  // Cell centers measured in Paint.NET from original 572x1024 image
+  // Corners: felt1=(93,344) felt5=(478,344) felt21=(93,731) felt25=(478,731)
+  var COL = [93, 189.25, 285.5, 381.75, 478];
+  var ROW = [344, 440.75, 537.5, 634.25, 731];
+  var CELL_PX = [];
+  for (var r=0; r<5; r++) for (var c=0; c<5; c++) CELL_PX.push([COL[c], ROW[r]]);
 
-  // TEMP: Force clear for testing
-  localStorage.removeItem('fbingo_checked');
-  checked = {};
-
-  var name = localStorage.getItem('fbingo_name') || '';
+  var playerName = localStorage.getItem('fbingo_name') || '';
   var checked = JSON.parse(localStorage.getItem('fbingo_checked') || '{}');
 
-  function init() {
-    if (name) { showGame(); }
-    else {
-      document.getElementById('name-screen').style.display = 'flex';
-      document.getElementById('game-screen').style.display = 'none';
-    }
-  }
-
-  // Reset via URL parameter: ?reset
+  // Handle ?reset
   if (window.location.search.indexOf('reset') !== -1) {
+    playerName = ''; checked = {};
     localStorage.removeItem('fbingo_name');
     localStorage.removeItem('fbingo_checked');
-    name = '';
-    checked = {};
     window.history.replaceState({}, '', window.location.pathname);
   }
 
   document.getElementById('start-btn').onclick = function() {
     var v = document.getElementById('name-input').value.trim();
     if (!v) return;
-    name = v; localStorage.setItem('fbingo_name', name); showGame();
+    playerName = v;
+    localStorage.setItem('fbingo_name', playerName);
+    showGame();
   };
   document.getElementById('name-input').onkeydown = function(e) {
-    if (e.key==='Enter') document.getElementById('start-btn').click();
+    if (e.key === 'Enter') document.getElementById('start-btn').click();
   };
   window.changeName = function() {
-    name = ''; localStorage.removeItem('fbingo_name');
+    playerName = '';
+    localStorage.removeItem('fbingo_name');
     document.getElementById('name-screen').style.display = 'flex';
     document.getElementById('game-screen').style.display = 'none';
+    document.getElementById('others-section').style.display = 'none';
     document.getElementById('name-input').value = '';
   };
 
   function showGame() {
     document.getElementById('name-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'block';
-    document.getElementById('disp-name').textContent = name;
-    // Wait for browser to layout before measuring image width
-    requestAnimationFrame(function() {
-      requestAnimationFrame(renderGrid);
+    document.getElementById('others-section').style.display = 'block';
+    document.getElementById('disp-name').textContent = playerName;
+    var img = document.getElementById('bg-img');
+    if (img.complete && img.naturalWidth > 0) {
+      buildCells();
+    } else {
+      img.onload = buildCells;
+    }
+    loadOthers();
+  }
+
+  function buildCells() {
+    var img = document.getElementById('bg-img');
+    var scale = img.offsetWidth / IMG_W;
+    var cellW = (COL[1] - COL[0]) * scale;
+    var cellH = (ROW[1] - ROW[0]) * scale;
+    var overlay = document.getElementById('overlay');
+    overlay.innerHTML = '';
+
+    CELL_PX.forEach(function(pos, i) {
+      var div = document.createElement('div');
+      div.className = 'cell';
+      div.style.left = (pos[0] * scale) + 'px';
+      div.style.top  = (pos[1] * scale) + 'px';
+      div.style.width  = cellW + 'px';
+      div.style.height = cellH + 'px';
+      // Debug: show red border
+      div.style.border = '2px solid red';
+      div.style.background = 'rgba(255,0,0,0.15)';
+      if (i !== 12) {
+        div.onclick = (function(idx){ return function(){ toggle(idx); }; })(i);
+      }
+      overlay.appendChild(div);
     });
-    saveProgress(); loadOthers();
+    updateChecked();
+  }
+
+  function updateChecked() {
+    var lines = getBingoLines();
+    var cells = document.querySelectorAll('.cell');
+    cells.forEach(function(cell, i) {
+      cell.classList.remove('checked', 'line');
+      if (checked[i]) cell.classList.add('checked');
+      if (lines.has(i)) cell.classList.add('line');
+    });
+    document.getElementById('shout').style.display = lines.size > 0 ? 'block' : 'none';
+  }
+
+  function toggle(i) {
+    if (i === 12) return;
+    checked[i] = !checked[i];
+    localStorage.setItem('fbingo_checked', JSON.stringify(checked));
+    updateChecked();
+    saveProgress();
   }
 
   function getBingoLines() {
@@ -282,86 +203,50 @@
     [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
      [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
      [0,6,12,18,24],[4,8,12,16,20]].forEach(function(l) {
-      if (l.every(function(i){return i===12||checked[i];})) l.forEach(function(i){r.add(i);});
+      if (l.every(function(i){ return i===12 || checked[i]; }))
+        l.forEach(function(i){ r.add(i); });
     });
     return r;
   }
 
-  // Originale pikselkoordinater (572x1024 bilde)
-  // Hjørner målt i Paint.NET: felt1=(93,344) felt5=(478,344) felt21=(93,731) felt25=(478,731)
-  var IMG_W = 572, IMG_H = 1024;
-  var CELL_PX = [];
-  var x1=93, x5=478, y1=344, y21=731;
-  var colStep = (x5-x1)/4, rowStep = (y21-y1)/4;
-  for (var row=0; row<5; row++) {
-    for (var col=0; col<5; col++) {
-      CELL_PX.push([x1 + col*colStep, y1 + row*rowStep]);
-    }
-  }
-
-  function renderGrid() {
-    var img = document.getElementById('bg-img');
-    var imgW = img.offsetWidth || img.naturalWidth;
-    if (!imgW) return;
-    var overlay = document.getElementById('overlay');
-    overlay.innerHTML = '';
-    var lines = getBingoLines();
-    var scale = imgW / IMG_W;
-    var cellW = colStep * scale;
-    var cellH = rowStep * scale;
-
-    CELL_PX.forEach(function(pos, i) {
-      var cell = document.createElement('div');
-      cell.className = 'cell';
-      if (i === 12) { cell.classList.add('free'); }
-      if (checked[i]) cell.classList.add('checked');
-      if (lines.has(i)) cell.classList.add('line');
-      cell.style.left   = (pos[0] * scale) + 'px';
-      cell.style.top    = (pos[1] * scale) + 'px';
-      cell.style.width  = cellW + 'px';
-      cell.style.height = cellH + 'px';
-      cell.style.border = '2px solid red';
-      cell.style.background = 'rgba(255,0,0,0.2)';
-      if (i !== 12) {
-        cell.onclick = (function(idx){ return function(){ toggle(idx); }; })(i);
-      }
-      overlay.appendChild(cell);
-    });
-    document.getElementById('shout').style.display = lines.size > 0 ? 'block' : 'none';
-  }
-
-  function toggle(i) {
-    if (i===12) return;
-    checked[i]=!checked[i];
-    localStorage.setItem('fbingo_checked',JSON.stringify(checked));
-    renderGrid(); saveProgress();
-  }
-
   function saveProgress() {
-    var count = Object.values(checked).filter(Boolean).length+1;
-    db.collection('festival_bingo').doc(name.toLowerCase().replace(/\s+/g,'')).set({
-      name:name, checked:checked, count:count, bingo:getBingoLines().size>0, updated:Date.now()
+    var count = Object.values(checked).filter(Boolean).length + 1;
+    var key = playerName.toLowerCase().replace(/\s+/g, '');
+    db.collection('festival_bingo').doc(key).set({
+      name: playerName, checked: checked, count: count,
+      bingo: getBingoLines().size > 0, updated: Date.now()
     }).catch(function(){});
   }
 
   window.loadOthers = function() {
-    var mk = name.toLowerCase().replace(/\s+/g,'');
+    var myKey = playerName.toLowerCase().replace(/\s+/g, '');
     db.collection('festival_bingo').get().then(function(snap) {
-      var others = snap.docs.map(function(d){return d.data();})
-        .filter(function(d){return d.name.toLowerCase().replace(/\s+/g,'')!==mk;})
-        .sort(function(a,b){return b.count-a.count;});
+      var others = snap.docs.map(function(d){ return d.data(); })
+        .filter(function(d){ return d.name.toLowerCase().replace(/\s+/g,'') !== myKey; })
+        .sort(function(a,b){ return b.count - a.count; });
       var el = document.getElementById('others');
-      if (!others.length) { el.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:12px">Ingen andre har startet ennå!</p>'; return; }
+      if (!others.length) {
+        el.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:8px">Ingen andre har startet ennå!</p>';
+        return;
+      }
       el.innerHTML = others.map(function(p) {
         return '<div class="other"><span class="other-name">'+p.name+'</span>'
           +'<div class="pbar"><div class="pbar-fill" style="width:'+Math.round(p.count/25*100)+'%"></div></div>'
-          +(p.bingo?'<span class="bingo-tag">BINGO!</span>':'<span class="other-score">'+p.count+'/25</span>')+'</div>';
+          +(p.bingo ? '<span class="bingo-tag">BINGO!</span>' : '<span class="other-score">'+p.count+'/25</span>')
+          +'</div>';
       }).join('');
     }).catch(function(){});
   };
 
   setInterval(loadOthers, 30000);
-  init();
+
+  // Init
+  if (playerName) {
+    showGame();
+  } else {
+    document.getElementById('name-screen').style.display = 'flex';
+    document.getElementById('game-screen').style.display = 'none';
+  }
 </script>
 </body>
 </html>
