@@ -103,11 +103,8 @@
     .cell {
       position: absolute;
       transform: translate(-50%, -50%);
-      width: 16vw;
-      height: 9vw;
       pointer-events: all;
       display: flex; align-items: center; justify-content: center;
-      text-align: center;
       border-radius: 4px;
       border: none;
       background: transparent;
@@ -273,15 +270,6 @@
     renderGrid(); saveProgress(); loadOthers();
   }
 
-  // Eksakte felt-sentre i % av bildet (målt i Paint.NET)
-  var CELLS = [
-    [16.3,33.6],[33.1,33.6],[49.9,33.6],[66.7,33.6],[83.6,33.6],
-    [16.3,43.0],[33.1,43.0],[49.9,43.0],[66.7,43.0],[83.6,43.0],
-    [16.3,52.5],[33.1,52.5],[49.9,52.5],[66.7,52.5],[83.6,52.5],
-    [16.3,61.9],[33.1,61.9],[49.9,61.9],[66.7,61.9],[83.6,61.9],
-    [16.3,71.4],[33.1,71.4],[49.9,71.4],[66.7,71.4],[83.6,71.4],
-  ];
-
   function getBingoLines() {
     var r = new Set();
     [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
@@ -292,18 +280,37 @@
     return r;
   }
 
+  // Originale pikselkoordinater (572x1024 bilde)
+  // Hjørner målt i Paint.NET: felt1=(93,344) felt5=(478,344) felt21=(93,731) felt25=(478,731)
+  var IMG_W = 572, IMG_H = 1024;
+  var CELL_PX = [];
+  var x1=93, x5=478, y1=344, y21=731;
+  var colStep = (x5-x1)/4, rowStep = (y21-y1)/4;
+  for (var row=0; row<5; row++) {
+    for (var col=0; col<5; col++) {
+      CELL_PX.push([x1 + col*colStep, y1 + row*rowStep]);
+    }
+  }
+
   function renderGrid() {
     var overlay = document.getElementById('overlay');
     overlay.innerHTML = '';
     var lines = getBingoLines();
-    CELLS.forEach(function(pos, i) {
+    var img = document.getElementById('bg-img');
+    var scale = img.offsetWidth / IMG_W;
+    var cellW = colStep * scale;
+    var cellH = rowStep * scale;
+
+    CELL_PX.forEach(function(pos, i) {
       var cell = document.createElement('div');
       cell.className = 'cell';
       if (i === 12) cell.classList.add('free');
       if (checked[i]) cell.classList.add('checked');
       if (lines.has(i)) cell.classList.add('line');
-      cell.style.left = pos[0] + '%';
-      cell.style.top = pos[1] + '%';
+      cell.style.left = (pos[0] * scale) + 'px';
+      cell.style.top  = (pos[1] * scale) + 'px';
+      cell.style.width  = cellW + 'px';
+      cell.style.height = cellH + 'px';
       cell.onclick = (function(idx){return function(){toggle(idx);};})(i);
       overlay.appendChild(cell);
     });
