@@ -23,10 +23,10 @@
     
 
     body {
-      background: var(--bg);
+      background-color: transparent;
       background-image: url('bingoblokk.png');
       background-size: cover;
-      background-position: center;
+      background-position: center top;
       background-repeat: no-repeat;
       background-attachment: fixed;
       font-family: 'Nunito', sans-serif;
@@ -34,6 +34,9 @@
       min-height: 100vh;
       min-height: 100dvh;
       padding: 20px 16px 80px;
+    }
+    html {
+      background: #1a0a2e url('bingoblokk.png') center top / cover no-repeat fixed;
     }
 
     h1 {
@@ -100,8 +103,8 @@
     .bingo-cell {
       aspect-ratio: 1;
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(26,10,46,0.25);
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(10,0,20,0.15);
       display: flex; align-items: center; justify-content: center;
       text-align: center;
       font-size: clamp(7px, 1.8vw, 11px);
@@ -114,7 +117,7 @@
       overflow: hidden;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
     .bingo-cell:active { transform: scale(.93); }
     .bingo-cell.checked {
