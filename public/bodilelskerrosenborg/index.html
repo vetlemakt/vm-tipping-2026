@@ -20,8 +20,8 @@
       --muted: rgba(240,230,255,0.5);
     }
 
-    /* Landscape lock */
-    @media (orientation: landscape) {
+    /* Landscape lock - mobile only */
+    @media (orientation: landscape) and (max-height: 600px) {
       #landscape-block {
         display: flex !important;
       }
@@ -279,10 +279,9 @@
   <button class="refresh-btn" onclick="loadOthers()">↻ Oppdater</button>
 </div>
 
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import { getFirestore, doc, setDoc, getDocs, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyAELQvSWSmBt9RcL-d1eUlT2oogIbiQVkY",
     authDomain: "vm-tipping-2026.firebaseapp.com",
@@ -291,8 +290,8 @@
     messagingSenderId: "1060307731188",
     appId: "1:1060307731188:web:df1771b481b630bd6cd4a1"
   };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
   const ITEMS = [
     "Noen mister mobilen",
@@ -419,8 +418,9 @@
   async function saveProgress() {
     const count = Object.values(checked).filter(Boolean).length + 1;
     const hasBingo = getBingoLines().size > 0;
+    const key = playerName.toLowerCase().replace(/\s+/g,'');
     try {
-      await setDoc(doc(db, 'festival_bingo', playerName.toLowerCase().replace(/\s+/g,'')), {
+      await db.collection('festival_bingo').doc(key).set({
         name: playerName,
         checked: checked,
         count: count,
@@ -432,7 +432,7 @@
 
   window.loadOthers = async () => {
     try {
-      const snap = await getDocs(collection(db, 'festival_bingo'));
+      const snap = await db.collection('festival_bingo').get();
       const myKey = playerName.toLowerCase().replace(/\s+/g,'');
       const others = snap.docs
         .map(d => d.data())
