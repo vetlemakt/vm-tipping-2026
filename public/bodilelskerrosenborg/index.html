@@ -57,12 +57,62 @@
 
     #game-screen {
       display: none;
-      padding: 0;
+      position: fixed;
+      inset: 0;
     }
 
-    .player-bar { text-align: center; padding: 8px 0 4px; }
+    .player-bar {
+      position: absolute;
+      top: 2%;
+      width: 100%;
+      text-align: center;
+    }
     .player-bar span { font-size: 15px; font-weight: 700; color: #fbbf24; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
     .player-bar button { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; margin-left: 8px; font-family: 'Nunito', sans-serif; }
+
+    .bingo-shout {
+      position: absolute;
+      top: 6%;
+      width: 100%;
+      text-align: center;
+      font-size: clamp(1.8rem, 7vw, 2.8rem);
+      color: #fbbf24;
+      text-shadow: 2px 2px 12px rgba(0,0,0,0.9);
+      font-weight: 800;
+      display: none;
+    }
+
+    .grid {
+      position: absolute;
+      top: 26%;
+      left: 4%;
+      right: 4%;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      height: 67%;
+    }
+
+    .others-title {
+      position: absolute;
+      bottom: 14%;
+      width: 100%;
+      text-align: center;
+      font-size: 11px; font-weight: 800;
+      color: rgba(255,255,255,0.5); text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+    }
+    .others-wrap {
+      position: absolute;
+      bottom: 5%;
+      left: 5%; right: 5%;
+      max-height: 12%;
+      overflow-y: auto;
+    }
+    .refresh-btn {
+      display: none;
+    }
 
     .score { display: none; }
 
@@ -76,11 +126,11 @@
       margin: 0 auto 16px;
     }
     .cell {
-      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-      text-align: center; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
       background: transparent;
-      font-size: clamp(7px, 1.6vw, 10px); font-weight: 700;
-      line-height: 1.2; padding: 3px; cursor: pointer; position: relative; overflow: hidden;
+      font-size: clamp(6px, 2.5vw, 11px); font-weight: 700;
+      line-height: 1.2; padding: 2px; cursor: pointer; position: relative; overflow: hidden;
       user-select: none; color: #fff; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
     }
     .cell.free { background: transparent; border-color: transparent; color: transparent; pointer-events: none; }
