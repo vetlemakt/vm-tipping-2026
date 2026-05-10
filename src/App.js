@@ -2478,6 +2478,7 @@ function TipsForm({ me, phase, viewUser }) {
                   if (!slot || !isMobile) return slot;
                   return slot.replace('Vinner kamp ', 'Vinner ').replace('Taper kamp ', 'Taper ');
                 };
+                const resolvedHome = hasAct ? act.homeTeam : resolveSlot(m.home);
                 const resolvedAway = hasAct ? act.awayTeam : resolveSlot(m.away);
                 const tipHome = !resolvedHome ? tipForSlot(m.home) : null;
                 const tipAway = !resolvedAway ? tipForSlot(m.away) : null;
