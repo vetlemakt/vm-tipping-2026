@@ -227,6 +227,10 @@
   ];
   var GRID = ITEMS.slice(0,12).concat(["GRATISFELT 🌟"]).concat(ITEMS.slice(12));
 
+  // TEMP: Force clear for testing
+  localStorage.removeItem('fbingo_checked');
+  checked = {};
+
   var name = localStorage.getItem('fbingo_name') || '';
   var checked = JSON.parse(localStorage.getItem('fbingo_checked') || '{}');
 
@@ -297,12 +301,8 @@
 
   function renderGrid() {
     var img = document.getElementById('bg-img');
-    var imgW = img.offsetWidth;
-    if (!imgW || imgW === 0) {
-      // Image not ready yet, wait and retry
-      setTimeout(renderGrid, 100);
-      return;
-    }
+    var imgW = img.offsetWidth || img.naturalWidth;
+    if (!imgW) return;
     var overlay = document.getElementById('overlay');
     overlay.innerHTML = '';
     var lines = getBingoLines();
