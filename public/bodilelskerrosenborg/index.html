@@ -154,6 +154,15 @@
     }
   }
 
+  // Reset via URL parameter: ?reset
+  if (window.location.search.indexOf('reset') !== -1) {
+    localStorage.removeItem('fbingo_name');
+    localStorage.removeItem('fbingo_checked');
+    name = '';
+    checked = {};
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   document.getElementById('start-btn').onclick = function() {
     var v = document.getElementById('name-input').value.trim();
     if (!v) return;
