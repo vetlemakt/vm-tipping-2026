@@ -2223,12 +2223,12 @@ function TipsForm({ me, phase, viewUser }) {
             const correct = correctVal && tipVal && tipVal === correctVal;
             const specPts = correct ? pts : null;
             return (
-              <div key={key} style={C.specRow}>
-                <span style={C.specLabel}>{label}{tooltip && <InfoTooltip text={tooltip} />}</span>
-                <span style={C.ptsBadge}>{pts}p</span>
+              <div key={key} style={{ ...C.specRow, gap: isMobile ? 6 : 9 }}>
+                <span style={{ ...C.specLabel, fontSize: isMobile ? 11 : 13 }}>{label}{tooltip && <InfoTooltip text={tooltip} />}</span>
+                <span style={{ ...C.ptsBadge, fontSize: isMobile ? 9 : 10, padding: isMobile ? '2px 4px' : '2px 6px' }}>{pts}p</span>
                 {grpOk ? (
                   key === 'topscorer' ? (
-                    <div style={{ width: isMobile ? 130 : 170, flexShrink: 0 }}>
+                    <div style={{ width: isMobile ? 110 : 170, flexShrink: 0 }}>
                     <PlayerAutocomplete
                       value={spec[key] || ''}
                       onChange={val => setSp(key, val)}
@@ -2236,7 +2236,7 @@ function TipsForm({ me, phase, viewUser }) {
                     />
                     </div>
                   ) : (
-                    <div style={{ width: isMobile ? 130 : 170, flexShrink: 0 }}>
+                    <div style={{ width: isMobile ? 110 : 170, flexShrink: 0 }}>
                       <TeamSelect
                         value={spec[key] || ''}
                         onChange={val => setSp(key, val)}
