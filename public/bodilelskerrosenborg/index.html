@@ -319,6 +319,8 @@
       cell.style.top    = (pos[1] * scale) + 'px';
       cell.style.width  = cellW + 'px';
       cell.style.height = cellH + 'px';
+      cell.style.border = '2px solid red';
+      cell.style.background = 'rgba(255,0,0,0.2)';
       if (i !== 12) {
         cell.onclick = (function(idx){ return function(){ toggle(idx); }; })(i);
       }
