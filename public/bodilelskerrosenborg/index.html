@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
   <title>Festivalbingo 🎪</title>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
   <style>
@@ -18,14 +19,49 @@
       --text: #f0e6ff;
       --muted: rgba(240,230,255,0.5);
     }
+
+    /* Landscape lock */
+    @media (orientation: landscape) {
+      #landscape-block {
+        display: flex !important;
+      }
+      #name-screen, #game-screen {
+        display: none !important;
+      }
+    }
+    #landscape-block {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg);
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+      text-align: center; padding: 32px;
+    }
+    #landscape-block p {
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.2rem; font-weight: 700;
+      color: var(--text);
+    }
+    #landscape-block .rotate-icon {
+      font-size: 3rem;
+      animation: rotate-hint 1.5s ease-in-out infinite;
+    }
+    @keyframes rotate-hint {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(-90deg); }
+    }
+
     body {
       background: var(--bg);
-      background-image:
-        radial-gradient(ellipse at 20% 20%, rgba(168,85,247,0.25) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 80%, rgba(255,110,180,0.2) 0%, transparent 60%);
+      background-image: url('bingoblokk.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
       font-family: 'Nunito', sans-serif;
       color: var(--text);
       min-height: 100vh;
+      min-height: 100dvh;
       padding: 20px 16px 80px;
     }
 
@@ -84,20 +120,17 @@
     .bingo-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
+      gap: 4px;
       max-width: 500px;
       margin: 0 auto 24px;
-      background-image: url('bingoblokk.png');
-      background-size: cover;
-      background-position: center;
-      border-radius: 16px;
-      padding: 10px;
+      border-radius: 12px;
+      padding: 8px;
     }
     .bingo-cell {
       aspect-ratio: 1;
-      border-radius: 10px;
-      border: 1.5px solid rgba(255,255,255,0.25);
-      background: rgba(26,10,46,0.55);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(26,10,46,0.25);
       display: flex; align-items: center; justify-content: center;
       text-align: center;
       font-size: clamp(7px, 1.8vw, 11px);
@@ -110,6 +143,7 @@
       overflow: hidden;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
     }
     .bingo-cell:active { transform: scale(.93); }
     .bingo-cell.checked {
@@ -205,6 +239,11 @@
   </style>
 </head>
 <body>
+
+<div id="landscape-block">
+  <div class="rotate-icon">📱</div>
+  <p>Vend telefonen til stående modus for å spille festivalbingo! 🎪</p>
+</div>
 
 <h1>Festivalbingo</h1>
 <p class="tagline">Heia Rosenborg 🌹⚽</p>
