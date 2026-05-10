@@ -1188,7 +1188,7 @@ function PlayerAutocomplete({ value, onChange, placeholder }) {
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', minWidth: 160 }}>
       <div style={{ position: 'relative' }}>
         <input
-          style={{ ...C.inp, marginBottom: 0, width: 200, fontSize: 14, padding: '8px 32px 8px 12px',
+          style={{ ...C.inp, marginBottom: 0, width: '100%', fontSize: 14, padding: '8px 32px 8px 12px',
             borderColor: selected ? 'rgba(74,222,128,.5)' : undefined }}
           value={query}
           onChange={handleChange}
@@ -1287,7 +1287,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [] }) {
           userSelect: 'none', justifyContent: 'space-between',
           background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.15)',
           borderRadius: 8, padding: '8px 12px', fontSize: 14, color: '#e8edf8',
-          width: 200, boxSizing: 'border-box',
+          width: '100%', boxSizing: 'border-box',
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1303,7 +1303,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [] }) {
       {open && (
         <div ref={listRef} style={{
           position: 'fixed',
-          width: 200,
+          width: '100%',
           zIndex: 2000,
           background: 'rgba(10,14,30,.99)', border: '1px solid rgba(255,215,0,.25)',
           borderRadius: 10, maxHeight: 260, overflowY: 'auto',
@@ -2179,8 +2179,8 @@ function TipsForm({ me, phase, viewUser }) {
     });
     const keptGrpO = grpOk ? {} : grpO;
     const keptSpec = grpOk ? {} : spec;
-    setTips(keptTips); setGrpO(keptGrpO); setSpec(keptSpec);
-    await updateUser(me.username, { tips: keptTips, groupOrders: keptGrpO, specialTips: keptSpec });
+    setTips(keptTips); setGrpO(keptGrpO); setSpec(keptSpec); setBotSource(null);
+    await updateUser(me.username, { tips: keptTips, groupOrders: keptGrpO, specialTips: keptSpec, botSource: null });
     setSaved(true); setDirty(false);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -2228,19 +2228,21 @@ function TipsForm({ me, phase, viewUser }) {
                 <span style={C.ptsBadge}>{pts}p</span>
                 {grpOk ? (
                   key === 'topscorer' ? (
+                    <div style={{ width: isMobile ? 130 : 170, flexShrink: 0 }}>
                     <PlayerAutocomplete
                       value={spec[key] || ''}
                       onChange={val => setSp(key, val)}
                       placeholder="Søk etter spiller..."
                     />
+                    </div>
                   ) : (
-                    <>
+                    <div style={{ width: isMobile ? 130 : 170, flexShrink: 0 }}>
                       <TeamSelect
                         value={spec[key] || ''}
                         onChange={val => setSp(key, val)}
                         teams={ALL_TEAMS}
                       />
-                    </>
+                    </div>
                   )
                 ) : (
                   <span style={{ flex:1, fontSize:13, color: correct ? '#FFD700' : '#e8edf8', display:'flex', alignItems:'center', gap:6 }}>
@@ -2319,7 +2321,7 @@ function TipsForm({ me, phase, viewUser }) {
 
         {tab === 'group' && <>
           {/* Group cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(12, 1fr)', gap: isMobile ? 6 : 10, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(6, 1fr)' : 'repeat(12, 1fr)', gap: isMobile ? 4 : 10, marginBottom: 14 }}>
             {Object.entries(GROUPS).map(([g, teams]) => {
               const order = grpO[g] || [];
               const filled = order.filter(Boolean).length === 4;
@@ -2338,17 +2340,17 @@ function TipsForm({ me, phase, viewUser }) {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.1)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 800, color: filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Kanit',sans-serif", marginBottom: 3, lineHeight: 1 }}>{g}</div>
+                  <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 800, color: filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Kanit',sans-serif", marginBottom: 3, lineHeight: 1 }}>{g}</div>
                   {teams.map((team, i) => {
                     const code = COUNTRY_CODES[team];
                     const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
                     const placed = order.indexOf(team) !== -1;
                     return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2, justifyContent: 'center' }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 2 : 3, marginBottom: 2, justifyContent: 'center' }}>
                         {code
-                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: 13, height: 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
-                          : <span style={{ width: 13 }} />}
-                        <span style={{ fontSize: 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
+                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: isMobile ? 11 : 13, height: isMobile ? 8 : 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
+                          : <span style={{ width: isMobile ? 11 : 13 }} />}
+                        <span style={{ fontSize: isMobile ? 7 : 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
                       </div>
                     );
                   })}
@@ -2472,7 +2474,10 @@ function TipsForm({ me, phase, viewUser }) {
                   if (toerMatch)   return (grpO[toerMatch[1]] || [])[1] || null;
                   return null;
                 };
-                const resolvedHome = hasAct ? act.homeTeam : resolveSlot(m.home);
+                const shortenSlot = (slot) => {
+                  if (!slot || !isMobile) return slot;
+                  return slot.replace('Vinner kamp ', 'Vinner ').replace('Taper kamp ', 'Taper ');
+                };
                 const resolvedAway = hasAct ? act.awayTeam : resolveSlot(m.away);
                 const tipHome = !resolvedHome ? tipForSlot(m.home) : null;
                 const tipAway = !resolvedAway ? tipForSlot(m.away) : null;
@@ -2514,7 +2519,7 @@ function TipsForm({ me, phase, viewUser }) {
                       {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
                     </div>
                     {/* Home */}
-                    <TeamLabel slot={m.home} resolved={resolvedHome} tip={tipHome} align="right" />
+                    <TeamLabel slot={shortenSlot(m.home)} resolved={resolvedHome} tip={tipHome} align="right" />
                     {/* Score box */}
                     <div style={{
                       display:'flex', flexDirection:'column', alignItems:'center', gap:1,
@@ -2532,7 +2537,7 @@ function TipsForm({ me, phase, viewUser }) {
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
                     </div>
                     {/* Away */}
-                    <TeamLabel slot={m.away} resolved={resolvedAway} tip={tipAway} align="left" />
+                    <TeamLabel slot={shortenSlot(m.away)} resolved={resolvedAway} tip={tipAway} align="left" />
                     {/* Points */}
                     <div style={{width:20,flexShrink:0,textAlign:'right'}}>
                       {renderPtsBadge(pts)}

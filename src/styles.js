@@ -500,9 +500,9 @@ export const C = {
   },
   specRow: {
     display: 'flex', alignItems: 'center', gap: 9,
-    padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,.05)', flexWrap: 'wrap',
+    padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,.05)', flexWrap: 'nowrap',
   },
-  specLabel: { fontSize: 13, color: 'rgba(255,255,255,.7)', minWidth: 190, fontWeight: 500 },
+  specLabel: { fontSize: 13, color: 'rgba(255,255,255,.7)', flex: 1, minWidth: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   ptsBadge: {
     fontFamily: "'Fira Code',monospace", fontSize: 10, color: '#4ade80',
     background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)',
