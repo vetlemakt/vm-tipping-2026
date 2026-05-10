@@ -1185,7 +1185,7 @@ function PlayerAutocomplete({ value, onChange, placeholder, compact = false }) {
   const posColor = { GK: '#94a3b8', DEF: '#60a5fa', MID: '#34d399', FWD: '#f87171' };
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', minWidth: 160 }}>
+    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
       <div style={{ position: 'relative' }}>
         <input
           style={{ ...C.inp, marginBottom: 0, width: '100%',
