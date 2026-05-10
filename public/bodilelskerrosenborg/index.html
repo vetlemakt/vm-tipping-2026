@@ -10,10 +10,15 @@
 
     body {
       min-height: 100vh;
-      background: #1a0a2e url('https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png') center/cover no-repeat;
+      background: #1a0a2e;
       font-family: 'Nunito', sans-serif;
       color: #fff;
-      padding: 20px 16px 100px;
+    }
+
+    #bg-img {
+      display: block;
+      width: 100%;
+      height: auto;
     }
 
     /* Velkomstskjerm */
@@ -57,8 +62,8 @@
 
     #game-screen {
       display: none;
-      position: fixed;
-      inset: 0;
+      position: relative;
+      width: 100%;
     }
 
     .player-bar {
@@ -189,6 +194,7 @@
 </div>
 
 <div id="game-screen">
+  <img id="bg-img" src="https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png" alt=""/>
   <div class="player-bar">
     <span id="disp-name"></span>
     <button onclick="changeName()">bytt navn</button>
