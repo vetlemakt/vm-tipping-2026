@@ -20,36 +20,7 @@
       --muted: rgba(240,230,255,0.5);
     }
 
-    /* Landscape lock - mobile only */
-    @media (orientation: landscape) and (max-height: 600px) {
-      #landscape-block {
-        display: flex !important;
-      }
-      #name-screen, #game-screen {
-        display: none !important;
-      }
-    }
-    #landscape-block {
-      display: none;
-      position: fixed; inset: 0; z-index: 9999;
-      background: var(--bg);
-      align-items: center; justify-content: center;
-      flex-direction: column; gap: 16px;
-      text-align: center; padding: 32px;
-    }
-    #landscape-block p {
-      font-family: 'Nunito', sans-serif;
-      font-size: 1.2rem; font-weight: 700;
-      color: var(--text);
-    }
-    #landscape-block .rotate-icon {
-      font-size: 3rem;
-      animation: rotate-hint 1.5s ease-in-out infinite;
-    }
-    @keyframes rotate-hint {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(-90deg); }
-    }
+    
 
     body {
       background: var(--bg);
@@ -239,11 +210,6 @@
   </style>
 </head>
 <body>
-
-<div id="landscape-block">
-  <div class="rotate-icon">📱</div>
-  <p>Vend telefonen til stående modus for å spille festivalbingo! 🎪</p>
-</div>
 
 <h1>Festivalbingo</h1>
 <p class="tagline">Heia Rosenborg 🌹⚽</p>
