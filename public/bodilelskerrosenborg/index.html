@@ -266,9 +266,10 @@
     document.getElementById('name-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'block';
     document.getElementById('disp-name').textContent = name;
-    var img = document.getElementById('bg-img');
-    if (img.complete) { renderGrid(); } 
-    else { img.onload = renderGrid; }
+    // Wait for browser to layout before measuring image width
+    requestAnimationFrame(function() {
+      requestAnimationFrame(renderGrid);
+    });
     saveProgress(); loadOthers();
   }
 
