@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Festivalbingo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Rock+Salt&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #1a0a2e; font-family: 'Nunito', sans-serif; color: #fff; }
@@ -39,29 +39,47 @@
       background: transparent; border: none;
     }
     .cell.checked::after {
-      content: '✓';
+      content: '';
       position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 8vw; color: #c00; font-weight: 900;
-      background: rgba(255,20,20,0.25); border-radius: 4px;
+      background-image: var(--stamp);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 90%;
     }
-    .cell.line.checked::after { color: #ffd700; background: rgba(255,215,0,0.25); }
+    .cell.line.checked::after { filter: drop-shadow(0 0 6px rgba(255,215,0,0.8)); }
 
-    .player-bar { position: absolute; top: 1%; width: 100%; text-align: center; z-index: 10; }
-    .player-bar span { font-size: 14px; font-weight: 700; color: #fbbf24; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
-    .player-bar button { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; margin-left: 6px; font-family: 'Nunito', sans-serif; }
+    .player-bar { position: absolute; top: 13%; width: 100%; text-align: center; z-index: 10; }
+    .player-bar span {
+      font-size: 7vw; font-weight: 800; color: #000;
+      text-shadow: none; cursor: pointer;
+      font-family: 'Rock Salt', cursive;
+      letter-spacing: 2px;
+    }
+    .player-bar span:hover { opacity: 0.7; }
 
     #shout { position: absolute; top: 5%; width: 100%; text-align: center; font-size: 2rem; color: #fbbf24; font-weight: 800; display: none; z-index: 10; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); }
 
-    #others-section { background: rgba(0,0,0,0.6); padding: 12px 16px; }
-    .others-title { text-align: center; font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
-    .other { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
-    .other-name { font-weight: 700; font-size: 13px; min-width: 80px; }
-    .pbar { flex: 1; height: 5px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
-    .pbar-fill { height: 100%; background: #ff6eb4; border-radius: 3px; }
-    .other-score { font-size: 12px; color: rgba(255,255,255,0.6); }
-    .bingo-tag { font-size: 11px; font-weight: 800; color: #fbbf24; }
-    .refresh-btn { display: block; margin: 10px auto 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); padding: 6px 16px; border-radius: 20px; font-family: 'Nunito', sans-serif; font-size: 12px; cursor: pointer; }
+    .other-name-btn {
+      font-family: 'Rock Salt', cursive;
+      font-size: 5vw;
+      background: none; border: none;
+      color: #fff; cursor: pointer;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+      padding: 4px 8px;
+      opacity: 0.85;
+    }
+    .other-name-btn:active { opacity: 0.5; }
+    .other-name-btn.viewing {
+      color: #fbbf24;
+      text-decoration: underline;
+    }
+    .view-banner {
+      position: absolute; top: 1%; width: 100%;
+      text-align: center; z-index: 10;
+      font-family: 'Rock Salt', cursive;
+      font-size: 4vw; color: #fbbf24;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
+    }
   </style>
 </head>
 <body>
@@ -74,17 +92,14 @@
 <div id="game-screen">
   <img id="bg-img" src="https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png" alt=""/>
   <div class="player-bar">
-    <span id="disp-name"></span>
-    <button onclick="changeName()">bytt navn</button>
+    <span id="disp-name" onclick="changeName()" title="Trykk for å bytte navn"></span>
   </div>
   <div id="shout">BINGO! 🎉</div>
   <div class="overlay" id="overlay"></div>
 </div>
 
-<div id="others-section" style="display:none">
-  <div class="others-title">Venninners fremgang</div>
-  <div id="others"></div>
-  <button class="refresh-btn" onclick="loadOthers()">↻ Oppdater</button>
+<div id="others-section" style="display:none; padding: 16px 8px; text-align: center;">
+  <div id="others-names" style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
@@ -146,45 +161,23 @@
     document.getElementById('disp-name').textContent = playerName;
     var img = document.getElementById('bg-img');
     if (img.complete && img.naturalWidth > 0) {
-      buildCells();
+      buildCells(checked, true);
     } else {
-      img.onload = buildCells;
+      img.onload = function() { buildCells(checked, true); };
     }
     loadOthers();
   }
 
-  function buildCells() {
-    var img = document.getElementById('bg-img');
-    var scale = img.offsetWidth / IMG_W;
-    var cellW = (COL[1] - COL[0]) * scale;
-    var cellH = (ROW[1] - ROW[0]) * scale;
-    var overlay = document.getElementById('overlay');
-    overlay.innerHTML = '';
-
-    CELL_PX.forEach(function(pos, i) {
-      var div = document.createElement('div');
-      div.className = 'cell';
-      div.style.left = (pos[0] * scale) + 'px';
-      div.style.top  = (pos[1] * scale) + 'px';
-      div.style.width  = cellW + 'px';
-      div.style.height = cellH + 'px';
-      // Debug: show red border
-      div.style.border = '2px solid red';
-      div.style.background = 'rgba(255,0,0,0.15)';
-      if (i !== 12) {
-        div.onclick = (function(idx){ return function(){ toggle(idx); }; })(i);
-      }
-      overlay.appendChild(div);
-    });
-    updateChecked();
-  }
 
   function updateChecked() {
     var lines = getBingoLines();
     var cells = document.querySelectorAll('.cell');
     cells.forEach(function(cell, i) {
       cell.classList.remove('checked', 'line');
-      if (checked[i]) cell.classList.add('checked');
+      if (checked[i]) {
+        cell.classList.add('checked');
+        cell.style.setProperty('--stamp', 'url("' + getStamp(i) + '")');
+      }
       if (lines.has(i)) cell.classList.add('line');
     });
     document.getElementById('shout').style.display = lines.size > 0 ? 'block' : 'none';
@@ -197,8 +190,6 @@
     updateChecked();
     saveProgress();
   }
-
-  function getBingoLines() {
     var r = new Set();
     [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
      [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
@@ -218,25 +209,115 @@
     }).catch(function(){});
   }
 
+  var BASE = 'https://www.heiarosenb.org/bodilelskerrosenborg/';
+  var STAMPS = [1,2,3,4,5,6,7,8].map(function(n){ return BASE+'stamp'+n+'.png'; });
+
+  // Assign a random stamp to each cell (stored in localStorage so it stays consistent)
+  var stampAssign = JSON.parse(localStorage.getItem('fbingo_stamps') || '{}');
+  function getStamp(i) {
+    if (!stampAssign[i]) {
+      stampAssign[i] = STAMPS[Math.floor(Math.random() * STAMPS.length)];
+      localStorage.setItem('fbingo_stamps', JSON.stringify(stampAssign));
+    }
+    return stampAssign[i];
+  }
+
+  function firstName(name) {
+    return name.split(' ')[0];
+  }
+
   window.loadOthers = function() {
     var myKey = playerName.toLowerCase().replace(/\s+/g, '');
     db.collection('festival_bingo').get().then(function(snap) {
       var others = snap.docs.map(function(d){ return d.data(); })
         .filter(function(d){ return d.name.toLowerCase().replace(/\s+/g,'') !== myKey; })
         .sort(function(a,b){ return b.count - a.count; });
-      var el = document.getElementById('others');
-      if (!others.length) {
-        el.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:8px">Ingen andre har startet ennå!</p>';
-        return;
-      }
-      el.innerHTML = others.map(function(p) {
-        return '<div class="other"><span class="other-name">'+p.name+'</span>'
-          +'<div class="pbar"><div class="pbar-fill" style="width:'+Math.round(p.count/25*100)+'%"></div></div>'
-          +(p.bingo ? '<span class="bingo-tag">BINGO!</span>' : '<span class="other-score">'+p.count+'/25</span>')
-          +'</div>';
-      }).join('');
+
+      var el = document.getElementById('others-names');
+      el.innerHTML = '';
+      others.forEach(function(p) {
+        var btn = document.createElement('button');
+        btn.className = 'other-name-btn' + (viewingPlayer === p.name ? ' viewing' : '');
+        btn.textContent = firstName(p.name);
+        btn.onclick = function() {
+          if (viewingPlayer === p.name) {
+            // Toggle back to own board
+            viewingPlayer = null;
+            showOwnBoard();
+          } else {
+            viewingPlayer = p.name;
+            showOtherBoard(p);
+          }
+          // Update button states
+          document.querySelectorAll('.other-name-btn').forEach(function(b) {
+            b.classList.remove('viewing');
+          });
+          if (viewingPlayer) btn.classList.add('viewing');
+        };
+        el.appendChild(btn);
+      });
     }).catch(function(){});
   };
+
+  function showOwnBoard() {
+    document.getElementById('bg-img').src = 'https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png';
+    document.getElementById('disp-name').textContent = playerName;
+    document.querySelector('.player-bar').style.display = 'block';
+    document.getElementById('shout').style.display = getBingoLines().size > 0 ? 'block' : 'none';
+    // Rebuild with own checked data
+    buildCells(checked, true);
+  }
+
+  function showOtherBoard(p) {
+    document.getElementById('bg-img').src = 'https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png';
+    document.getElementById('disp-name').textContent = firstName(p.name);
+    document.querySelector('.player-bar').style.display = 'block';
+    document.getElementById('shout').style.display = 'none';
+    // Show their checked state, not clickable
+    buildCells(p.checked || {}, false);
+  }
+
+  function buildCells(checkedData, isOwn) {
+    var img = document.getElementById('bg-img');
+    var scale = img.offsetWidth / IMG_W;
+    var cellW = (COL[1] - COL[0]) * scale;
+    var cellH = (ROW[1] - ROW[0]) * scale;
+    var overlay = document.getElementById('overlay');
+    overlay.innerHTML = '';
+    var lines = isOwn ? getBingoLines() : getOtherLines(checkedData);
+
+    CELL_PX.forEach(function(pos, i) {
+      var div = document.createElement('div');
+      div.className = 'cell';
+      if (checkedData[i]) {
+        div.classList.add('checked');
+        var stamp = isOwn ? getStamp(i) : STAMPS[i % STAMPS.length];
+        div.style.setProperty('--stamp', 'url("' + stamp + '")');
+      }
+      if (lines.has(i)) div.classList.add('line');
+      div.style.left   = (pos[0] * scale) + 'px';
+      div.style.top    = (pos[1] * scale) + 'px';
+      div.style.width  = cellW + 'px';
+      div.style.height = cellH + 'px';
+      if (isOwn && i !== 12) {
+        div.onclick = (function(idx){ return function(){ toggle(idx); }; })(i);
+      } else {
+        div.style.pointerEvents = 'none';
+      }
+      overlay.appendChild(div);
+    });
+    if (isOwn) document.getElementById('shout').style.display = lines.size > 0 ? 'block' : 'none';
+  }
+
+  function getOtherLines(c) {
+    var r = new Set();
+    [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+     [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+     [0,6,12,18,24],[4,8,12,16,20]].forEach(function(l) {
+      if (l.every(function(i){ return i===12 || c[i]; })) l.forEach(function(i){ r.add(i); });
+    });
+    return r;
+  }
 
   setInterval(loadOthers, 30000);
 
