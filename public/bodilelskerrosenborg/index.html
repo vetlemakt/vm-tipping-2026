@@ -96,9 +96,13 @@
   </div>
   <div id="shout">BINGO! 🎉</div>
   <div class="overlay" id="overlay"></div>
+  <!-- Dæm ainneran posisjonert over bildet ved gul strek (~85% ned) -->
+  <div id="daem-label" style="position:absolute; top:85%; width:100%; text-align:center; z-index:10; display:none;">
+    <div style="font-family:'Rock Salt',cursive; font-size:7vw; font-weight:700; color:#333;">Dæm ainneran:</div>
+  </div>
 </div>
 
-<div id="others-section" style="display:none; padding-top: 220px; padding-bottom: 16px; padding-left: 8px; padding-right: 8px; text-align: center;">
+<div id="others-section" style="display:none; text-align: center; padding: 16px 8px;">
   <div style="font-family: 'Rock Salt', cursive; font-size: 7vw; font-weight: 700; color: #333; margin-bottom: 12px;">Dæm ainneran:</div>
   <div id="others-names" style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;"></div>
 </div>
@@ -159,11 +163,9 @@
     document.getElementById('name-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'block';
     document.getElementById('others-section').style.display = 'block';
+    document.getElementById('daem-label').style.display = 'block';
     document.getElementById('disp-name').textContent = playerName;
-    // Use setTimeout to ensure DOM has updated before measuring image
-    setTimeout(function() {
-      buildCells(checked, true);
-    }, 50);
+    setTimeout(function() { buildCells(checked, true); }, 50);
     loadOthers();
   }
 
