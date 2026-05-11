@@ -48,9 +48,9 @@
     }
     .cell.line.checked::after { filter: drop-shadow(0 0 6px rgba(255,215,0,0.8)); }
 
-    .player-bar { position: absolute; top: 40px; width: 100%; text-align: center; z-index: 10; }
+    .player-bar { position: absolute; top: 27px; width: 100%; text-align: center; z-index: 10; }
     .player-bar span {
-      font-size: 7vw; font-weight: 800; color: #000;
+      font-size: 7vw; font-weight: 800; color: #333;
       text-shadow: none; cursor: pointer;
       font-family: 'Rock Salt', cursive;
       letter-spacing: 2px;
@@ -63,14 +63,14 @@
       font-family: 'Rock Salt', cursive;
       font-size: 5vw;
       background: none; border: none;
-      color: #fff; cursor: pointer;
-      text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+      color: #333; cursor: pointer;
+      text-shadow: none;
       padding: 4px 8px;
       opacity: 0.85;
     }
     .other-name-btn:active { opacity: 0.5; }
     .other-name-btn.viewing {
-      color: #fbbf24;
+      color: #333;
       text-decoration: underline;
     }
     .view-banner {
@@ -99,6 +99,7 @@
 </div>
 
 <div id="others-section" style="display:none; padding: 16px 8px; text-align: center;">
+  <div style="font-family: 'Rock Salt', cursive; font-size: 7vw; font-weight: 700; color: #333; text-shadow: 1px 1px 4px rgba(0,0,0,0.3); margin-bottom: 12px;">Dæm ainneran:</div>
   <div id="others-names" style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;"></div>
 </div>
 
