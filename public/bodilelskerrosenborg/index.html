@@ -18,10 +18,10 @@
     #name-input {
       width: min(280px, 72%); padding: 10px 14px; border-radius: 6px;
       border: none; background: rgba(255,255,255,0.0); color: #000;
-      font-size: 28px; font-family: 'Nunito', sans-serif; font-weight: 700;
+      font-size: 20px; font-family: 'Rock Salt', cursive; font-weight: 400;
       text-align: center; outline: none;
     }
-    #name-input::placeholder { color: rgba(0,0,0,0.35); }
+    #name-input::placeholder { color: rgba(0,0,0,0.35); font-family: 'Rock Salt', cursive; }
     #start-btn {
       padding: 10px 36px; border-radius: 20px; border: 2px solid rgba(0,0,0,0.5);
       background: rgba(255,255,255,0.3); color: #000; font-size: 20px;
@@ -159,12 +159,10 @@
     document.getElementById('game-screen').style.display = 'block';
     document.getElementById('others-section').style.display = 'block';
     document.getElementById('disp-name').textContent = playerName;
-    var img = document.getElementById('bg-img');
-    if (img.complete && img.naturalWidth > 0) {
+    // Use setTimeout to ensure DOM has updated before measuring image
+    setTimeout(function() {
       buildCells(checked, true);
-    } else {
-      img.onload = function() { buildCells(checked, true); };
-    }
+    }, 50);
     loadOthers();
   }
 
