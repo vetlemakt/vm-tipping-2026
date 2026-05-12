@@ -215,8 +215,13 @@
     var img = document.getElementById('bg-img');
     var scale = img.offsetWidth / IMG_W;
     var cellH = (ROW[1]-ROW[0]) * scale;
-    var topPx = (731 * scale) + (cellH / 2) + 23; // 20+3=23px
+    var topPx = (731 * scale) + (cellH / 2) + 28;
     document.getElementById('daem-label').style.top = topPx + 'px';
+    // Trekk others-wrap opp så det starter rett under daem-label
+    var imgH = img.offsetHeight;
+    var daemFontH = img.offsetWidth * 0.049 * 1.5;
+    var spaceBelow = imgH - topPx - daemFontH;
+    document.getElementById('others-wrap').style.marginTop = (-spaceBelow + 10) + 'px';
   }
 
   function openFriendPopup(p) {
