@@ -95,9 +95,11 @@
     <span id="disp-name" onclick="changeName()" title="Trykk for å bytte navn"></span>
   </div>
   <div class="overlay" id="overlay"></div>
-  <div id="daem-label" style="position:absolute; width:100%; text-align:center; z-index:10; display:none;">
-    <div style="font-family:'Rock Salt',cursive; font-size:7vw; font-weight:700; color:#333;">Dæm ainneran:</div>
-  </div>
+</div>
+
+<!-- Dæm ainneran: posisjonert oppå bunnen av bingoblokk.png -->
+<div id="daem-label" style="display:none; text-align:center; position:relative; z-index:10;">
+  <div id="daem-inner" style="font-family:'Rock Salt',cursive; font-size:7vw; font-weight:700; color:#333; position:relative;"></div>
 </div>
 
 <div id="others-section" style="display:none; text-align: center; padding: 12px 8px;">
@@ -164,12 +166,17 @@
     document.getElementById('disp-name').textContent = playerName;
     setTimeout(function() {
       buildCells(checked, true);
-      // Nederste rad senterpunkt er y=731 i originalbildet (572px bredt)
-      // Legg til halv cellehøyde + 30px margin
+      // Trekk daem-label opp over bildets nedre del
+      // Bildet er 1024px høyt, nederste rad på y=731+~48px = 779px
+      // Vi vil ha teksten ca 30px under nederste rad
       var img = document.getElementById('bg-img');
       var scale = img.offsetWidth / IMG_W;
-      var bottomOfLastRow = (731 + (ROW[1]-ROW[0])/2) * scale + 30;
-      document.getElementById('daem-label').style.top = bottomOfLastRow + 'px';
+      var imgH = img.offsetHeight || (1024 * scale);
+      var bottomRow = (731 + (ROW[1]-ROW[0])/2) * scale;
+      var marginUp = -(imgH - bottomRow - 30);
+      var label = document.getElementById('daem-label');
+      label.style.marginTop = marginUp + 'px';
+      document.getElementById('daem-inner').textContent = 'Dæm ainneran:';
     }, 50);
     loadOthers();
   }
