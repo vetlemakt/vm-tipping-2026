@@ -4,11 +4,12 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Festivalbingo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Rock+Salt&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #1a0a2e; font-family: 'Nunito', sans-serif; color: #fff; }
+    body { background: #1a0a2e; font-family: 'Rock Salt', cursive; }
 
+    /* Velkomstskjerm */
     #name-screen {
       position: fixed; inset: 0;
       background: url('https://www.heiarosenb.org/bodilelskerrosenborg/hvemerdu.png') center/cover no-repeat;
@@ -16,70 +17,70 @@
       justify-content: flex-start; padding-top: 82%; gap: 12px;
     }
     #name-input {
-      width: min(280px, 72%); padding: 10px 14px; border-radius: 6px;
-      border: none; background: rgba(255,255,255,0.0); color: #000;
+      width: min(280px, 72%); padding: 10px 14px;
+      border: none; background: transparent; color: #000;
       font-size: 40px; font-family: 'Rock Salt', cursive; font-weight: 700;
       text-align: center; outline: none;
     }
-    #name-input::placeholder { color: rgba(0,0,0,0.35); font-family: 'Rock Salt', cursive; }
+    #name-input::placeholder { color: rgba(0,0,0,0.3); }
     #start-btn {
-      padding: 10px 36px; border-radius: 20px; border: 2px solid rgba(0,0,0,0.5);
-      background: rgba(255,255,255,0.3); color: #000; font-size: 20px;
-      font-weight: 800; font-family: 'Nunito', sans-serif; cursor: pointer;
+      padding: 10px 36px; border-radius: 20px;
+      border: 2px solid rgba(0,0,0,0.4); background: rgba(255,255,255,0.25);
+      color: #000; font-size: 20px; font-weight: 700;
+      font-family: 'Rock Salt', cursive; cursor: pointer;
     }
 
-    #game-screen { display: none; position: relative; width: 100%; }
+    /* Spillskjerm - wrapper som inneholder alt */
+    #game-wrap { display: none; position: relative; width: 100%; }
+
+    /* Bildet tar full bredde */
     #bg-img { display: block; width: 100%; height: auto; }
 
-    .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    /* Alt som skal ligge oppå bildet */
+    #overlay-all {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+    }
+    #overlay-all > * { pointer-events: all; }
+
+    /* Spillernavn */
+    #player-name {
+      position: absolute; top: 27px; width: 100%;
+      text-align: center; cursor: pointer;
+      font-size: 7vw; color: #333; font-weight: 700;
+    }
+
+    /* Bingoceller */
     .cell {
       position: absolute; transform: translate(-50%, -50%);
-      pointer-events: all; cursor: pointer;
+      background: transparent; border: none; cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      background: transparent; border: none;
     }
     .cell.checked::after {
-      content: '';
-      position: absolute; inset: 0;
+      content: ''; position: absolute; inset: 0;
       background-image: var(--stamp);
-      background-repeat: no-repeat;
+      background-size: 90%; background-repeat: no-repeat;
       background-position: center;
-      background-size: 90%;
     }
-    .cell.line.checked::after { filter: drop-shadow(0 0 6px rgba(255,215,0,0.8)); }
+    .cell.free { pointer-events: none; }
 
-    .player-bar { position: absolute; top: 27px; width: 100%; text-align: center; z-index: 10; }
-    .player-bar span {
-      font-size: 7vw; font-weight: 800; color: #333;
-      text-shadow: none; cursor: pointer;
-      font-family: 'Rock Salt', cursive;
-      letter-spacing: 2px;
+    /* Dæm ainneran - posisjonert via JS */
+    #daem-label {
+      position: absolute; width: 100%; text-align: center;
+      font-size: 7vw; color: #333; font-weight: 700;
     }
-    .player-bar span:hover { opacity: 0.7; }
 
-    #shout { position: absolute; top: 5%; width: 100%; text-align: center; font-size: 2rem; color: #fbbf24; font-weight: 800; display: none; z-index: 10; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); }
-
-    .other-name-btn {
-      font-family: 'Rock Salt', cursive;
-      font-size: 5vw;
-      background: none; border: none;
-      color: #333; cursor: pointer;
-      text-shadow: none;
-      padding: 4px 8px;
-      opacity: 0.85;
+    /* Venner - under bildet */
+    #others-wrap {
+      display: none; text-align: center; padding: 12px 8px;
     }
-    .other-name-btn:active { opacity: 0.5; }
-    .other-name-btn.viewing {
-      color: #333;
-      text-decoration: underline;
+    .other-btn {
+      font-family: 'Rock Salt', cursive; font-size: 5vw;
+      background: none; border: none; color: #333;
+      cursor: pointer; padding: 4px 8px; opacity: 0.85;
     }
-    .view-banner {
-      position: absolute; top: 1%; width: 100%;
-      text-align: center; z-index: 10;
-      font-family: 'Rock Salt', cursive;
-      font-size: 4vw; color: #fbbf24;
-      text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
-    }
+    .other-btn.active { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -89,21 +90,17 @@
   <button id="start-btn">OK</button>
 </div>
 
-<div id="game-screen">
+<div id="game-wrap">
   <img id="bg-img" src="https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png" alt=""/>
-  <div class="player-bar">
-    <span id="disp-name" onclick="changeName()" title="Trykk for å bytte navn"></span>
+  <div id="overlay-all">
+    <div id="player-name" onclick="changeName()"></div>
+    <div id="bingo-cells"></div>
+    <div id="daem-label">Dæm ainneran:</div>
   </div>
-  <div class="overlay" id="overlay"></div>
 </div>
 
-<!-- Dæm ainneran: posisjonert oppå bunnen av bingoblokk.png -->
-<div id="daem-label" style="display:none; text-align:center; position:relative; z-index:10;">
-  <div id="daem-inner" style="font-family:'Rock Salt',cursive; font-size:7vw; font-weight:700; color:#333; position:relative;"></div>
-</div>
-
-<div id="others-section" style="display:none; text-align: center; padding: 12px 8px;">
-  <div id="others-names" style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;"></div>
+<div id="others-wrap">
+  <div id="others-names" style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
@@ -119,26 +116,36 @@
   });
   var db = firebase.firestore();
 
-  // Original image dimensions
+  // Bildemål og cellekoordinater
   var IMG_W = 572;
-  // Cell centers measured in Paint.NET from original 572x1024 image
-  // Corners: felt1=(93,344) felt5=(478,344) felt21=(93,731) felt25=(478,731)
   var COL = [93, 189.25, 285.5, 381.75, 478];
   var ROW = [344, 440.75, 537.5, 634.25, 731];
   var CELL_PX = [];
   for (var r=0; r<5; r++) for (var c=0; c<5; c++) CELL_PX.push([COL[c], ROW[r]]);
 
-  var playerName = localStorage.getItem('fbingo_name') || '';
-  var checked = JSON.parse(localStorage.getItem('fbingo_checked') || '{}');
-
-  // Handle ?reset
-  if (window.location.search.indexOf('reset') !== -1) {
-    playerName = ''; checked = {};
-    localStorage.removeItem('fbingo_name');
-    localStorage.removeItem('fbingo_checked');
-    window.history.replaceState({}, '', window.location.pathname);
+  var BASE = 'https://www.heiarosenb.org/bodilelskerrosenborg/';
+  var STAMPS = [1,2,3,4,5,6,7,8].map(function(n){ return BASE+'stamp'+n+'.png'; });
+  var stampAssign = JSON.parse(localStorage.getItem('fbingo_stamps') || '{}');
+  function getStamp(i) {
+    if (!stampAssign[i]) {
+      stampAssign[i] = STAMPS[Math.floor(Math.random()*STAMPS.length)];
+      localStorage.setItem('fbingo_stamps', JSON.stringify(stampAssign));
+    }
+    return stampAssign[i];
   }
 
+  var playerName = localStorage.getItem('fbingo_name') || '';
+  var checked = JSON.parse(localStorage.getItem('fbingo_checked') || '{}');
+  var viewingPlayer = null;
+
+  if (window.location.search.indexOf('reset') !== -1) {
+    playerName=''; checked={};
+    localStorage.removeItem('fbingo_name');
+    localStorage.removeItem('fbingo_checked');
+    window.history.replaceState({},'',' /bodilelskerrosenborg/');
+  }
+
+  // Navn-skjerm
   document.getElementById('start-btn').onclick = function() {
     var v = document.getElementById('name-input').value.trim();
     if (!v) return;
@@ -147,201 +154,125 @@
     showGame();
   };
   document.getElementById('name-input').onkeydown = function(e) {
-    if (e.key === 'Enter') document.getElementById('start-btn').click();
+    if (e.key==='Enter') document.getElementById('start-btn').click();
   };
   window.changeName = function() {
-    playerName = '';
-    localStorage.removeItem('fbingo_name');
-    document.getElementById('name-screen').style.display = 'flex';
-    document.getElementById('game-screen').style.display = 'none';
-    document.getElementById('others-section').style.display = 'none';
-    document.getElementById('name-input').value = '';
+    playerName=''; localStorage.removeItem('fbingo_name');
+    document.getElementById('game-wrap').style.display='none';
+    document.getElementById('others-wrap').style.display='none';
+    document.getElementById('name-screen').style.display='flex';
+    document.getElementById('name-input').value='';
   };
 
   function showGame() {
-    document.getElementById('name-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'block';
-    document.getElementById('others-section').style.display = 'block';
-    document.getElementById('daem-label').style.display = 'block';
-    document.getElementById('disp-name').textContent = playerName;
-    setTimeout(function() {
+    document.getElementById('name-screen').style.display='none';
+    document.getElementById('game-wrap').style.display='block';
+    document.getElementById('others-wrap').style.display='block';
+    document.getElementById('player-name').textContent = playerName;
+    var img = document.getElementById('bg-img');
+    function onReady() {
       buildCells(checked, true);
-      // Trekk daem-label opp over bildets nedre del
-      // Bildet er 1024px høyt, nederste rad på y=731+~48px = 779px
-      // Vi vil ha teksten ca 30px under nederste rad
-      var img = document.getElementById('bg-img');
-      var scale = img.offsetWidth / IMG_W;
-      var imgH = img.offsetHeight || (1024 * scale);
-      var bottomRow = (731 + (ROW[1]-ROW[0])/2) * scale;
-      var marginUp = -(imgH - bottomRow - 30);
-      var label = document.getElementById('daem-label');
-      label.style.marginTop = marginUp + 'px';
-      document.getElementById('daem-inner').textContent = 'Dæm ainneran:';
-    }, 50);
+      positionDaem();
+    }
+    if (img.complete && img.naturalWidth>0) { setTimeout(onReady, 30); }
+    else { img.onload = onReady; }
     loadOthers();
   }
 
-
-  function updateChecked() {
-    var lines = getBingoLines();
-    var cells = document.querySelectorAll('.cell');
-    cells.forEach(function(cell, i) {
-      cell.classList.remove('checked', 'line');
-      if (checked[i]) {
-        cell.classList.add('checked');
-        cell.style.setProperty('--stamp', 'url("' + getStamp(i) + '")');
-      }
-      if (lines.has(i)) cell.classList.add('line');
-    });
-  }
-
-  function toggle(i) {
-    if (i === 12) return;
-    checked[i] = !checked[i];
-    localStorage.setItem('fbingo_checked', JSON.stringify(checked));
-    updateChecked();
-    saveProgress();
-  }
-
-  function getBingoLines() {
-    var r = new Set();
-    [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
-     [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
-     [0,6,12,18,24],[4,8,12,16,20]].forEach(function(l) {
-      if (l.every(function(i){ return i===12 || checked[i]; }))
-        l.forEach(function(i){ r.add(i); });
-    });
-    return r;
-  }
-
-  function saveProgress() {
-    var count = Object.values(checked).filter(Boolean).length + 1;
-    var key = playerName.toLowerCase().replace(/\s+/g, '');
-    db.collection('festival_bingo').doc(key).set({
-      name: playerName, checked: checked, count: count,
-      bingo: getBingoLines().size > 0, updated: Date.now()
-    }).catch(function(){});
-  }
-
-  var BASE = 'https://www.heiarosenb.org/bodilelskerrosenborg/';
-  var STAMPS = [1,2,3,4,5,6,7,8].map(function(n){ return BASE+'stamp'+n+'.png'; });
-
-  // Assign a random stamp to each cell (stored in localStorage so it stays consistent)
-  var stampAssign = JSON.parse(localStorage.getItem('fbingo_stamps') || '{}');
-  function getStamp(i) {
-    if (!stampAssign[i]) {
-      stampAssign[i] = STAMPS[Math.floor(Math.random() * STAMPS.length)];
-      localStorage.setItem('fbingo_stamps', JSON.stringify(stampAssign));
-    }
-    return stampAssign[i];
-  }
-
-  function firstName(name) {
-    return name.split(' ')[0];
-  }
-
-  window.loadOthers = function() {
-    var myKey = playerName.toLowerCase().replace(/\s+/g, '');
-    db.collection('festival_bingo').get().then(function(snap) {
-      console.log('Firebase docs:', snap.docs.length);
-      snap.docs.forEach(function(d) { console.log('Doc:', d.id, d.data()); });
-      var others = snap.docs.map(function(d){ return d.data(); })
-        .filter(function(d){ return d.name && d.name.toLowerCase().replace(/\s+/g,'') !== myKey; })
-        .sort(function(a,b){ return b.count - a.count; });
-
-      var el = document.getElementById('others-names');
-      el.innerHTML = '';
-      others.forEach(function(p) {
-        var btn = document.createElement('button');
-        btn.className = 'other-name-btn' + (viewingPlayer === p.name ? ' viewing' : '');
-        btn.textContent = firstName(p.name);
-        btn.onclick = function() {
-          if (viewingPlayer === p.name) {
-            viewingPlayer = null;
-            showOwnBoard();
-          } else {
-            viewingPlayer = p.name;
-            showOtherBoard(p);
-          }
-          document.querySelectorAll('.other-name-btn').forEach(function(b) {
-            b.classList.remove('viewing');
-          });
-          if (viewingPlayer) btn.classList.add('viewing');
-        };
-        el.appendChild(btn);
-      });
-    }).catch(function(err){ console.error('Firebase error:', err); });
-  };
-
-  function showOwnBoard() {
-    document.getElementById('bg-img').src = 'https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png';
-    document.getElementById('disp-name').textContent = playerName;
-    document.querySelector('.player-bar').style.display = 'block';
-    document.getElementById('shout').style.display = getBingoLines().size > 0 ? 'block' : 'none';
-    // Rebuild with own checked data
-    buildCells(checked, true);
-  }
-
-  function showOtherBoard(p) {
-    document.getElementById('bg-img').src = 'https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png';
-    document.getElementById('disp-name').textContent = firstName(p.name);
-    document.querySelector('.player-bar').style.display = 'block';
-    document.getElementById('shout').style.display = 'none';
-    // Show their checked state, not clickable
-    buildCells(p.checked || {}, false);
+  function positionDaem() {
+    var img = document.getElementById('bg-img');
+    var scale = img.offsetWidth / IMG_W;
+    // Senter av nederste rad = ROW[4]=731, pluss halv celehøyde ned
+    var cellH = (ROW[1]-ROW[0]) * scale;
+    var topPx = (731 * scale) + (cellH / 2) + 20;
+    document.getElementById('daem-label').style.top = topPx + 'px';
   }
 
   function buildCells(checkedData, isOwn) {
     var img = document.getElementById('bg-img');
     var scale = img.offsetWidth / IMG_W;
-    var cellW = (COL[1] - COL[0]) * scale;
-    var cellH = (ROW[1] - ROW[0]) * scale;
-    var overlay = document.getElementById('overlay');
-    overlay.innerHTML = '';
-    var lines = isOwn ? getBingoLines() : getOtherLines(checkedData);
+    var cellW = (COL[1]-COL[0]) * scale;
+    var cellH = (ROW[1]-ROW[0]) * scale;
+    var container = document.getElementById('bingo-cells');
+    container.innerHTML = '';
 
     CELL_PX.forEach(function(pos, i) {
       var div = document.createElement('div');
       div.className = 'cell';
+      if (i===12) div.classList.add('free');
       if (checkedData[i]) {
         div.classList.add('checked');
-        var stamp = isOwn ? getStamp(i) : STAMPS[i % STAMPS.length];
-        div.style.setProperty('--stamp', 'url("' + stamp + '")');
+        div.style.setProperty('--stamp','url("'+(isOwn?getStamp(i):STAMPS[i%8])+'")');
       }
-      if (lines.has(i)) div.classList.add('line');
-      div.style.left   = (pos[0] * scale) + 'px';
-      div.style.top    = (pos[1] * scale) + 'px';
-      div.style.width  = cellW + 'px';
-      div.style.height = cellH + 'px';
-      if (isOwn && i !== 12) {
-        div.onclick = (function(idx){ return function(){ toggle(idx); }; })(i);
-      } else {
-        div.style.pointerEvents = 'none';
+      div.style.left = (pos[0]*scale)+'px';
+      div.style.top  = (pos[1]*scale)+'px';
+      div.style.width  = cellW+'px';
+      div.style.height = cellH+'px';
+      if (isOwn && i!==12) {
+        div.onclick = (function(idx){return function(){toggle(idx);};})(i);
       }
-      overlay.appendChild(div);
+      container.appendChild(div);
     });
-    if (isOwn) document.getElementById('shout').style.display = lines.size > 0 ? 'block' : 'none';
   }
 
-  function getOtherLines(c) {
-    var r = new Set();
-    [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
-     [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
-     [0,6,12,18,24],[4,8,12,16,20]].forEach(function(l) {
-      if (l.every(function(i){ return i===12 || c[i]; })) l.forEach(function(i){ r.add(i); });
-    });
-    return r;
+  function toggle(i) {
+    checked[i] = !checked[i];
+    localStorage.setItem('fbingo_checked', JSON.stringify(checked));
+    var cells = document.querySelectorAll('.cell');
+    var cell = cells[i];
+    if (checked[i]) {
+      cell.classList.add('checked');
+      cell.style.setProperty('--stamp','url("'+getStamp(i)+'")');
+    } else {
+      cell.classList.remove('checked');
+    }
+    saveProgress();
   }
+
+  function saveProgress() {
+    var count = Object.values(checked).filter(Boolean).length+1;
+    var key = playerName.toLowerCase().replace(/\s+/g,'');
+    db.collection('festival_bingo').doc(key).set({
+      name:playerName, checked:checked, count:count,
+      bingo:false, updated:Date.now()
+    }).catch(function(){});
+  }
+
+  function firstName(n){ return n.split(' ')[0]; }
+
+  window.loadOthers = function() {
+    var myKey = playerName.toLowerCase().replace(/\s+/g,'');
+    db.collection('festival_bingo').get().then(function(snap) {
+      var others = snap.docs.map(function(d){return d.data();})
+        .filter(function(d){return d.name && d.name.toLowerCase().replace(/\s+/g,'')!==myKey;})
+        .sort(function(a,b){return b.count-a.count;});
+      var el = document.getElementById('others-names');
+      el.innerHTML='';
+      others.forEach(function(p) {
+        var btn = document.createElement('button');
+        btn.className='other-btn'+(viewingPlayer===p.name?' active':'');
+        btn.textContent = firstName(p.name);
+        btn.onclick = function() {
+          if (viewingPlayer===p.name) {
+            viewingPlayer=null;
+            document.getElementById('player-name').textContent=playerName;
+            buildCells(checked,true);
+          } else {
+            viewingPlayer=p.name;
+            document.getElementById('player-name').textContent=firstName(p.name);
+            buildCells(p.checked||{},false);
+          }
+          document.querySelectorAll('.other-btn').forEach(function(b){b.classList.remove('active');});
+          if(viewingPlayer) btn.classList.add('active');
+        };
+        el.appendChild(btn);
+      });
+    }).catch(function(e){console.error(e);});
+  };
 
   setInterval(loadOthers, 30000);
-
-  // Init
-  if (playerName) {
-    showGame();
-  } else {
-    document.getElementById('name-screen').style.display = 'flex';
-    document.getElementById('game-screen').style.display = 'none';
-  }
+  if (playerName) { showGame(); }
+  else { document.getElementById('name-screen').style.display='flex'; }
 </script>
 </body>
 </html>
