@@ -95,7 +95,7 @@
     <span id="disp-name" onclick="changeName()" title="Trykk for å bytte navn"></span>
   </div>
   <div class="overlay" id="overlay"></div>
-  <div id="daem-label" style="position:absolute; top:72%; width:100%; text-align:center; z-index:10; display:none;">
+  <div id="daem-label" style="position:absolute; width:100%; text-align:center; z-index:10; display:none;">
     <div style="font-family:'Rock Salt',cursive; font-size:7vw; font-weight:700; color:#333;">Dæm ainneran:</div>
   </div>
 </div>
@@ -162,7 +162,13 @@
     document.getElementById('others-section').style.display = 'block';
     document.getElementById('daem-label').style.display = 'block';
     document.getElementById('disp-name').textContent = playerName;
-    setTimeout(function() { buildCells(checked, true); }, 50);
+    setTimeout(function() {
+      buildCells(checked, true);
+      // Position daem-label at 87% of actual image height
+      var img = document.getElementById('bg-img');
+      var topPx = img.offsetHeight * 0.87;
+      document.getElementById('daem-label').style.top = topPx + 'px';
+    }, 50);
     loadOthers();
   }
 
