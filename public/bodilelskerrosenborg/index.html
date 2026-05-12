@@ -65,10 +65,32 @@
     }
     .cell.free { pointer-events: none; }
 
-    /* Dæm ainneran - posisjonert via JS */
     #daem-label {
       position: absolute; width: 100%; text-align: center;
+      font-size: 4.9vw; color: #333; font-weight: 700;
+    }
+
+    /* Popup for vennenes brett */
+    #friend-popup {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.85);
+      flex-direction: column; align-items: center; justify-content: flex-start;
+      overflow-y: auto; padding: 20px 0;
+    }
+    #friend-popup.open { display: flex; }
+    #friend-popup-img-wrap { position: relative; width: 100%; max-width: 500px; }
+    #friend-popup-img { display: block; width: 100%; height: auto; }
+    #friend-popup-name {
+      position: absolute; top: 27px; width: 100%; text-align: center;
       font-size: 7vw; color: #333; font-weight: 700;
+      font-family: 'Rock Salt', cursive;
+    }
+    #friend-popup-cells { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+    #friend-popup-close {
+      margin-top: 16px; padding: 10px 30px; border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.1);
+      color: #fff; font-size: 16px; font-family: 'Rock Salt', cursive;
+      cursor: pointer;
     }
 
     /* Venner - under bildet */
@@ -101,6 +123,16 @@
 
 <div id="others-wrap">
   <div id="others-names" style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;"></div>
+</div>
+
+<!-- Popup for venners brett -->
+<div id="friend-popup">
+  <div id="friend-popup-img-wrap">
+    <img id="friend-popup-img" src="https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png" alt=""/>
+    <div id="friend-popup-name"></div>
+    <div id="friend-popup-cells"></div>
+  </div>
+  <button id="friend-popup-close" onclick="closeFriendPopup()">Lukk</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
@@ -182,11 +214,46 @@
   function positionDaem() {
     var img = document.getElementById('bg-img');
     var scale = img.offsetWidth / IMG_W;
-    // Senter av nederste rad = ROW[4]=731, pluss halv celehøyde ned
     var cellH = (ROW[1]-ROW[0]) * scale;
-    var topPx = (731 * scale) + (cellH / 2) + 20;
+    var topPx = (731 * scale) + (cellH / 2) + 23; // 20+3=23px
     document.getElementById('daem-label').style.top = topPx + 'px';
   }
+
+  function openFriendPopup(p) {
+    var popup = document.getElementById('friend-popup');
+    popup.classList.add('open');
+    document.getElementById('friend-popup-name').textContent = firstName(p.name);
+    var img = document.getElementById('friend-popup-img');
+    function renderFriend() {
+      var scale = img.offsetWidth / IMG_W;
+      var cellW = (COL[1]-COL[0]) * scale;
+      var cellH = (ROW[1]-ROW[0]) * scale;
+      var container = document.getElementById('friend-popup-cells');
+      container.innerHTML = '';
+      CELL_PX.forEach(function(pos, i) {
+        var div = document.createElement('div');
+        div.className = 'cell';
+        if (i===12) div.classList.add('free');
+        var chk = p.checked || {};
+        if (chk[i]) {
+          div.classList.add('checked');
+          div.style.setProperty('--stamp','url("'+STAMPS[i%8]+'")');
+        }
+        div.style.left = (pos[0]*scale)+'px';
+        div.style.top  = (pos[1]*scale)+'px';
+        div.style.width  = cellW+'px';
+        div.style.height = cellH+'px';
+        div.style.pointerEvents = 'none';
+        container.appendChild(div);
+      });
+    }
+    if (img.complete && img.naturalWidth>0) { setTimeout(renderFriend,30); }
+    else { img.onload = renderFriend; }
+  }
+
+  window.closeFriendPopup = function() {
+    document.getElementById('friend-popup').classList.remove('open');
+  };
 
   function buildCells(checkedData, isOwn) {
     var img = document.getElementById('bg-img');
@@ -250,21 +317,9 @@
       el.innerHTML='';
       others.forEach(function(p) {
         var btn = document.createElement('button');
-        btn.className='other-btn'+(viewingPlayer===p.name?' active':'');
+        btn.className = 'other-btn';
         btn.textContent = firstName(p.name);
-        btn.onclick = function() {
-          if (viewingPlayer===p.name) {
-            viewingPlayer=null;
-            document.getElementById('player-name').textContent=playerName;
-            buildCells(checked,true);
-          } else {
-            viewingPlayer=p.name;
-            document.getElementById('player-name').textContent=firstName(p.name);
-            buildCells(p.checked||{},false);
-          }
-          document.querySelectorAll('.other-btn').forEach(function(b){b.classList.remove('active');});
-          if(viewingPlayer) btn.classList.add('active');
-        };
+        btn.onclick = function() { openFriendPopup(p); };
         el.appendChild(btn);
       });
     }).catch(function(e){console.error(e);});
