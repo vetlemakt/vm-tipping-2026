@@ -94,16 +94,13 @@
   <div class="player-bar">
     <span id="disp-name" onclick="changeName()" title="Trykk for å bytte navn"></span>
   </div>
-  <div id="shout">BINGO! 🎉</div>
   <div class="overlay" id="overlay"></div>
-  <!-- Dæm ainneran posisjonert over bildet ved gul strek (~85% ned) -->
-  <div id="daem-label" style="position:absolute; top:85%; width:100%; text-align:center; z-index:10; display:none;">
+  <div id="daem-label" style="position:absolute; top:72%; width:100%; text-align:center; z-index:10; display:none;">
     <div style="font-family:'Rock Salt',cursive; font-size:7vw; font-weight:700; color:#333;">Dæm ainneran:</div>
   </div>
 </div>
 
-<div id="others-section" style="display:none; text-align: center; padding: 16px 8px;">
-  <div style="font-family: 'Rock Salt', cursive; font-size: 7vw; font-weight: 700; color: #333; margin-bottom: 12px;">Dæm ainneran:</div>
+<div id="others-section" style="display:none; text-align: center; padding: 12px 8px;">
   <div id="others-names" style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;"></div>
 </div>
 
@@ -181,7 +178,6 @@
       }
       if (lines.has(i)) cell.classList.add('line');
     });
-    document.getElementById('shout').style.display = lines.size > 0 ? 'block' : 'none';
   }
 
   function toggle(i) {
@@ -232,8 +228,10 @@
   window.loadOthers = function() {
     var myKey = playerName.toLowerCase().replace(/\s+/g, '');
     db.collection('festival_bingo').get().then(function(snap) {
+      console.log('Firebase docs:', snap.docs.length);
+      snap.docs.forEach(function(d) { console.log('Doc:', d.id, d.data()); });
       var others = snap.docs.map(function(d){ return d.data(); })
-        .filter(function(d){ return d.name.toLowerCase().replace(/\s+/g,'') !== myKey; })
+        .filter(function(d){ return d.name && d.name.toLowerCase().replace(/\s+/g,'') !== myKey; })
         .sort(function(a,b){ return b.count - a.count; });
 
       var el = document.getElementById('others-names');
@@ -244,14 +242,12 @@
         btn.textContent = firstName(p.name);
         btn.onclick = function() {
           if (viewingPlayer === p.name) {
-            // Toggle back to own board
             viewingPlayer = null;
             showOwnBoard();
           } else {
             viewingPlayer = p.name;
             showOtherBoard(p);
           }
-          // Update button states
           document.querySelectorAll('.other-name-btn').forEach(function(b) {
             b.classList.remove('viewing');
           });
@@ -259,7 +255,7 @@
         };
         el.appendChild(btn);
       });
-    }).catch(function(){});
+    }).catch(function(err){ console.error('Firebase error:', err); });
   };
 
   function showOwnBoard() {
