@@ -76,6 +76,7 @@
       background: rgba(0,0,0,0.85);
       flex-direction: column; align-items: center; justify-content: flex-start;
       overflow-y: auto; padding: 20px 0;
+      cursor: pointer;
     }
     #friend-popup.open { display: flex; }
     #friend-popup-img-wrap { position: relative; width: 100%; max-width: 500px; }
@@ -126,13 +127,12 @@
 </div>
 
 <!-- Popup for venners brett -->
-<div id="friend-popup">
+<div id="friend-popup" onclick="closeFriendPopup()">
   <div id="friend-popup-img-wrap">
     <img id="friend-popup-img" src="https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png" alt=""/>
     <div id="friend-popup-name"></div>
     <div id="friend-popup-cells"></div>
   </div>
-  <button id="friend-popup-close" onclick="closeFriendPopup()">Lukk</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
