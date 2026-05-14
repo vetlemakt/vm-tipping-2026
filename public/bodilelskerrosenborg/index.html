@@ -30,13 +30,10 @@
       font-family: 'Rock Salt', cursive; cursor: pointer;
     }
 
-    /* Spillskjerm - wrapper som inneholder alt */
+    /* Spillskjerm */
     #game-wrap { display: none; position: relative; width: 100%; }
-
-    /* Bildet tar full bredde */
     #bg-img { display: block; width: 100%; height: auto; }
 
-    /* Alt som skal ligge oppå bildet */
     #overlay-all {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -44,14 +41,12 @@
     }
     #overlay-all > * { pointer-events: all; }
 
-    /* Spillernavn */
     #player-name {
       position: absolute; top: 27px; width: 100%;
       text-align: center; cursor: pointer;
       font-size: 7vw; color: #333; font-weight: 700;
     }
 
-    /* Bingoceller */
     .cell {
       position: absolute; transform: translate(-50%, -50%);
       background: transparent; border: none; cursor: pointer;
@@ -70,23 +65,63 @@
       font-size: 4.9vw; color: #333; font-weight: 700;
     }
 
+    /* Binders-knapper på hoveddisplayet */
+    .binder-btn {
+      position: absolute;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      z-index: 10;
+    }
+    .binder-btn img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     /* Popup for vennenes brett */
     #friend-popup {
       display: none; position: fixed; inset: 0; z-index: 1000;
       background: rgba(0,0,0,0.85);
       flex-direction: column; align-items: center; justify-content: flex-start;
       overflow-y: auto; padding: 20px 0;
-      cursor: pointer;
     }
     #friend-popup.open { display: flex; }
-    #friend-popup-img-wrap { position: relative; width: 100%; max-width: 500px; }
+    #friend-popup-img-wrap {
+      position: relative; width: 100%; max-width: 500px;
+      cursor: pointer;
+    }
     #friend-popup-img { display: block; width: 100%; height: auto; }
     #friend-popup-name {
       position: absolute; top: 27px; width: 100%; text-align: center;
       font-size: 7vw; color: #333; font-weight: 700;
       font-family: 'Rock Salt', cursive;
+      pointer-events: none;
     }
-    #friend-popup-cells { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+    #friend-popup-cells {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+    }
+
+    /* Binders i popup */
+    .popup-binder-btn {
+      position: absolute;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      z-index: 10;
+      pointer-events: all !important;
+    }
+    .popup-binder-btn img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     #friend-popup-close {
       margin-top: 16px; padding: 10px 30px; border-radius: 20px;
       border: 2px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.1);
@@ -114,11 +149,15 @@
 </div>
 
 <div id="game-wrap">
-  <img id="bg-img" src="https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png" alt=""/>
+  <img id="bg-img" src="" alt=""/>
   <div id="overlay-all">
     <div id="player-name" onclick="changeName()"></div>
     <div id="bingo-cells"></div>
     <div id="daem-label">Dæm ainneran:</div>
+    <!-- Binders for å bytte brett (posisjoneres dynamisk via JS) -->
+    <button class="binder-btn" id="main-binder-btn" onclick="switchBoard()">
+      <img id="main-binder-img" src="" alt="Bytt brett"/>
+    </button>
   </div>
 </div>
 
@@ -127,12 +166,17 @@
 </div>
 
 <!-- Popup for venners brett -->
-<div id="friend-popup" onclick="closeFriendPopup()">
+<div id="friend-popup">
   <div id="friend-popup-img-wrap">
-    <img id="friend-popup-img" src="https://www.heiarosenb.org/bodilelskerrosenborg/bingoblokk.png" alt=""/>
+    <img id="friend-popup-img" src="" alt=""/>
     <div id="friend-popup-name"></div>
     <div id="friend-popup-cells"></div>
+    <!-- Binders i popup (posisjoneres dynamisk) -->
+    <button class="popup-binder-btn" id="popup-binder-btn" onclick="switchFriendBoard(event)">
+      <img id="popup-binder-img" src="" alt="Bytt brett"/>
+    </button>
   </div>
+  <button id="friend-popup-close" onclick="closeFriendPopup()">Lukk</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
@@ -148,7 +192,6 @@
   });
   var db = firebase.firestore();
 
-  // Bildemål og cellekoordinater
   var IMG_W = 572;
   var COL = [93, 189.25, 285.5, 381.75, 478];
   var ROW = [344, 440.75, 537.5, 634.25, 731];
@@ -156,28 +199,62 @@
   for (var r=0; r<5; r++) for (var c=0; c<5; c++) CELL_PX.push([COL[c], ROW[r]]);
 
   var BASE = 'https://www.heiarosenb.org/bodilelskerrosenborg/';
-  var STAMPS = [1,2,3,4,5,6,7,8].map(function(n){ return BASE+'stamp'+n+'.png'; });
-  var stampAssign = JSON.parse(localStorage.getItem('fbingo_stamps') || '{}');
-  function getStamp(i) {
-    if (!stampAssign[i]) {
-      stampAssign[i] = STAMPS[Math.floor(Math.random()*STAMPS.length)];
-      localStorage.setItem('fbingo_stamps', JSON.stringify(stampAssign));
+
+  // Se-brett: stamp1-8, Gjøre-brett: stamp1b-8b
+  var STAMPS_SE   = [1,2,3,4,5,6,7,8].map(function(n){ return BASE+'stamp'+n+'.png'; });
+  var STAMPS_GJORE = [1,2,3,4,5,6,7,8].map(function(n){ return BASE+'stamp'+n+'b.png'; });
+
+  // Bilder for de to brettene
+  var IMG_SE   = BASE + 'bingoblokk_se.png';
+  var IMG_GJORE = BASE + 'bingoblokk_gjore.png';
+
+  // Blå binders = vises på SE-brett (klikk → bytt til GJØRE)
+  // Rød binders = vises på GJØRE-brett (klikk → bytt til SE)
+  var BINDER_BLA = BASE + 'binder_bla.png';
+  var BINDER_ROD = BASE + 'binder_rod.png';
+
+  // Posisjon og størrelse for bindersene i bildet (i bildekoordinater, IMG_W=572)
+  // Blå binders er øverst til høyre, rød øverst til venstre (ut fra bildene)
+  var BINDER_BLA_X = 490, BINDER_BLA_Y = 0,  BINDER_W = 60, BINDER_H = 110;
+  var BINDER_ROD_X = 15,  BINDER_ROD_Y = 0;
+
+  // Nåværende brettstatus
+  var currentBoard = 'se'; // 'se' eller 'gjore'
+  var friendPopupBoard = 'se'; // hvilket brett som vises i popup
+  var currentFriendData = null;
+
+  var stampAssignSe   = JSON.parse(localStorage.getItem('fbingo_stamps_se') || '{}');
+  var stampAssignGjore = JSON.parse(localStorage.getItem('fbingo_stamps_gjore') || '{}');
+
+  function getStamp(i, board) {
+    if (board === 'se') {
+      if (!stampAssignSe[i]) {
+        stampAssignSe[i] = STAMPS_SE[Math.floor(Math.random()*STAMPS_SE.length)];
+        localStorage.setItem('fbingo_stamps_se', JSON.stringify(stampAssignSe));
+      }
+      return stampAssignSe[i];
+    } else {
+      if (!stampAssignGjore[i]) {
+        stampAssignGjore[i] = STAMPS_GJORE[Math.floor(Math.random()*STAMPS_GJORE.length)];
+        localStorage.setItem('fbingo_stamps_gjore', JSON.stringify(stampAssignGjore));
+      }
+      return stampAssignGjore[i];
     }
-    return stampAssign[i];
   }
 
   var playerName = localStorage.getItem('fbingo_name') || '';
-  var checked = JSON.parse(localStorage.getItem('fbingo_checked') || '{}');
-  var viewingPlayer = null;
+  var checkedSe   = JSON.parse(localStorage.getItem('fbingo_checked_se') || '{}');
+  var checkedGjore = JSON.parse(localStorage.getItem('fbingo_checked_gjore') || '{}');
 
   if (window.location.search.indexOf('reset') !== -1) {
-    playerName=''; checked={};
+    playerName=''; checkedSe={}; checkedGjore={};
     localStorage.removeItem('fbingo_name');
-    localStorage.removeItem('fbingo_checked');
+    localStorage.removeItem('fbingo_checked_se');
+    localStorage.removeItem('fbingo_checked_gjore');
     window.history.replaceState({},'',' /bodilelskerrosenborg/');
   }
 
-  // Navn-skjerm
+  // --- Navn-skjerm ---
   document.getElementById('start-btn').onclick = function() {
     var v = document.getElementById('name-input').value.trim();
     if (!v) return;
@@ -196,20 +273,67 @@
     document.getElementById('name-input').value='';
   };
 
+  // --- Vis spillskjerm ---
   function showGame() {
     document.getElementById('name-screen').style.display='none';
     document.getElementById('game-wrap').style.display='block';
     document.getElementById('others-wrap').style.display='block';
     document.getElementById('player-name').textContent = playerName;
-    var img = document.getElementById('bg-img');
-    function onReady() {
-      buildCells(checked, true);
-      positionDaem();
-    }
-    if (img.complete && img.naturalWidth>0) { setTimeout(onReady, 30); }
-    else { img.onload = onReady; }
+    updateBoardDisplay();
     loadOthers();
   }
+
+  // Oppdater bakgrunnsbilde og celler basert på currentBoard
+  function updateBoardDisplay() {
+    var img = document.getElementById('bg-img');
+    var isGjore = (currentBoard === 'gjore');
+    img.src = isGjore ? IMG_GJORE : IMG_SE;
+
+    // Sett binders-bilde og posisjon
+    var binderBtn = document.getElementById('main-binder-btn');
+    var binderImg = document.getElementById('main-binder-img');
+    if (isGjore) {
+      binderImg.src = BINDER_ROD_SRC || BASE + 'binder_rod.png';
+    } else {
+      binderImg.src = BINDER_BLA_SRC || BASE + 'binder_bla.png';
+    }
+
+    function onReady() {
+      var scale = img.offsetWidth / IMG_W;
+      var checked = isGjore ? checkedGjore : checkedSe;
+      buildCells(checked, true, currentBoard);
+      positionDaem();
+      positionBinder(binderBtn, isGjore, scale);
+    }
+    if (img.complete && img.naturalWidth > 0) { setTimeout(onReady, 30); }
+    else { img.onload = onReady; }
+  }
+
+  function positionBinder(btn, isGjore, scale) {
+    var img = document.getElementById('bg-img');
+    var s = scale || (img.offsetWidth / IMG_W);
+    if (isGjore) {
+      // Rød binders: øverst til venstre
+      btn.style.left   = (BINDER_ROD_X * s) + 'px';
+      btn.style.top    = (BINDER_ROD_Y * s) + 'px';
+      btn.style.width  = (BINDER_W * s) + 'px';
+      btn.style.height = (BINDER_H * s) + 'px';
+      document.getElementById('main-binder-img').src = BASE + 'binder_rod.png';
+    } else {
+      // Blå binders: øverst til høyre
+      btn.style.left   = (BINDER_BLA_X * s) + 'px';
+      btn.style.top    = (BINDER_BLA_Y * s) + 'px';
+      btn.style.width  = (BINDER_W * s) + 'px';
+      btn.style.height = (BINDER_H * s) + 'px';
+      document.getElementById('main-binder-img').src = BASE + 'binder_bla.png';
+    }
+  }
+
+  // Bytt mellom SE og GJØRE-brett
+  window.switchBoard = function() {
+    currentBoard = (currentBoard === 'se') ? 'gjore' : 'se';
+    updateBoardDisplay();
+  };
 
   function positionDaem() {
     var img = document.getElementById('bg-img');
@@ -217,32 +341,50 @@
     var cellH = (ROW[1]-ROW[0]) * scale;
     var topPx = (731 * scale) + (cellH / 2) + 28;
     document.getElementById('daem-label').style.top = topPx + 'px';
-    // Trekk others-wrap opp så det starter rett under daem-label
     var imgH = img.offsetHeight;
     var daemFontH = img.offsetWidth * 0.049 * 1.5;
     var spaceBelow = imgH - topPx - daemFontH;
     document.getElementById('others-wrap').style.marginTop = (-spaceBelow + 10) + 'px';
   }
 
+  // --- Popup for venner ---
   function openFriendPopup(p) {
-    var popup = document.getElementById('friend-popup');
-    popup.classList.add('open');
-    document.getElementById('friend-popup-name').textContent = firstName(p.name);
+    currentFriendData = p;
+    // Start med samme brett som brukeren ser på
+    friendPopupBoard = currentBoard;
+    renderFriendPopup();
+    document.getElementById('friend-popup').classList.add('open');
+  }
+
+  function renderFriendPopup() {
+    var p = currentFriendData;
+    if (!p) return;
+    var isGjore = (friendPopupBoard === 'gjore');
     var img = document.getElementById('friend-popup-img');
-    function renderFriend() {
+    img.src = isGjore ? IMG_GJORE : IMG_SE;
+    document.getElementById('friend-popup-name').textContent = firstName(p.name);
+
+    // Binders i popup: motsatt av hva som vises
+    var popupBinder = document.getElementById('popup-binder-btn');
+    var popupBinderImg = document.getElementById('popup-binder-img');
+
+    function doRender() {
       var scale = img.offsetWidth / IMG_W;
       var cellW = (COL[1]-COL[0]) * scale;
       var cellH = (ROW[1]-ROW[0]) * scale;
       var container = document.getElementById('friend-popup-cells');
       container.innerHTML = '';
+
+      var stamps = isGjore ? STAMPS_GJORE : STAMPS_SE;
+      var checkedData = isGjore ? (p.checkedGjore || {}) : (p.checkedSe || p.checked || {});
+
       CELL_PX.forEach(function(pos, i) {
         var div = document.createElement('div');
         div.className = 'cell';
         if (i===12) div.classList.add('free');
-        var chk = p.checked || {};
-        if (chk[i]) {
+        if (checkedData[i]) {
           div.classList.add('checked');
-          div.style.setProperty('--stamp','url("'+STAMPS[i%8]+'")');
+          div.style.setProperty('--stamp','url("'+stamps[i%8]+'")');
         }
         div.style.left = (pos[0]*scale)+'px';
         div.style.top  = (pos[1]*scale)+'px';
@@ -251,22 +393,58 @@
         div.style.pointerEvents = 'none';
         container.appendChild(div);
       });
+
+      // Posisjon og bilde for binders i popup
+      if (isGjore) {
+        // Vis rød → klikk for å bytte til SE
+        popupBinderImg.src = BASE + 'binder_rod.png';
+        popupBinder.style.left   = (BINDER_ROD_X * scale) + 'px';
+        popupBinder.style.top    = (BINDER_ROD_Y * scale) + 'px';
+        popupBinder.style.width  = (BINDER_W * scale) + 'px';
+        popupBinder.style.height = (BINDER_H * scale) + 'px';
+      } else {
+        // Vis blå → klikk for å bytte til GJØRE
+        popupBinderImg.src = BASE + 'binder_bla.png';
+        popupBinder.style.left   = (BINDER_BLA_X * scale) + 'px';
+        popupBinder.style.top    = (BINDER_BLA_Y * scale) + 'px';
+        popupBinder.style.width  = (BINDER_W * scale) + 'px';
+        popupBinder.style.height = (BINDER_H * scale) + 'px';
+      }
     }
-    if (img.complete && img.naturalWidth>0) { setTimeout(renderFriend,30); }
-    else { img.onload = renderFriend; }
+
+    if (img.complete && img.naturalWidth > 0) { setTimeout(doRender, 30); }
+    else { img.onload = doRender; }
   }
+
+  // Bytt brett i popup
+  window.switchFriendBoard = function(e) {
+    e.stopPropagation();
+    friendPopupBoard = (friendPopupBoard === 'se') ? 'gjore' : 'se';
+    renderFriendPopup();
+  };
+
+  // Klikk utenfor binders lukker popup
+  document.getElementById('friend-popup-img-wrap').addEventListener('click', function(e) {
+    // Sjekk at det ikke er binderknappen
+    if (e.target === document.getElementById('popup-binder-btn') ||
+        e.target === document.getElementById('popup-binder-img')) return;
+    closeFriendPopup();
+  });
 
   window.closeFriendPopup = function() {
     document.getElementById('friend-popup').classList.remove('open');
+    currentFriendData = null;
   };
 
-  function buildCells(checkedData, isOwn) {
+  // --- Bygg celler ---
+  function buildCells(checkedData, isOwn, board) {
     var img = document.getElementById('bg-img');
     var scale = img.offsetWidth / IMG_W;
     var cellW = (COL[1]-COL[0]) * scale;
     var cellH = (ROW[1]-ROW[0]) * scale;
     var container = document.getElementById('bingo-cells');
     container.innerHTML = '';
+    var stamps = (board === 'gjore') ? STAMPS_GJORE : STAMPS_SE;
 
     CELL_PX.forEach(function(pos, i) {
       var div = document.createElement('div');
@@ -274,27 +452,38 @@
       if (i===12) div.classList.add('free');
       if (checkedData[i]) {
         div.classList.add('checked');
-        div.style.setProperty('--stamp','url("'+(isOwn?getStamp(i):STAMPS[i%8])+'")');
+        div.style.setProperty('--stamp','url("'+(isOwn ? getStamp(i, board) : stamps[i%8])+'")');
       }
       div.style.left = (pos[0]*scale)+'px';
       div.style.top  = (pos[1]*scale)+'px';
       div.style.width  = cellW+'px';
       div.style.height = cellH+'px';
       if (isOwn && i!==12) {
-        div.onclick = (function(idx){return function(){toggle(idx);};})(i);
+        div.onclick = (function(idx){ return function(){ toggle(idx); }; })(i);
       }
       container.appendChild(div);
     });
+
+    // Posisjon binders etter cells er bygd
+    var binderBtn = document.getElementById('main-binder-btn');
+    positionBinder(binderBtn, (board === 'gjore'), scale);
   }
 
   function toggle(i) {
-    checked[i] = !checked[i];
-    localStorage.setItem('fbingo_checked', JSON.stringify(checked));
-    var cells = document.querySelectorAll('.cell');
+    var isGjore = (currentBoard === 'gjore');
+    if (isGjore) {
+      checkedGjore[i] = !checkedGjore[i];
+      localStorage.setItem('fbingo_checked_gjore', JSON.stringify(checkedGjore));
+    } else {
+      checkedSe[i] = !checkedSe[i];
+      localStorage.setItem('fbingo_checked_se', JSON.stringify(checkedSe));
+    }
+    var cells = document.querySelectorAll('#bingo-cells .cell');
     var cell = cells[i];
-    if (checked[i]) {
+    var checked = isGjore ? checkedGjore[i] : checkedSe[i];
+    if (checked) {
       cell.classList.add('checked');
-      cell.style.setProperty('--stamp','url("'+getStamp(i)+'")');
+      cell.style.setProperty('--stamp','url("'+getStamp(i, currentBoard)+'")');
     } else {
       cell.classList.remove('checked');
     }
@@ -302,11 +491,18 @@
   }
 
   function saveProgress() {
-    var count = Object.values(checked).filter(Boolean).length+1;
+    var countSe   = Object.values(checkedSe).filter(Boolean).length + 1;
+    var countGjore = Object.values(checkedGjore).filter(Boolean).length + 1;
+    var count = countSe + countGjore;
     var key = playerName.toLowerCase().replace(/\s+/g,'');
     db.collection('festival_bingo').doc(key).set({
-      name:playerName, checked:checked, count:count,
-      bingo:false, updated:Date.now()
+      name: playerName,
+      checked: checkedSe,        // bakoverkompatibilitet
+      checkedSe: checkedSe,
+      checkedGjore: checkedGjore,
+      count: count,
+      bingo: false,
+      updated: Date.now()
     }).catch(function(){});
   }
 
@@ -315,11 +511,11 @@
   window.loadOthers = function() {
     var myKey = playerName.toLowerCase().replace(/\s+/g,'');
     db.collection('festival_bingo').get().then(function(snap) {
-      var others = snap.docs.map(function(d){return d.data();})
-        .filter(function(d){return d.name && d.name.toLowerCase().replace(/\s+/g,'')!==myKey;})
-        .sort(function(a,b){return b.count-a.count;});
+      var others = snap.docs.map(function(d){ return d.data(); })
+        .filter(function(d){ return d.name && d.name.toLowerCase().replace(/\s+/g,'') !== myKey; })
+        .sort(function(a,b){ return b.count - a.count; });
       var el = document.getElementById('others-names');
-      el.innerHTML='';
+      el.innerHTML = '';
       others.forEach(function(p) {
         var btn = document.createElement('button');
         btn.className = 'other-btn';
@@ -327,7 +523,7 @@
         btn.onclick = function() { openFriendPopup(p); };
         el.appendChild(btn);
       });
-    }).catch(function(e){console.error(e);});
+    }).catch(function(e){ console.error(e); });
   };
 
   setInterval(loadOthers, 30000);
