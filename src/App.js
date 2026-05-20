@@ -2196,7 +2196,34 @@ function TipsForm({ me, phase, viewUser }) {
   };
 
   const save = async () => {
-    await updateUser(me.username, { tips, groupOrders: grpO, specialTips: spec });
+    // Fetch the current saved tips from DB so we never overwrite already-played matches
+    const saved_u = await getUser(me.username);
+    const safeTips = { ...(saved_u?.tips || {}) };
+
+    // Group tips: only writable during 'pre' phase
+    if (grpOk) {
+      GROUP_MATCHES.forEach(m => {
+        // Never overwrite a match that already has a result
+        if (results[m.id]?.home !== undefined) return;
+        if (tips[m.id] !== undefined) safeTips[m.id] = tips[m.id];
+      });
+    }
+
+    // Knockout tips: only writable during an open knockout phase
+    if (koOk) {
+      KNOCKOUT_MATCHES.forEach(m => {
+        // Never overwrite a match that already has a result
+        if (results[m.id]?.home !== undefined) return;
+        if (tips[m.id] !== undefined) safeTips[m.id] = tips[m.id];
+      });
+    }
+
+    // Special tips: only writable during 'pre' phase
+    const safeSpec = grpOk ? spec : (saved_u?.specialTips || {});
+    // Group orders: only writable during 'pre' phase
+    const safeGrpO = grpOk ? grpO : (saved_u?.groupOrders || {});
+
+    await updateUser(me.username, { tips: safeTips, groupOrders: safeGrpO, specialTips: safeSpec });
     setSaved(true); setDirty(false);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -3157,7 +3184,7 @@ function YouTubePlayer() {
   if (!visible) return null;
   return (
     <div style={{
-      position: 'fixed', bottom: 40, left: 8, zIndex: 500,
+      position: 'fixed', bottom: 0, left: 0, zIndex: 500,
       background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
       border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
       boxShadow: '0 8px 32px rgba(0,0,0,.5)',
@@ -3228,8 +3255,8 @@ const PANEL_EXPERTS = [
     img: '/ragnhild.jpg',
     color: '#c2855a',
     tagline: 'Gladkristen med sans for det estetiske',
-    bio: 'Vokste opp i et strengt kristenkonservativt hjem i Mandal på 70-tallet, men brøt ut og meldte seg inn i rødstrømpebevegelsen i 1978 – noe som skapte bråk i søndagsskolen. Har siden forsont seg med bakgrunnen sin, og er i dag aktiv i både menigheten og i den lokale husflidsforeningen. Gift tre ganger. Hagen hennes er kåret til årets vakreste i Vest-Agder to ganger på rad. Har aldri sett en hel fotballkamp, men husker at hun syntes italienernes drakter var veldig flotte under VM i 1982. Tipper basert på estetikk, musikk og om landet generelt virker "skikkelig".',
-    personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Du er en tidligere rødstrømpe oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Du har ingen peiling på fotball og tipper basert på hvilke land du liker – særlig drakter, musikk og om landet virker skikkelig og ordentlig. Du snakker varmt, litt moraliserende, og er alltid hyggelig men naiv om fotball. Du refererer gjerne til Fædrelandsvennen, kirken og sørlanske verdier. Svar alltid på norsk og hold deg i karakter. Svar kort, maks 3-4 setninger.`,
+    bio: 'Vokste opp i et strengt kristenkonservativt hjem i Mandal på 70-tallet, men brøt ut og meldte seg inn i rødstrømpebevegelsen i 1978 – noe som skapte bråk i søndagsskolen. Har siden forsont seg med bakgrunnen sin, og er i dag aktiv i både menigheten og i den lokale husflidsforeningen. Gift tre ganger med samme mann. Hagen hennes er kåret til årets vakreste i Vest-Agder to ganger på rad, som ga henne en plass som Side-3-pike i Vårt Land. Har aldri sett en hel fotballkamp, men husker at hun syntes italienernes drakter var veldig flotte under VM i 1982. Tipper basert på estetikk, musikk og om landet generelt virker "skikkelig".',
+    personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Du er en tidligere rødstrømpe oppvokst i et kristenkonservativt sørlandsmiljø på 70-tallet. Du har ingen peiling på fotball og tipper basert på hvilke land du liker – særlig drakter, musikk og om landet virker skikkelig og ordentlig. Du snakker varmt, litt moraliserende, og er alltid hyggelig men naiv om fotball. Du refererer gjerne til Fædrelandsvennen, kirken og sørlanske verdier. Svar alltid på norsk og hold deg i karakter. Svar kort, maks 3-4 setninger. Du bruker mange emojis, spesielt smilefjes, beende-hender-emoji og klemme-emoji. Du har sett Kim-Levi bruke aubergine-emoji sammen med fersken-emoji og skjønner ikke hva det skal bety. Dette nevner du hvis noen kommenterer bruken din av emojis.`,
     tipStyle: 'conservative_aesthetic',
   },
   {
@@ -3270,16 +3297,16 @@ const PANEL_EXPERTS = [
     img: '/bengt.jpg',
     color: '#7a4aaa',
     tagline: 'Wrestlingfan. Kan fotball fra 80-tallet utenat.',
-    bio: 'Trives best på Narvesen med en Kvikk Lunsj og klistremerkeboka si fra Mexico-VM i håp om å treffe noen som har 66 Hristo Kolev eller 337 Chris Waddle. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst fra denne perioden, for etter 1992 er det blankt. Er overbevist om at VAR betyr Veldig Artig Reprise og at dommeren løper bort til skjermen fordi han ikke fikk med seg målet første gangen. Han er lett tilbakstående, men avtjente verneplikten sin i militæret som kokkeassistent. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til frokost, og hevder dette er verdensrekord uten å ha sjekket med Guinness. Tipper som om det fremdeles er 80-tallet.',
+    bio: 'Trives best på Narvesen med en Kvikk Lunsj og klistremerkeboka si fra Mexico-VM i håp om å treffe noen som har 66 Hristo Kolev eller 337 Chris Waddle. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst fra denne perioden, for etter 1992 er det blankt. Er overbevist om at VAR betyr Veldig Artig Reprise og at dommeren løper bort til skjermen fordi han ikke fikk med seg målet første gangen. Han er lett tilbakstående, men avtjente likevel verneplikten sin i militæret - som kokkeassistent. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til frokost, og hevder dette er verdensrekord uten å ha sjekket med Guinness. Tipper som om det fremdeles er 80-tallet.',
     personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du er blid og entusiastisk. Du tror fremdeles ting er som på 80-tallet.
 
 VIKTIG: Du skriver ALLTID på bokmål, men har dysleksi. Dette betyr at du konsekvent gjør disse typiske dysleksifeilene:
 - Bytter om bokstaver i ord: "fotbatll" for "fotball", "splieer" for "spiller", "kamep" for "kamp"
 - Skriver dobbel konsonant feil: "mål" blir "måll", "ball" blir "bal"
-- Forveksler b/d: "dag" kan bli "bag", "bra" kan bli "dra"
-- Hopper over bokstaver: "interessant" blir "interesant", "gratulerer" blir "gratulrer"
+- Bruker veldig mye komma, aldri punktum eller - og avslutter meldingen med utropstegn
+- Hopper over bokstaver: "interessant" blir "intresant", "gratulerer" blir "gratlerer"
 - Skriver ord sammen som skal være separate, eller deler opp ord: "fotball kamp" eller "fotballk amp"
-- Aldri alle feilene på en gang – ca. 2-4 feil per svar, spredt naturlig utover
+- Aldri alle feilene på en gang – ca. 3-5 feil per svar, spredt naturlig utover
 Svar maks 3-4 setninger.`,
     tipStyle: 'retro_80s',
   },
@@ -3333,7 +3360,7 @@ async function generateExpertTips(expert) {
 - Brasil har vakre gule drakter og samba → tipper Brasil vinner alltid
 - Nederland har flott oransje → tipper Nederland vinner
 - Italia er elegant blå (selv om de ikke er med) → du er skuffet
-- Land du liker estetisk: Brasil, Nederland, Spania, Frankrike, Argentina
+- Land du liker estetisk: Brasil, Nederland, Spania, Frankrike, Argentina, Mexico
 - Land du er skeptisk til: USA (for mye reklame), England (grå drakter), Korea (ukjent musikk)
 - Du tipper ALLTID høyere score for vakre lag. F.eks Brasil 3-0, Nederland 2-0.
 - Kamper mellom to "stygge" lag ender 0-0 etter din mening
