@@ -1744,6 +1744,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
+        <JitsiStripe displayName={me.displayName} compact={true} />
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => {
@@ -1873,6 +1874,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               </div>
             </div>
             <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }} ref={el => { if(el) el.scrollTop = el.scrollHeight; }}>
+              <JitsiStripe displayName={me.displayName} compact={true} />
               {msgs.map((m, i) => {
                 const mine = m.user === me.displayName;
                 const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
@@ -2633,56 +2635,160 @@ function TipsForm({ me, phase, viewUser }) {
 // ══════════════════════════════════════════════════════════════════════
 //  VIDEO CHAT
 // ══════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+//  JITSI VIDEO STRIPE
+//  compact=true  → liten stripe (dashboard-chat og chat-fanen)
+//  compact=false → fullskjerm-modus (ikke i bruk ennå)
+// ══════════════════════════════════════════════════════════════════════
+const JITSI_ROOM = 'heiarosenb-vmtipping-2026';
+
+function JitsiStripe({ displayName, compact = true }) {
+  const [active, setActive] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [camOff, setCamOff] = useState(false);
+  const apiRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Last Jitsi External API lazy (kun når brukeren aktiverer video)
+  const loadJitsi = () => {
+    return new Promise((resolve, reject) => {
+      if (window.JitsiMeetExternalAPI) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://meet.jit.si/external_api.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  };
+
+  const startVideo = async () => {
+    setActive(true);
+    try {
+      await loadJitsi();
+      // Liten forsinkelse for at DOM-elementet skal være synlig
+      setTimeout(() => {
+        if (!containerRef.current) return;
+        const api = new window.JitsiMeetExternalAPI('meet.jit.si', {
+          roomName: JITSI_ROOM,
+          parentNode: containerRef.current,
+          width: '100%',
+          height: compact ? 120 : 400,
+          userInfo: { displayName },
+          configOverwrite: {
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            disableDeepLinking: true,
+            prejoinPageEnabled: false,
+            toolbarButtons: [],       // skjuler Jitsis egne verktøylinje
+          },
+          interfaceConfigOverwrite: {
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false,
+            TOOLBAR_BUTTONS: [],
+            DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+            MOBILE_APP_PROMO: false,
+            FILM_STRIP_MAX_HEIGHT: compact ? 90 : 200,
+          },
+        });
+        apiRef.current = api;
+      }, 100);
+    } catch (e) {
+      console.error('Jitsi load failed', e);
+      setActive(false);
+    }
+  };
+
+  const stopVideo = () => {
+    apiRef.current?.dispose();
+    apiRef.current = null;
+    setActive(false);
+    setMuted(false);
+    setCamOff(false);
+  };
+
+  const toggleMute = () => {
+    apiRef.current?.executeCommand('toggleAudio');
+    setMuted(m => !m);
+  };
+
+  const toggleCam = () => {
+    apiRef.current?.executeCommand('toggleVideo');
+    setCamOff(c => !c);
+  };
+
+  if (!active) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: compact ? '6px 10px' : '10px 14px',
+        borderBottom: '1px solid rgba(255,255,255,.06)',
+        background: 'rgba(0,0,0,.2)',
+      }}>
+        <button onClick={startVideo} style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(34,197,94,.15)', border: '1px solid rgba(34,197,94,.35)',
+          color: '#4ade80', borderRadius: 8, padding: '5px 12px',
+          cursor: 'pointer', fontSize: 12, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
+        }}>
+          📹 Bli med i video
+        </button>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>
+          Alle i chatten kan delta
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      borderBottom: '1px solid rgba(255,255,255,.06)',
+      background: 'rgba(0,0,0,.3)',
+    }}>
+      {/* Video-container (Jitsi mountes her) */}
+      <div ref={containerRef} style={{
+        width: '100%',
+        height: compact ? 120 : 400,
+        background: '#080c1a',
+        overflow: 'hidden',
+      }} />
+      {/* Kontrollrad */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '5px 10px',
+        background: 'rgba(0,0,0,.4)',
+      }}>
+        <button onClick={toggleMute} title={muted ? 'Slå på mikrofon' : 'Dempe mikrofon'} style={{
+          background: muted ? 'rgba(239,68,68,.25)' : 'rgba(255,255,255,.08)',
+          border: `1px solid ${muted ? 'rgba(239,68,68,.5)' : 'rgba(255,255,255,.15)'}`,
+          color: muted ? '#f87171' : 'rgba(255,255,255,.7)',
+          borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{muted ? '🔇' : '🎤'}</button>
+        <button onClick={toggleCam} title={camOff ? 'Slå på kamera' : 'Slå av kamera'} style={{
+          background: camOff ? 'rgba(239,68,68,.25)' : 'rgba(255,255,255,.08)',
+          border: `1px solid ${camOff ? 'rgba(239,68,68,.5)' : 'rgba(255,255,255,.15)'}`,
+          color: camOff ? '#f87171' : 'rgba(255,255,255,.7)',
+          borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{camOff ? '📵' : '📹'}</button>
+        <button onClick={stopVideo} title="Forlat video" style={{
+          background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.35)',
+          color: '#f87171', borderRadius: 6, padding: '0 10px', height: 28,
+          cursor: 'pointer', fontSize: 11, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
+          marginLeft: 'auto',
+        }}>Forlat</button>
+      </div>
+    </div>
+  );
+}
+
+// Beholdes for bakoverkompatibilitet (video-fanen i menyen)
 function VideoChat({ me }) {
-  const locRef = useRef(null), remRef = useRef(null), pcRef = useRef(null);
-  const [status, setStatus] = useState('idle');
-  const [offer, setOffer] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [inOffer, setInOffer] = useState('');
-  const [inAnswer, setInAnswer] = useState('');
-
-  const getMedia = async () => { const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); locRef.current.srcObject = s; return s; };
-  const mkPC = s => { const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }); s.getTracks().forEach(t => pc.addTrack(t, s)); pc.ontrack = e => { remRef.current.srcObject = e.streams[0]; }; pcRef.current = pc; return pc; };
-  const startCall = async () => { try { setStatus('calling'); const s = await getMedia(), pc = mkPC(s); pc.onicecandidate = e => { if (!e.candidate) setOffer(JSON.stringify(pc.localDescription)); }; await pc.setLocalDescription(await pc.createOffer()); } catch { setStatus('error'); } };
-  const acceptCall = async () => { try { setStatus('answering'); const s = await getMedia(), pc = mkPC(s); await pc.setRemoteDescription(JSON.parse(inOffer)); pc.onicecandidate = e => { if (!e.candidate) setAnswer(JSON.stringify(pc.localDescription)); }; await pc.setLocalDescription(await pc.createAnswer()); } catch { setStatus('error'); } };
-  const finishCall = async () => { try { await pcRef.current.setRemoteDescription(JSON.parse(inAnswer)); setStatus('connected'); } catch { setStatus('error'); } };
-  const hangUp = () => { pcRef.current?.close(); if (locRef.current?.srcObject) locRef.current.srcObject.getTracks().forEach(t => t.stop()); setStatus('idle'); setOffer(''); setAnswer(''); setInOffer(''); setInAnswer(''); };
-
   return (
     <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Videochat</span></div>
       <div style={C.cardBody}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-          {[{ ref: locRef, label: `Du – ${me.displayName}`, muted: true }, { ref: remRef, label: 'Motpart', muted: false }].map(({ ref, label, muted }) => (
-            <div key={label} style={{ position: 'relative', background: '#0b0f1a', borderRadius: 10, overflow: 'hidden', border: '1px solid #2a3050', aspectRatio: '4/3' }}>
-              <video ref={ref} autoPlay playsInline muted={muted} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 10, background: 'rgba(0,0,0,.8)', color: YEL, padding: '2px 8px', borderRadius: 4, fontFamily: "'Fira Code',monospace" }}>{label}</div>
-            </div>
-          ))}
-        </div>
-        {status === 'idle' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button style={{ ...C.btnGold, width: '100%' }} onClick={startCall}>📞 Start samtale</button>
-            <div style={{ textAlign: 'center', color: '#4a5a80', fontSize: 12 }}>— eller svar på innkommende —</div>
-            <textarea style={C.ta} rows={3} value={inOffer} onChange={e => setInOffer(e.target.value)} placeholder="Lim inn tilbudskode…" />
-            <button style={{ ...C.btnSecondary, width: '100%' }} onClick={acceptCall} disabled={!inOffer}>📲 Svar</button>
-          </div>
-        )}
-        {status === 'calling' && offer && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <p style={C.mono12}>Del denne koden med motparten:</p>
-            <textarea style={C.ta} rows={4} readOnly value={offer} onClick={e => e.target.select()} />
-            <textarea style={C.ta} rows={3} value={inAnswer} onChange={e => setInAnswer(e.target.value)} placeholder="Svarkode fra motparten…" />
-            <button style={{ ...C.btnGold, width: '100%' }} onClick={finishCall} disabled={!inAnswer}>✅ Koble til</button>
-          </div>
-        )}
-        {status === 'answering' && answer && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <p style={C.mono12}>Del svarkoden med den som ringte:</p>
-            <textarea style={C.ta} rows={4} readOnly value={answer} onClick={e => e.target.select()} />
-          </div>
-        )}
-        {status !== 'idle' && <button style={{ ...C.btnSecondary, width: '100%', marginTop: 10, color: '#ff7777' }} onClick={hangUp}>📵 Avslutt</button>}
+        <JitsiStripe displayName={me.displayName} compact={false} />
       </div>
     </div>
   );
@@ -3880,6 +3986,7 @@ function ChatPage({ me }) {
           <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
         </div>
       </div>
+      <JitsiStripe displayName={me.displayName} compact={true} />
       <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => {
