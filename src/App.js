@@ -940,6 +940,13 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
         borderRadius:16, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,.8)',
         maxHeight:'90vh', overflowY:'auto',
       }}>
+        <button onClick={onClose} style={{
+          position:'absolute', top:10, right:10,
+          background:'rgba(255,255,255,.1)', border:'none', color:'rgba(255,255,255,.7)',
+          borderRadius:'50%', width:26, height:26, cursor:'pointer', fontSize:14,
+          display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1,
+          zIndex:1,
+        }}>×</button>
         <div style={{ fontSize:11, color:'rgba(255,215,0,.7)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:14, textAlign:'center' }}>
           Hvem er dette? • VM {player.year}
         </div>
@@ -1002,7 +1009,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
             {leaderboard.map((r, i) => (
               <div key={r.name} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
                 <span style={{ fontSize:12, color:'rgba(255,215,0,.5)', fontFamily:"'Fira Code',monospace", minWidth:18 }}>
-                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`}
+                  {`${i+1}.`}
                 </span>
                 <span style={{ fontSize:13, color:'#e8edf8', flex:1 }}>{r.name}</span>
                 <span style={{ fontSize:12, color:'#4ade80', fontWeight:700, minWidth:28, textAlign:'right' }}>{r.correct} ✅</span>
@@ -3150,46 +3157,57 @@ function YouTubePlayer() {
   if (!visible) return null;
   return (
     <div style={{
-      position: 'fixed', bottom: 28, left: 12, zIndex: 500,
+      position: 'fixed', bottom: 40, left: 8, zIndex: 500,
       background: 'rgba(1,23,76,.95)', backdropFilter: 'blur(16px)',
       border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
       boxShadow: '0 8px 32px rgba(0,0,0,.5)',
       overflow: 'hidden',
-      width: minimized ? 160 : 240,
+      width: minimized ? 40 : 240,
       transition: 'width .3s ease',
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '8px 12px',
-        background: 'rgba(255,215,0,.08)',
-        borderBottom: minimized ? 'none' : '1px solid rgba(255,215,0,.15)',
-      }}>
-        <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 1 }}>
-          🎵 VM-musikk
-        </span>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setMinimized(m => !m)} style={{
-            background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
-            borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 12,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>{minimized ? '▲' : '▼'}</button>
-          <button onClick={() => setVisible(false)} style={{
-            background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
-            borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 12,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>×</button>
-        </div>
-      </div>
-      <iframe
-        width="240"
-        height="135"
-        src={`https://www.youtube.com/embed/${startId}?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&autoplay=0&rel=0`}
-        title="VM-musikk"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        style={{ display: minimized ? 'none' : 'block' }}
-      />
+      {minimized ? (
+        /* Minimert: bare noteikon-knapp */
+        <button onClick={() => setMinimized(false)} title="VM-musikk" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 40, height: 40, background: 'transparent', border: 'none',
+          cursor: 'pointer', fontSize: 18, color: '#FFD700',
+        }}>🎵</button>
+      ) : (
+        /* Utvidet: header med tekst + knapper */
+        <>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 12px',
+            background: 'rgba(255,215,0,.08)',
+            borderBottom: '1px solid rgba(255,215,0,.15)',
+          }}>
+            <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 1 }}>
+              🎵 VM-musikk
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setMinimized(true)} style={{
+                background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
+                borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>▼</button>
+              <button onClick={() => setVisible(false)} style={{
+                background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
+                borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>×</button>
+            </div>
+          </div>
+          <iframe
+            width="240"
+            height="135"
+            src={`https://www.youtube.com/embed/${startId}?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&autoplay=0&rel=0`}
+            title="VM-musikk"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -3253,7 +3271,16 @@ const PANEL_EXPERTS = [
     color: '#7a4aaa',
     tagline: 'Wrestlingfan. Kan fotball fra 80-tallet utenat.',
     bio: 'Trives best på Narvesen med en Kvikk Lunsj og klistremerkeboka si fra Mexico-VM i håp om å treffe noen som har 66 Hristo Kolev eller 337 Chris Waddle. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst fra denne perioden, for etter 1992 er det blankt. Er overbevist om at VAR betyr Veldig Artig Reprise og at dommeren løper bort til skjermen fordi han ikke fikk med seg målet første gangen. Han er lett tilbakstående, men avtjente verneplikten sin i militæret som kokkeassistent. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til frokost, og hevder dette er verdensrekord uten å ha sjekket med Guinness. Tipper som om det fremdeles er 80-tallet.',
-    personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du er blid og entusiastisk. Du tror fremdeles ting er som på 80-tallet. Svar på norsk, vær litt naiv men velmenende. Maks 3-4 setninger.`,
+    personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du er blid og entusiastisk. Du tror fremdeles ting er som på 80-tallet.
+
+VIKTIG: Du skriver ALLTID på bokmål, men har dysleksi. Dette betyr at du konsekvent gjør disse typiske dysleksifeilene:
+- Bytter om bokstaver i ord: "fotbatll" for "fotball", "splieer" for "spiller", "kamep" for "kamp"
+- Skriver dobbel konsonant feil: "mål" blir "måll", "ball" blir "bal"
+- Forveksler b/d: "dag" kan bli "bag", "bra" kan bli "dra"
+- Hopper over bokstaver: "interessant" blir "interesant", "gratulerer" blir "gratulrer"
+- Skriver ord sammen som skal være separate, eller deler opp ord: "fotball kamp" eller "fotballk amp"
+- Aldri alle feilene på en gang – ca. 2-4 feil per svar, spredt naturlig utover
+Svar maks 3-4 setninger.`,
     tipStyle: 'retro_80s',
   },
   {
@@ -3674,7 +3701,7 @@ function PanelLeaderboard({ onSelect }) {
       <div style={C.cardBody}>
         {rows.map((r, i) => (
           <div key={r.id} style={{ ...C.lbRow, cursor:'pointer' }} onClick={() => onSelect(r)}>
-            <span style={C.lbRank}>{['🥇','🥈','🥉'][i] || <span style={{color:'rgba(255,255,255,.4)',fontSize:13}}>{i+1}</span>}</span>
+            <span style={C.lbRank}><span style={{color:'rgba(255,255,255,.4)',fontSize:13}}>{i+1}</span></span>
 
             <span style={{...C.lbName,color:r.color}}>{r.name}</span>
             {(r.fulltreff||0)>0 && renderFulltreff(r.fulltreff)}
