@@ -2718,7 +2718,7 @@ function AdminPanel() {
 
   const resetAllResults = async () => {
     const confirmed = window.confirm(
-      '⚠️ Er du sikker?\n\nDette nullstiller ALLE resultater:\n• Alle kampresultater (gruppe + sluttspill)\n• Grupperangeringer\n• Spesialtips-fasit\n• Kortstatistikk\n\nHandlingen kan ikke angres.'
+      '⚠️ Er du sikker?\n\nDette nullstiller ALLE resultater:\n• Alle kampresultater (gruppe + sluttspill)\n• Grupperangeringer\n• Spesialtips-fasit\n• Kortstatistikk\n• Bot-kommentarer på Siste kamper\n\nHandlingen kan ikke angres.'
     );
     if (!confirmed) return;
     try {
@@ -2726,7 +2726,10 @@ function AdminPanel() {
       await setDoc(doc(db, 'config', 'cards'), {});
       setResultsState({});
       setCardsState({});
-      alert('✅ Alle resultater er nullstilt.');
+      // Slett alle bot-kommentarer (match summaries)
+      const summarySnap = await getDocs(collection(db, 'summaries'));
+      await Promise.all(summarySnap.docs.map(d => deleteDoc(doc(db, 'summaries', d.id))));
+      alert('✅ Alle resultater og bot-kommentarer er nullstilt.');
     } catch(e) {
       alert('Feil ved nullstilling: ' + e.message);
     }
