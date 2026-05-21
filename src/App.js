@@ -2634,7 +2634,7 @@ function TipsForm({ me, phase, viewUser }) {
 // ══════════════════════════════════════════════════════════════════════
 //  DISCORD VIDEO-KNAPP
 // ══════════════════════════════════════════════════════════════════════
-const DISCORD_URL = 'https://discord.gg/vkeXz9Nk';
+const DISCORD_URL = 'https://discord.gg/4JpNQVWKD';
 
 const DiscordIcon = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -2651,7 +2651,7 @@ function VideoButton() {
       cursor: 'pointer', fontSize: 11, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
       textDecoration: 'none',
     }}>
-      <DiscordIcon size={13} /> Video
+      <DiscordIcon size={13} /> Discord
     </a>
   );
 }
