@@ -298,11 +298,11 @@ export const C = {
     padding: '12px 16px',
     background: 'rgba(0,0,0,.15)',
   },
-  chatMsg: { display: 'flex', flexDirection: 'row', gap: 6, maxWidth: '85%', alignItems: 'flex-end' },
-  chatMsgMine: { flexDirection: 'row-reverse' },
+  chatMsg: { display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 'calc(100% - 16px)', width: 'fit-content' },
+  chatMsgMine: {},
   chatMeta: {
-    display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-    gap: 2, paddingBottom: 2, flexShrink: 0,
+    display: 'flex', flexDirection: 'row',
+    gap: 6, alignItems: 'baseline',
   },
   chatBubble: {
     borderRadius: 12,

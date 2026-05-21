@@ -378,7 +378,7 @@ function renderChatText(text) {
 }
 
 
-// ── Reusable chat message bubble (name+time beside bubble) ───────────
+// ── Reusable chat message bubble (name+time above bubble) ───────────
 function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
@@ -391,11 +391,12 @@ function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
   return (
     <div style={{
       ...C.chatMsg,
-      ...(mine ? C.chatMsgMine : {}),
       alignSelf: mine ? 'flex-end' : 'flex-start',
+      marginLeft: mine ? 8 : 0,
+      marginRight: mine ? 0 : 8,
     }}>
-      {/* Meta: navn + tid, loddrett, ved siden av boblen */}
-      <div style={{ ...C.chatMeta, alignItems: mine ? 'flex-end' : 'flex-start' }}>
+      {/* Navn + tid over bobla */}
+      <div style={{ ...C.chatMeta, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
         <span style={{ ...C.chatUser, color: nameColor }}>{m.user}</span>
         <span style={C.chatTime}>{fmt(m.ts)}</span>
         {mine && onDelete && (
@@ -411,6 +412,7 @@ function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
         background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)',
         border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`,
         ...(botColor ? { borderLeft: `3px solid ${botColor}` } : {}),
+        display: 'block',
       }}>
         {m.image
           ? <img src={m.image} alt="bilde" style={{ maxWidth:'100%', maxHeight: maxImgH, borderRadius:8, display:'block' }} />
@@ -1825,7 +1827,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
         {finishedMatches.length === 0 && (
           <p style={{ color: '#4a5a80', textAlign: 'center', padding: 24, fontSize: 13 }}>
-            Ingen kampresultater ennå – admin legger inn etter kampene.
+            Ingen resultater ennå.
           </p>
         )}
         <div style={C.dashCardFixedMatchList}>
@@ -1921,7 +1923,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
         <div style={{ flex:1, padding:'0 0 40px 0' }}>
           {finishedMatches.length === 0 && (
-            <p style={{ color:'#4a5a80', textAlign:'center', padding:40, fontSize:13 }}>Ingen kampresultater ennå.</p>
+            <p style={{ color:'#4a5a80', textAlign:'center', padding:40, fontSize:13 }}>Ingen resultater ennå.</p>
           )}
           {finishedMatches.map(m => {
             const r = results[m.id];
