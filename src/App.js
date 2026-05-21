@@ -2632,242 +2632,44 @@ function TipsForm({ me, phase, viewUser }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  JITSI – DRAGGBAR FLYTENDE POPUP
+//  DISCORD VIDEO-KNAPP
 // ══════════════════════════════════════════════════════════════════════
-const JITSI_ROOM = 'heiarosenb-vmtipping-2026';
+const DISCORD_URL = 'https://discord.gg/vkeXz9Nk';
 
-// Singleton state – holdes utenfor React så popup lever på tvers av faner
-let _jitsiOpen = false;
-let _jitsiListeners = new Set();
-function useJitsiPopup() {
-  const [open, setOpen] = useState(_jitsiOpen);
-  useEffect(() => {
-    _jitsiListeners.add(setOpen);
-    return () => _jitsiListeners.delete(setOpen);
-  }, []);
-  const toggle = () => {
-    _jitsiOpen = !_jitsiOpen;
-    _jitsiListeners.forEach(fn => fn(_jitsiOpen));
-  };
-  const close = () => {
-    _jitsiOpen = false;
-    _jitsiListeners.forEach(fn => fn(false));
-  };
-  return { open, toggle, close };
-}
+const DiscordIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026 13.83 13.83 0 0 0 1.226-1.963.074.074 0 0 0-.041-.104 13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028z"/>
+  </svg>
+);
 
-function JitsiPopup({ displayName }) {
-  const { open, close } = useJitsiPopup();
-  const containerRef = useRef(null);
-  const apiRef = useRef(null);
-  const dragRef = useRef({ dragging: false, ox: 0, oy: 0 });
-  const [pos, setPos] = useState({ x: 20, y: 80 });
-  const [size, setSize] = useState({ w: 360, h: 280 });
-  const [muted, setMuted] = useState(false);
-  const [camOff, setCamOff] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const isMobile = window.innerWidth < 600;
-
-  const loadJitsi = () => new Promise((res, rej) => {
-    if (window.JitsiMeetExternalAPI) { res(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://meet.jit.si/external_api.js';
-    s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
-
-  useEffect(() => {
-    if (!open) {
-      apiRef.current?.dispose();
-      apiRef.current = null;
-      return;
-    }
-    setLoading(true);
-    loadJitsi().then(() => {
-      setTimeout(() => {
-        if (!containerRef.current) return;
-        const api = new window.JitsiMeetExternalAPI('meet.jit.si', {
-          roomName: JITSI_ROOM,
-          parentNode: containerRef.current,
-          width: '100%', height: '100%',
-          userInfo: { displayName },
-          configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            disableDeepLinking: true,
-            prejoinPageEnabled: false,
-          },
-          interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-            MOBILE_APP_PROMO: false,
-          },
-        });
-        apiRef.current = api;
-        setLoading(false);
-      }, 150);
-    }).catch(() => setLoading(false));
-    return () => {};
-  }, [open, displayName]);
-
-  // Drag – kun desktop
-  const onMouseDown = e => {
-    if (isMobile) return;
-    dragRef.current = { dragging: true, ox: e.clientX - pos.x, oy: e.clientY - pos.y };
-    const onMove = e => {
-      if (!dragRef.current.dragging) return;
-      setPos({ x: e.clientX - dragRef.current.ox, y: e.clientY - dragRef.current.oy });
-    };
-    const onUp = () => {
-      dragRef.current.dragging = false;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-
-  const toggleMute = () => { apiRef.current?.executeCommand('toggleAudio'); setMuted(m => !m); };
-  const toggleCam  = () => { apiRef.current?.executeCommand('toggleVideo'); setCamOff(c => !c); };
-  const expand     = () => setSize(s => s.w > 400 ? { w: 360, h: 280 } : { w: 560, h: 420 });
-
-  if (!open) return null;
-
-  // ── MOBIL: fast bunnstripe ───────────────────────────────────────────
-  if (isMobile) {
-    const STRIP_H = 160;
-    return (
-      <div style={{
-        position: 'fixed', bottom: 48, left: 0, right: 0, zIndex: 1200,
-        height: STRIP_H + 36,
-        background: '#0a0e1a',
-        borderTop: '1px solid rgba(255,215,0,.3)',
-        display: 'flex', flexDirection: 'column',
-        boxShadow: '0 -8px 32px rgba(0,0,0,.6)',
-      }}>
-        {/* Kontrollrad øverst i stripen */}
-        <div style={{
-          height: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 12px', flexShrink: 0,
-          background: 'rgba(255,215,0,.08)', borderBottom: '1px solid rgba(255,215,0,.15)',
-        }}>
-          <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700 }}>
-            📹 Video
-          </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={toggleMute} style={{
-              background: muted ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
-              border: 'none', color: muted ? '#f87171' : '#fff',
-              borderRadius: 5, width: 30, height: 30, cursor: 'pointer', fontSize: 15,
-            }}>{muted ? '🔇' : '🎤'}</button>
-            <button onClick={toggleCam} style={{
-              background: camOff ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
-              border: 'none', color: camOff ? '#f87171' : '#fff',
-              borderRadius: 5, width: 30, height: 30, cursor: 'pointer', fontSize: 15,
-            }}>{camOff ? '📵' : '📹'}</button>
-            <button onClick={close} style={{
-              background: 'rgba(239,68,68,.2)', border: 'none', color: '#f87171',
-              borderRadius: 5, width: 30, height: 30, cursor: 'pointer', fontSize: 18, fontWeight: 700,
-            }}>×</button>
-          </div>
-        </div>
-        {/* Jitsi */}
-        <div ref={containerRef} style={{ flex: 1, background: '#080c1a', position: 'relative', overflow: 'hidden' }}>
-          {loading && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'rgba(255,255,255,.5)' }}>
-              <div style={{ width: 24, height: 24, border: '3px solid rgba(255,215,0,.3)', borderTopColor: '#FFD700', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontSize: 11 }}>Kobler til…</span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── DESKTOP: draggbar popup ──────────────────────────────────────────
-  return (
-    <div style={{
-      position: 'fixed', left: pos.x, top: pos.y, zIndex: 1200,
-      width: size.w, height: size.h + 36,
-      background: '#0a0e1a', border: '1px solid rgba(255,215,0,.3)',
-      borderRadius: 12, overflow: 'hidden',
-      boxShadow: '0 16px 48px rgba(0,0,0,.7)',
-      display: 'flex', flexDirection: 'column',
-      userSelect: 'none',
-    }}>
-      <div onMouseDown={onMouseDown} style={{
-        height: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 10px', cursor: 'grab',
-        background: 'rgba(255,215,0,.08)', borderBottom: '1px solid rgba(255,215,0,.15)',
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700 }}>
-          📹 Video – dra for å flytte
-        </span>
-        <div style={{ display: 'flex', gap: 5 }}>
-          <button onClick={toggleMute} style={{
-            background: muted ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
-            border: 'none', color: muted ? '#f87171' : '#fff',
-            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 12,
-          }}>{muted ? '🔇' : '🎤'}</button>
-          <button onClick={toggleCam} style={{
-            background: camOff ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
-            border: 'none', color: camOff ? '#f87171' : '#fff',
-            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 12,
-          }}>{camOff ? '📵' : '📹'}</button>
-          <button onClick={expand} style={{
-            background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
-            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 12,
-          }}>{size.w > 400 ? '⊡' : '⊞'}</button>
-          <button onClick={close} style={{
-            background: 'rgba(239,68,68,.2)', border: 'none', color: '#f87171',
-            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 14, fontWeight: 700,
-          }}>×</button>
-        </div>
-      </div>
-      <div ref={containerRef} style={{ flex: 1, background: '#080c1a', position: 'relative' }}>
-        {loading && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: 'rgba(255,255,255,.5)' }}>
-            <div style={{ width: 28, height: 28, border: '3px solid rgba(255,215,0,.3)', borderTopColor: '#FFD700', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            <span style={{ fontSize: 12 }}>Kobler til videorom…</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Liten knapp som vises i chat-headeren
 function VideoButton() {
-  const { open, toggle } = useJitsiPopup();
   return (
-    <button onClick={toggle} title={open ? 'Lukk video' : 'Start video'} style={{
+    <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" title="Bli med i Discord-videochat" style={{
       display: 'flex', alignItems: 'center', gap: 5,
-      background: open ? 'rgba(34,197,94,.2)' : 'rgba(255,255,255,.08)',
-      border: `1px solid ${open ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.15)'}`,
-      color: open ? '#4ade80' : 'rgba(255,255,255,.6)',
-      borderRadius: 6, padding: '0 8px', height: 26,
+      background: 'rgba(88,101,242,.2)', border: '1px solid rgba(88,101,242,.5)',
+      color: '#8891f2', borderRadius: 6, padding: '0 8px', height: 26,
       cursor: 'pointer', fontSize: 11, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
+      textDecoration: 'none',
     }}>
-      📹{open ? ' Live' : ''}
-    </button>
+      <DiscordIcon size={13} /> Video
+    </a>
   );
 }
 
-// VideoChat-fanen (video-menypunkt) – peker nå til popup
 function VideoChat({ me }) {
-  const { open, toggle } = useJitsiPopup();
   return (
     <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Videochat</span></div>
       <div style={C.cardBody}>
         <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginBottom: 16 }}>
-          Videochatten åpnes som et flytende vindu du kan dra rundt på skjermen – slik kan du sjekke tabellen og chatten samtidig som du er i video.
+          Videochat skjer via Discord. Klikk for å bli med i stemmekanalen – du kan ha Discord oppe ved siden av VM-tipping-appen.
         </p>
-        <button onClick={toggle} style={{ ...C.btnGold, width: '100%' }}>
-          {open ? '📵 Lukk videovindu' : '📹 Åpne videovindu'}
-        </button>
+        <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" style={{
+          ...C.btnGold, width: '100%', textDecoration: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          <DiscordIcon size={18} /> Åpne Discord-videochat
+        </a>
       </div>
     </div>
   );
@@ -3490,11 +3292,16 @@ const PANEL_EXPERTS = [
 
 VIKTIG: Du skriver ALLTID på bokmål, men har litt dysleksi. Dette betyr at du konsekvent gjør disse typiske dysleksifeilene:
 
-- Bruker veldig mye komma, aldri punktum eller - og avslutter meldingen med utropstegn
 - Hopper over bokstaver: "interessant" blir "intresant", "gratulerer" blir "gratlerer"
 - Du bruker "å" der det skal være "og" og motsatt
 - Aldri alle feilene på en gang – ca. 3-5 feil per svar, spredt naturlig utover
-Svar maks 3-4 setninger.`,
+
+TEGNSETTING – dette er absolutt og ufravikelig:
+- Du bruker KUN komma gjennom hele meldingen, aldri punktum, aldri spørsmålstegn, aldri tankestrek, aldri noe annet
+- Hele meldingen er én lang setning med komma mellom leddene
+- Meldingen avsluttes ALLTID med akkurat ett utropstegn, og bare ett
+- Eksempel: "ja det var en bra kamp, Argentina spilte veldig bra, spesielt Maradona, han var jo suveren på 80-tallet også, så det overraker meg itj!"
+Svar maks 3-4 komma-adskilte ledd.`,
     tipStyle: 'retro_80s',
   },
   {
@@ -4567,7 +4374,6 @@ export default function App() {
       </div>
       {tab !== 'tips' && <StatusBar phase={phase} isAdmin={user.isAdmin} />}
       <YouTubePlayer />
-      <JitsiPopup displayName={user.displayName} />
       {showMsgPopup && <AdminMessagePopup message={adminMessage} onClose={() => setShowMsgPopup(false)} />}
     </div>
   );
