@@ -144,7 +144,7 @@ export const C = {
   // ── Main ───────────────────────────────────────────────────
   main: {
     flex: 1,
-    padding: '24px 20px 120px 20px',
+    padding: '16px 12px 120px 12px',
     maxWidth: 1200,
     width: '100%',
     margin: '0 auto',
@@ -166,20 +166,27 @@ export const C = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '14px 18px',
+    padding: '12px 14px',
     borderBottom: '1px solid rgba(255,255,255,.06)',
     background: 'rgba(255,255,255,.03)',
+    gap: 6,
+    minWidth: 0,
   },
   cardTitle: {
     fontFamily: "'Kanit', sans-serif",
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: 700,
     color: '#ffffff',
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    minWidth: 0,
+    flexShrink: 1,
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
   },
   cardTitleDot: {
     width: 7,
@@ -190,7 +197,7 @@ export const C = {
     flexShrink: 0,
     boxShadow: '0 0 8px rgba(255,215,0,.6)',
   },
-  cardBody: { padding: '16px 18px' },
+  cardBody: { padding: '14px 14px' },
 
   // ── Text ───────────────────────────────────────────────────
   secH: {
@@ -269,10 +276,10 @@ export const C = {
     boxShadow: '0 0 16px rgba(255,215,0,.06)',
   },
   lbRank: { width: 30, textAlign: 'center', fontSize: 18, flexShrink: 0 },
-  lbName: { flex: 1, fontWeight: 600, fontSize: 15, color: '#e8edf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  lbName: { flex: 1, fontWeight: 600, fontSize: 14, color: '#e8edf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   lbPts: {
     fontFamily: "'Kanit', sans-serif",
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: 800,
     color: '#FFD700',
     lineHeight: 1,
@@ -294,8 +301,8 @@ export const C = {
   chatMsg: { display: 'flex', flexDirection: 'column', gap: 2, maxWidth: '80%' },
   chatBubble: {
     borderRadius: 12,
-    padding: '7px 12px',
-    fontSize: 14,
+    padding: '6px 10px',
+    fontSize: 13,
     lineHeight: 1.5,
     color: '#e8edf8',
   },
@@ -303,8 +310,8 @@ export const C = {
   chatTime: { fontSize: 9, color: 'rgba(255,255,255,.55)', fontFamily: "'Fira Code',monospace" },
   chatInputRow: {
     display: 'flex',
-    gap: 8,
-    padding: '10px 16px',
+    gap: 6,
+    padding: '8px 10px',
     borderTop: '1px solid rgba(255,255,255,.06)',
     alignItems: 'center',
     background: 'rgba(0,0,0,.1)',
@@ -312,13 +319,13 @@ export const C = {
 
   // ── Match cards ────────────────────────────────────────────
   matchCard: {
-    padding: '11px 16px',
+    padding: '9px 12px',
     borderBottom: '1px solid rgba(255,255,255,.05)',
     background: 'rgba(255,255,255,.02)',
     transition: 'background .15s',
   },
-  matchTeams: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
-  matchTeam: { flex: 1, fontSize: 14, fontWeight: 600, color: '#e8edf8' },
+  matchTeams: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 },
+  matchTeam: { flex: 1, fontSize: 13, fontWeight: 600, color: '#e8edf8' },
   matchScore: {
     fontFamily: "'Fira Code',monospace",
     fontSize: 18,
@@ -495,14 +502,19 @@ export const C = {
 
   // ── Special ────────────────────────────────────────────────
   specBox: {
-    background: 'rgba(0,0,0,.2)', borderRadius: 12, padding: 14,
+    background: 'rgba(0,0,0,.2)', borderRadius: 12, padding: '12px 10px',
     marginBottom: 16, border: '1px solid rgba(255,255,255,.07)',
+    width: '100%', boxSizing: 'border-box', overflowX: 'hidden',
   },
   specRow: {
-    display: 'flex', alignItems: 'center', gap: 9,
-    padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,.05)', flexWrap: 'nowrap',
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,.05)',
+    flexWrap: 'nowrap', minWidth: 0,
   },
-  specLabel: { fontSize: 13, color: 'rgba(255,255,255,.7)', flex: 1, minWidth: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  specLabel: {
+    fontSize: 12, color: 'rgba(255,255,255,.7)', flex: 1, minWidth: 0,
+    fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
   ptsBadge: {
     fontFamily: "'Fira Code',monospace", fontSize: 10, color: '#4ade80',
     background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)',
@@ -585,6 +597,11 @@ export const C = {
     flexDirection: 'column',
     height: 476,
   },
+  dashCardFixedMobile: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: 360,
+  },
   dashCardFixedBody: {
     flex: 1,
     overflowY: 'auto',
@@ -632,6 +649,14 @@ export const C = {
     flexDirection: 'column',
     flex: 1,
     overflowY: 'auto',
+  },
+
+  // ── Card header right-side actions ────────────────────────
+  cardHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
   },
 
   // ── Bot summary ────────────────────────────────────────────

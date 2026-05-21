@@ -387,17 +387,17 @@ function renderFulltreff(count) {
 }
 
 // Online users popup indicator
-function OnlineIndicator({ onlineUsers }) {
+function OnlineIndicator({ onlineUsers, compact = false }) {
   const [show, setShow] = useState(false);
   const isMobile = useIsMobile();
   return (
-    <div style={{ position:'relative' }}
+    <div style={{ position:'relative', flexShrink: 0 }}
       onMouseEnter={() => !isMobile && setShow(true)}
       onMouseLeave={() => !isMobile && setShow(false)}
       onClick={() => isMobile && setShow(s => !s)}>
-      <span style={{ fontSize:12, color:'#4ade80', fontFamily:"'Fira Code',monospace", display:'flex', alignItems:'center', gap:4, cursor:'pointer' }}>
-        <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }}/>
-        {onlineUsers.length} online
+      <span style={{ fontSize: compact ? 11 : 12, color:'#4ade80', fontFamily:"'Fira Code',monospace", display:'flex', alignItems:'center', gap:4, cursor:'pointer', whiteSpace:'nowrap' }}>
+        <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80', flexShrink:0 }}/>
+        {compact ? onlineUsers.length : `${onlineUsers.length} online`}
       </span>
       {show && (
         <>
@@ -1699,7 +1699,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       })()}
       <div style={isMobile ? C.dashGrid3Mobile : C.dashGrid3}>
       {/* Tabell */}
-      <div style={{ ...C.card, ...C.dashCardFixed, ...(isMobile ? { order: 2 } : {}) }}>
+      <div style={{ ...C.card, ...(isMobile ? C.dashCardFixedMobile : C.dashCardFixed), ...(isMobile ? { order: 2 } : {}) }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('leaderboard')}>
           <span style={C.cardTitle}><CardIcon src="/tabell.png" /> Tabell</span>
           <button onClick={e => { e.stopPropagation(); setTab('leaderboard'); }} style={{
@@ -1735,14 +1735,14 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       </div>
 
       {/* Chat */}
-      <div style={{ ...C.card, ...C.dashCardFixed, ...(isMobile ? { order: 1 } : {}) }}>
+      <div style={{ ...C.card, ...(isMobile ? C.dashCardFixedMobile : C.dashCardFixed), ...(isMobile ? { order: 1 } : {}) }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('chat')}>
           <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }} onClick={e => e.stopPropagation()}>
-            <VideoButton />
-            <OnlineIndicator onlineUsers={onlineUsers} />
+          <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6 }} onClick={e => e.stopPropagation()}>
+            <VideoButton compact={isMobile} />
+            <OnlineIndicator onlineUsers={onlineUsers} compact={isMobile} />
             <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
-            <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
+            <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }} title="Fullskjerm">⛶</button>
           </div>
         </div>
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
@@ -1790,7 +1790,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       </div>
 
       {/* Kamper */}
-      <div style={{ ...C.card, ...C.dashCardFixed, ...(isMobile ? { order: 3 } : {}) }}>
+      <div style={{ ...C.card, ...(isMobile ? C.dashCardFixedMobile : C.dashCardFixed), ...(isMobile ? { order: 3 } : {}) }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => openMatchesFullscreen()}>
           <span style={C.cardTitle}><CardIcon src="/tips.png" /> Siste kamper</span>
           <button onClick={e => { e.stopPropagation(); openMatchesFullscreen(); }} style={{
@@ -2252,8 +2252,8 @@ function TipsForm({ me, phase, viewUser }) {
         )}
 
         {/* Spesialtips */}
-        <div style={{ display: 'flex', gap: 20, alignItems: 'stretch', height: 340 }}>
-        <div style={{ ...C.specBox, flex: '0 0 auto', marginBottom: 0, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', height: isMobile ? 'auto' : 340, flexDirection: isMobile ? 'column' : 'row' }}>
+        <div style={{ ...C.specBox, flex: isMobile ? '1 1 auto' : '0 0 auto', marginBottom: 0, overflowY: 'auto', minWidth: 0 }}>
           <span style={C.secH}>🌟 Spesialtips – låses før gruppespillet</span>
           {SPEC_FIELDS.map(({ key, label, pts, tooltip }) => {
             const correctVal = results[key];
@@ -2261,12 +2261,12 @@ function TipsForm({ me, phase, viewUser }) {
             const correct = correctVal && tipVal && tipVal === correctVal;
             const specPts = correct ? pts : null;
             return (
-              <div key={key} style={{ ...C.specRow, gap: isMobile ? 6 : 9 }}>
-                <span style={{ ...C.specLabel, fontSize: isMobile ? 11 : 13 }}>{label}{tooltip && <InfoTooltip text={tooltip} />}</span>
-                <span style={{ ...C.ptsBadge, fontSize: isMobile ? 9 : 10, padding: isMobile ? '2px 4px' : '2px 6px' }}>{pts}p</span>
+              <div key={key} style={{ ...C.specRow, gap: isMobile ? 5 : 9 }}>
+                <span style={{ ...C.specLabel, fontSize: isMobile ? 11 : 12 }}>{label}{tooltip && <InfoTooltip text={tooltip} />}</span>
+                <span style={{ ...C.ptsBadge, fontSize: isMobile ? 9 : 10, padding: isMobile ? '2px 4px' : '2px 6px', flexShrink: 0 }}>{pts}p</span>
                 {grpOk ? (
                   key === 'topscorer' ? (
-                    <div style={{ width: isMobile ? 110 : 170, flexShrink: 0 }}>
+                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0 }}>
                     <PlayerAutocomplete
                       value={spec[key] || ''}
                       onChange={val => setSp(key, val)}
@@ -2275,7 +2275,7 @@ function TipsForm({ me, phase, viewUser }) {
                     />
                     </div>
                   ) : (
-                    <div style={{ width: isMobile ? 110 : 170, flexShrink: 0 }}>
+                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0 }}>
                       <TeamSelect
                         value={spec[key] || ''}
                         onChange={val => setSp(key, val)}
@@ -2330,7 +2330,7 @@ function TipsForm({ me, phase, viewUser }) {
             <div className="hide-portrait" style={{
               background: 'rgba(0,0,0,.2)', borderRadius: 12,
               border: '1px solid rgba(255,255,255,.07)',
-              padding: 25, flex: 1, minWidth: 0,
+              padding: 16, flex: 1, minWidth: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexDirection: 'column', gap: 0,
             }}>
@@ -2642,16 +2642,17 @@ const DiscordIcon = ({ size = 14 }) => (
   </svg>
 );
 
-function VideoButton() {
+function VideoButton({ compact = false }) {
   return (
     <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" title="Bli med i Discord-videochat" style={{
-      display: 'flex', alignItems: 'center', gap: 5,
+      display: 'flex', alignItems: 'center', gap: compact ? 3 : 5,
       background: 'rgba(88,101,242,.2)', border: '1px solid rgba(88,101,242,.5)',
-      color: '#8891f2', borderRadius: 6, padding: '0 8px', height: 26,
-      cursor: 'pointer', fontSize: 11, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
-      textDecoration: 'none',
+      color: '#8891f2', borderRadius: 6, padding: compact ? '0 5px' : '0 8px', height: 26,
+      cursor: 'pointer', fontSize: compact ? 10 : 11,
+      fontFamily: "'Kanit',sans-serif", fontWeight: 600,
+      textDecoration: 'none', flexShrink: 0,
     }}>
-      <DiscordIcon size={13} /> Discord
+      <DiscordIcon size={13} />{!compact && ' Discord'}
     </a>
   );
 }
@@ -3795,6 +3796,7 @@ function PanelPage({ me }) {
 //  CHAT PAGE
 // ══════════════════════════════════════════════════════════════════════
 function ChatPage({ me }) {
+  const isMobile = useIsMobile();
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState('');
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -3866,9 +3868,9 @@ function ChatPage({ me }) {
     <div style={C.card}>
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat</span>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <VideoButton />
-          <OnlineIndicator onlineUsers={onlineUsers} />
+        <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6 }}>
+          <VideoButton compact={isMobile} />
+          <OnlineIndicator onlineUsers={onlineUsers} compact={isMobile} />
           <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
         </div>
       </div>
