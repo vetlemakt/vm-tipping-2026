@@ -2709,7 +2709,7 @@ function JitsiPopup({ displayName }) {
       }, 150);
     }).catch(() => setLoading(false));
     return () => {};
-  }, [open]);
+  }, [open, displayName]);
 
   // Drag – kun desktop
   const onMouseDown = e => {
