@@ -1738,13 +1738,13 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       <div style={{ ...C.card, ...C.dashCardFixed, ...(isMobile ? { order: 1 } : {}) }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('chat')}>
           <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }} onClick={e => e.stopPropagation()}>
+            <VideoButton />
             <OnlineIndicator onlineUsers={onlineUsers} />
             <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
             <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }} title="Fullskjerm">⛶</button>
           </div>
         </div>
-        <JitsiStripe displayName={me.displayName} compact={true} />
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => {
@@ -1874,7 +1874,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               </div>
             </div>
             <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }} ref={el => { if(el) el.scrollTop = el.scrollHeight; }}>
-              <JitsiStripe displayName={me.displayName} compact={true} />
               {msgs.map((m, i) => {
                 const mine = m.user === me.displayName;
                 const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
@@ -2633,162 +2632,242 @@ function TipsForm({ me, phase, viewUser }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  VIDEO CHAT
-// ══════════════════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════════════════
-//  JITSI VIDEO STRIPE
-//  compact=true  → liten stripe (dashboard-chat og chat-fanen)
-//  compact=false → fullskjerm-modus (ikke i bruk ennå)
+//  JITSI – DRAGGBAR FLYTENDE POPUP
 // ══════════════════════════════════════════════════════════════════════
 const JITSI_ROOM = 'heiarosenb-vmtipping-2026';
 
-function JitsiStripe({ displayName, compact = true }) {
-  const [active, setActive] = useState(false);
+// Singleton state – holdes utenfor React så popup lever på tvers av faner
+let _jitsiOpen = false;
+let _jitsiListeners = new Set();
+function useJitsiPopup() {
+  const [open, setOpen] = useState(_jitsiOpen);
+  useEffect(() => {
+    _jitsiListeners.add(setOpen);
+    return () => _jitsiListeners.delete(setOpen);
+  }, []);
+  const toggle = () => {
+    _jitsiOpen = !_jitsiOpen;
+    _jitsiListeners.forEach(fn => fn(_jitsiOpen));
+  };
+  const close = () => {
+    _jitsiOpen = false;
+    _jitsiListeners.forEach(fn => fn(false));
+  };
+  return { open, toggle, close };
+}
+
+function JitsiPopup({ displayName }) {
+  const { open, close } = useJitsiPopup();
+  const containerRef = useRef(null);
+  const apiRef = useRef(null);
+  const dragRef = useRef({ dragging: false, ox: 0, oy: 0 });
+  const [pos, setPos] = useState({ x: 20, y: 80 });
+  const [size, setSize] = useState({ w: 360, h: 280 });
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
-  const apiRef = useRef(null);
-  const containerRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const isMobile = window.innerWidth < 600;
 
-  // Last Jitsi External API lazy (kun når brukeren aktiverer video)
-  const loadJitsi = () => {
-    return new Promise((resolve, reject) => {
-      if (window.JitsiMeetExternalAPI) { resolve(); return; }
-      const s = document.createElement('script');
-      s.src = 'https://meet.jit.si/external_api.js';
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  };
+  const loadJitsi = () => new Promise((res, rej) => {
+    if (window.JitsiMeetExternalAPI) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://meet.jit.si/external_api.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
 
-  const startVideo = async () => {
-    setActive(true);
-    try {
-      await loadJitsi();
-      // Liten forsinkelse for at DOM-elementet skal være synlig
+  useEffect(() => {
+    if (!open) {
+      apiRef.current?.dispose();
+      apiRef.current = null;
+      return;
+    }
+    setLoading(true);
+    loadJitsi().then(() => {
       setTimeout(() => {
         if (!containerRef.current) return;
         const api = new window.JitsiMeetExternalAPI('meet.jit.si', {
           roomName: JITSI_ROOM,
           parentNode: containerRef.current,
-          width: '100%',
-          height: compact ? 120 : 400,
+          width: '100%', height: '100%',
           userInfo: { displayName },
           configOverwrite: {
             startWithAudioMuted: false,
             startWithVideoMuted: false,
             disableDeepLinking: true,
             prejoinPageEnabled: false,
-            toolbarButtons: [],       // skjuler Jitsis egne verktøylinje
           },
           interfaceConfigOverwrite: {
             SHOW_JITSI_WATERMARK: false,
             SHOW_WATERMARK_FOR_GUESTS: false,
-            TOOLBAR_BUTTONS: [],
             DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
             MOBILE_APP_PROMO: false,
-            FILM_STRIP_MAX_HEIGHT: compact ? 90 : 200,
           },
         });
         apiRef.current = api;
-      }, 100);
-    } catch (e) {
-      console.error('Jitsi load failed', e);
-      setActive(false);
-    }
+        setLoading(false);
+      }, 150);
+    }).catch(() => setLoading(false));
+    return () => {};
+  }, [open]);
+
+  // Drag – kun desktop
+  const onMouseDown = e => {
+    if (isMobile) return;
+    dragRef.current = { dragging: true, ox: e.clientX - pos.x, oy: e.clientY - pos.y };
+    const onMove = e => {
+      if (!dragRef.current.dragging) return;
+      setPos({ x: e.clientX - dragRef.current.ox, y: e.clientY - dragRef.current.oy });
+    };
+    const onUp = () => {
+      dragRef.current.dragging = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
   };
 
-  const stopVideo = () => {
-    apiRef.current?.dispose();
-    apiRef.current = null;
-    setActive(false);
-    setMuted(false);
-    setCamOff(false);
-  };
+  const toggleMute = () => { apiRef.current?.executeCommand('toggleAudio'); setMuted(m => !m); };
+  const toggleCam  = () => { apiRef.current?.executeCommand('toggleVideo'); setCamOff(c => !c); };
+  const expand     = () => setSize(s => s.w > 400 ? { w: 360, h: 280 } : { w: 560, h: 420 });
 
-  const toggleMute = () => {
-    apiRef.current?.executeCommand('toggleAudio');
-    setMuted(m => !m);
-  };
+  if (!open) return null;
 
-  const toggleCam = () => {
-    apiRef.current?.executeCommand('toggleVideo');
-    setCamOff(c => !c);
-  };
-
-  if (!active) {
+  // ── MOBIL: fast bunnstripe ───────────────────────────────────────────
+  if (isMobile) {
+    const STRIP_H = 160;
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: compact ? '6px 10px' : '10px 14px',
-        borderBottom: '1px solid rgba(255,255,255,.06)',
-        background: 'rgba(0,0,0,.2)',
+        position: 'fixed', bottom: 48, left: 0, right: 0, zIndex: 1200,
+        height: STRIP_H + 36,
+        background: '#0a0e1a',
+        borderTop: '1px solid rgba(255,215,0,.3)',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 -8px 32px rgba(0,0,0,.6)',
       }}>
-        <button onClick={startVideo} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(34,197,94,.15)', border: '1px solid rgba(34,197,94,.35)',
-          color: '#4ade80', borderRadius: 8, padding: '5px 12px',
-          cursor: 'pointer', fontSize: 12, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
+        {/* Kontrollrad øverst i stripen */}
+        <div style={{
+          height: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 12px', flexShrink: 0,
+          background: 'rgba(255,215,0,.08)', borderBottom: '1px solid rgba(255,215,0,.15)',
         }}>
-          📹 Bli med i video
-        </button>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>
-          Alle i chatten kan delta
-        </span>
+          <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700 }}>
+            📹 Video
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={toggleMute} style={{
+              background: muted ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
+              border: 'none', color: muted ? '#f87171' : '#fff',
+              borderRadius: 5, width: 30, height: 30, cursor: 'pointer', fontSize: 15,
+            }}>{muted ? '🔇' : '🎤'}</button>
+            <button onClick={toggleCam} style={{
+              background: camOff ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
+              border: 'none', color: camOff ? '#f87171' : '#fff',
+              borderRadius: 5, width: 30, height: 30, cursor: 'pointer', fontSize: 15,
+            }}>{camOff ? '📵' : '📹'}</button>
+            <button onClick={close} style={{
+              background: 'rgba(239,68,68,.2)', border: 'none', color: '#f87171',
+              borderRadius: 5, width: 30, height: 30, cursor: 'pointer', fontSize: 18, fontWeight: 700,
+            }}>×</button>
+          </div>
+        </div>
+        {/* Jitsi */}
+        <div ref={containerRef} style={{ flex: 1, background: '#080c1a', position: 'relative', overflow: 'hidden' }}>
+          {loading && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'rgba(255,255,255,.5)' }}>
+              <div style={{ width: 24, height: 24, border: '3px solid rgba(255,215,0,.3)', borderTopColor: '#FFD700', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: 11 }}>Kobler til…</span>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
+  // ── DESKTOP: draggbar popup ──────────────────────────────────────────
   return (
     <div style={{
-      borderBottom: '1px solid rgba(255,255,255,.06)',
-      background: 'rgba(0,0,0,.3)',
+      position: 'fixed', left: pos.x, top: pos.y, zIndex: 1200,
+      width: size.w, height: size.h + 36,
+      background: '#0a0e1a', border: '1px solid rgba(255,215,0,.3)',
+      borderRadius: 12, overflow: 'hidden',
+      boxShadow: '0 16px 48px rgba(0,0,0,.7)',
+      display: 'flex', flexDirection: 'column',
+      userSelect: 'none',
     }}>
-      {/* Video-container (Jitsi mountes her) */}
-      <div ref={containerRef} style={{
-        width: '100%',
-        height: compact ? 120 : 400,
-        background: '#080c1a',
-        overflow: 'hidden',
-      }} />
-      {/* Kontrollrad */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: '5px 10px',
-        background: 'rgba(0,0,0,.4)',
+      <div onMouseDown={onMouseDown} style={{
+        height: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 10px', cursor: 'grab',
+        background: 'rgba(255,215,0,.08)', borderBottom: '1px solid rgba(255,215,0,.15)',
+        flexShrink: 0,
       }}>
-        <button onClick={toggleMute} title={muted ? 'Slå på mikrofon' : 'Dempe mikrofon'} style={{
-          background: muted ? 'rgba(239,68,68,.25)' : 'rgba(255,255,255,.08)',
-          border: `1px solid ${muted ? 'rgba(239,68,68,.5)' : 'rgba(255,255,255,.15)'}`,
-          color: muted ? '#f87171' : 'rgba(255,255,255,.7)',
-          borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>{muted ? '🔇' : '🎤'}</button>
-        <button onClick={toggleCam} title={camOff ? 'Slå på kamera' : 'Slå av kamera'} style={{
-          background: camOff ? 'rgba(239,68,68,.25)' : 'rgba(255,255,255,.08)',
-          border: `1px solid ${camOff ? 'rgba(239,68,68,.5)' : 'rgba(255,255,255,.15)'}`,
-          color: camOff ? '#f87171' : 'rgba(255,255,255,.7)',
-          borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>{camOff ? '📵' : '📹'}</button>
-        <button onClick={stopVideo} title="Forlat video" style={{
-          background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.35)',
-          color: '#f87171', borderRadius: 6, padding: '0 10px', height: 28,
-          cursor: 'pointer', fontSize: 11, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
-          marginLeft: 'auto',
-        }}>Forlat</button>
+        <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700 }}>
+          📹 Video – dra for å flytte
+        </span>
+        <div style={{ display: 'flex', gap: 5 }}>
+          <button onClick={toggleMute} style={{
+            background: muted ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
+            border: 'none', color: muted ? '#f87171' : '#fff',
+            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 12,
+          }}>{muted ? '🔇' : '🎤'}</button>
+          <button onClick={toggleCam} style={{
+            background: camOff ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)',
+            border: 'none', color: camOff ? '#f87171' : '#fff',
+            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 12,
+          }}>{camOff ? '📵' : '📹'}</button>
+          <button onClick={expand} style={{
+            background: 'rgba(255,255,255,.1)', border: 'none', color: '#fff',
+            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 12,
+          }}>{size.w > 400 ? '⊡' : '⊞'}</button>
+          <button onClick={close} style={{
+            background: 'rgba(239,68,68,.2)', border: 'none', color: '#f87171',
+            borderRadius: 5, width: 24, height: 24, cursor: 'pointer', fontSize: 14, fontWeight: 700,
+          }}>×</button>
+        </div>
+      </div>
+      <div ref={containerRef} style={{ flex: 1, background: '#080c1a', position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: 'rgba(255,255,255,.5)' }}>
+            <div style={{ width: 28, height: 28, border: '3px solid rgba(255,215,0,.3)', borderTopColor: '#FFD700', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <span style={{ fontSize: 12 }}>Kobler til videorom…</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Beholdes for bakoverkompatibilitet (video-fanen i menyen)
+// Liten knapp som vises i chat-headeren
+function VideoButton() {
+  const { open, toggle } = useJitsiPopup();
+  return (
+    <button onClick={toggle} title={open ? 'Lukk video' : 'Start video'} style={{
+      display: 'flex', alignItems: 'center', gap: 5,
+      background: open ? 'rgba(34,197,94,.2)' : 'rgba(255,255,255,.08)',
+      border: `1px solid ${open ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.15)'}`,
+      color: open ? '#4ade80' : 'rgba(255,255,255,.6)',
+      borderRadius: 6, padding: '0 8px', height: 26,
+      cursor: 'pointer', fontSize: 11, fontFamily: "'Kanit',sans-serif", fontWeight: 600,
+    }}>
+      📹{open ? ' Live' : ''}
+    </button>
+  );
+}
+
+// VideoChat-fanen (video-menypunkt) – peker nå til popup
 function VideoChat({ me }) {
+  const { open, toggle } = useJitsiPopup();
   return (
     <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Videochat</span></div>
       <div style={C.cardBody}>
-        <JitsiStripe displayName={me.displayName} compact={false} />
+        <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginBottom: 16 }}>
+          Videochatten åpnes som et flytende vindu du kan dra rundt på skjermen – slik kan du sjekke tabellen og chatten samtidig som du er i video.
+        </p>
+        <button onClick={toggle} style={{ ...C.btnGold, width: '100%' }}>
+          {open ? '📵 Lukk videovindu' : '📹 Åpne videovindu'}
+        </button>
       </div>
     </div>
   );
@@ -3409,12 +3488,11 @@ const PANEL_EXPERTS = [
     bio: 'Trives best på Narvesen med en Kvikk Lunsj og klistremerkeboka si fra Mexico-VM i håp om å treffe noen som har 66 Hristo Kolev eller 337 Chris Waddle. Er veldig glad i kortspill, tennis og wrestling – særlig Hulk Hogan og André the Giant. Kan fotball fra 80-tallet utenat: Maradona, Platini, Zico, Socrates – spør ham om hva som helst fra denne perioden, for etter 1992 er det blankt. Er overbevist om at VAR betyr Veldig Artig Reprise og at dommeren løper bort til skjermen fordi han ikke fikk med seg målet første gangen. Han er lett tilbakstående, men avtjente likevel verneplikten sin i militæret - som kokkeassistent. Veldig snill og entusiastisk, og vil gjerne hjelpe til med alt. Spiste vafler med brunost i tre år på rad til frokost, og hevder dette er verdensrekord uten å ha sjekket med Guinness. Tipper som om det fremdeles er 80-tallet.',
     personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling, kortspill og tennis. Du kan fotball fra 80-tallet utenat – Maradona, Platini, Zico – men vet ingenting om fotball etter 1992. Du er blid og entusiastisk. Du tror fremdeles ting er som på 80-tallet.
 
-VIKTIG: Du skriver ALLTID på bokmål, men har dysleksi. Dette betyr at du konsekvent gjør disse typiske dysleksifeilene:
-- Bytter om bokstaver i ord: "fotbatll" for "fotball", "splieer" for "spiller", "kamep" for "kamp"
-- Skriver dobbel konsonant feil: "mål" blir "måll", "ball" blir "bal"
+VIKTIG: Du skriver ALLTID på bokmål, men har litt dysleksi. Dette betyr at du konsekvent gjør disse typiske dysleksifeilene:
+
 - Bruker veldig mye komma, aldri punktum eller - og avslutter meldingen med utropstegn
 - Hopper over bokstaver: "interessant" blir "intresant", "gratulerer" blir "gratlerer"
-- Skriver ord sammen som skal være separate, eller deler opp ord: "fotball kamp" eller "fotballk amp"
+- Du bruker "å" der det skal være "og" og motsatt
 - Aldri alle feilene på en gang – ca. 3-5 feil per svar, spredt naturlig utover
 Svar maks 3-4 setninger.`,
     tipStyle: 'retro_80s',
@@ -3433,13 +3511,13 @@ Svar maks 3-4 setninger.`,
     personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Du har aldri vært sør for Lillehammer frivillig. Du spiser leverpostei til alle måltider. Du starter gjerne med "nei, nei, nei" og er skeptisk til det meste. Du tipper basert på om landet har god landbrukspolitikk og snø om vinteren. Du er overbevist om at Brasil jukser og at en engelskmann ved navn Reffrey dømmer hver eneste kamp.
 
 VIKTIG – du snakker ALLTID i autentisk trønderdialekt fra Oppdal. Bruk disse trekkene konsekvent:
-- "æ" for "jeg", "itj" for "ikke", "hain" for "han", "hu" for "hun", "dæm" for "dem/de"
+- "e" for "jeg", "itj" for "ikke", "hainn" for "han", "ho" for "hun", "dømm" for "dem/de"
 - "vårrå" for "være", "sei" for "si/sier", "kåmmå" for "komme", "hoill" for "holde"
 - "tå" for "av", "te'" for "til", "omkreng" for "omkring", "ivæg" for "i vei/avgårde"
-- "kor'n" for "hvordan/der han", "aillfall" for "i alle fall", "forresten" brukes mye
+- "kess" for "hvordan/der han", "aillfall" for "i alle fall", "ferresten" for "forresten" brukes mye
 - "ska'" for "skal", "ha'" for "har", "va'" for "var", "veit" for "vet"
-- Setninger som: "Nei, nei, nei, det e' itj sånn det fungere'", "Æ ska' sei dæ", "Det vet æ'itj"
-- Kortform av ord: "da'n" for "dagen", "mårråna" for "morningen", "næstan" for "nesten"
+- Setninger som: "Nei, nei, nei, det e' itj sånn det fungere'", "Æ ska' sei dæ", "Det vet e'itj"
+- Kortform av ord: "da'n" for "dagen", "mårrån" for "morningen", "mæsta" for "nesten"
 Svar maks 3-4 setninger.`,
     tipStyle: 'agriculture_snow',
   },
@@ -3981,12 +4059,12 @@ function ChatPage({ me }) {
     <div style={C.card}>
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat</span>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <VideoButton />
           <OnlineIndicator onlineUsers={onlineUsers} />
           <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
         </div>
       </div>
-      <JitsiStripe displayName={me.displayName} compact={true} />
       <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => {
@@ -4489,6 +4567,7 @@ export default function App() {
       </div>
       {tab !== 'tips' && <StatusBar phase={phase} isAdmin={user.isAdmin} />}
       <YouTubePlayer />
+      <JitsiPopup displayName={user.displayName} />
       {showMsgPopup && <AdminMessagePopup message={adminMessage} onClose={() => setShowMsgPopup(false)} />}
     </div>
   );
