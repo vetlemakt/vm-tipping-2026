@@ -378,7 +378,50 @@ function renderChatText(text) {
 }
 
 
-// Format fulltreff as ⚡×N
+// ── Reusable chat message bubble (name+time beside bubble) ───────────
+function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
+  const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
+  const botColor = botExpert?.color;
+  const nameColor = mine ? 'rgba(255,215,0,.7)' : botColor || 'rgba(255,255,255,.45)';
+  const fmt = ts => {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+  };
+  return (
+    <div style={{
+      ...C.chatMsg,
+      ...(mine ? C.chatMsgMine : {}),
+      alignSelf: mine ? 'flex-end' : 'flex-start',
+    }}>
+      {/* Meta: navn + tid, loddrett, ved siden av boblen */}
+      <div style={{ ...C.chatMeta, alignItems: mine ? 'flex-end' : 'flex-start' }}>
+        <span style={{ ...C.chatUser, color: nameColor }}>{m.user}</span>
+        <span style={C.chatTime}>{fmt(m.ts)}</span>
+        {mine && onDelete && (
+          <button onClick={() => onDelete(m.id)} style={{
+            background:'none', border:'none', color:'rgba(255,100,100,.35)',
+            cursor:'pointer', fontSize:10, padding:0, lineHeight:1,
+          }} title="Slett">✕</button>
+        )}
+      </div>
+      {/* Boble */}
+      <span style={{
+        ...C.chatBubble,
+        background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)',
+        border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`,
+        ...(botColor ? { borderLeft: `3px solid ${botColor}` } : {}),
+      }}>
+        {m.image
+          ? <img src={m.image} alt="bilde" style={{ maxWidth:'100%', maxHeight: maxImgH, borderRadius:8, display:'block' }} />
+          : renderChatText(m.text)
+        }
+      </span>
+    </div>
+  );
+}
+
+
 function renderFulltreff(count) {
   if (!count || count === 0) return null;
   return (
@@ -1747,23 +1790,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
-          {msgs.map((m, i) => {
-            const mine = m.user === me.displayName;
-            const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
-            const botColor = botExpert?.color;
-            return (
-                <div key={m.id || i} style={{ ...C.chatMsg, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
-                  <span style={{ ...C.chatBubble, background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)', border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`, ...(botColor ? { borderLeft: `3px solid ${botColor}` } : {}) }}>
-                    {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:200,borderRadius:8,display:'block'}} /> : renderChatText(m.text)}
-                  </span>
-                  <div style={{display:'flex',gap:8,alignItems:'center',justifyContent: mine?'flex-end':'flex-start'}}>
-                    <span style={{...C.chatUser,color: mine?'rgba(255,215,0,.7)': botColor || 'rgba(255,255,255,.45)'}}>{m.user}</span>
-                    <span style={C.chatTime}>{fmt(m.ts)}</span>
-                    {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
-                  </div>
-                </div>
-            );
-          })}
+          {msgs.map((m, i) => (
+            <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName}
+              onDelete={deleteChatMessage} maxImgH={200} />
+          ))}
         </div>
         <div style={C.chatInputRow}>
           <ImageUploadButton onImage={dataUrl => sendChatMessage(me.displayName, '', dataUrl)} />
@@ -1874,22 +1904,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               </div>
             </div>
             <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }} ref={el => { if(el) el.scrollTop = el.scrollHeight; }}>
-              {msgs.map((m, i) => {
-                const mine = m.user === me.displayName;
-                const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
-                const botColor = botExpert?.color;
-                return (
-                  <div key={m.id||i} style={{ ...C.chatMsg, alignSelf: mine?'flex-end':'flex-start' }}>
-                    <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}`, ...(botColor ? { borderLeft:`3px solid ${botColor}` } : {}) }}>
-                      {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : renderChatText(m.text)}
-                    </span>
-                    <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
-                      <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':botColor || 'rgba(255,255,255,.45)'}}>{m.user}</span>
-                      <span style={C.chatTime}>{fmt(m.ts)}</span>
-                    </div>
-                  </div>
-                );
-              })}
+              {msgs.map((m, i) => (
+                <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName} />
+              ))}
               <div ref={chatBot}/>
             </div>
             <div style={{ ...C.chatInputRow, flexShrink:0 }}>
@@ -2146,6 +2163,7 @@ function TipsForm({ me, phase, viewUser }) {
   const [grpO, setGrpO]   = useState({});
   const [spec, setSpec]   = useState({});
   const [botSource, setBotSource] = useState(null);
+  const [botFilled, setBotFilled] = useState({});
   const [saved, setSaved]   = useState(false);
   const [dirty, setDirty]   = useState(false);
   const [loading, setLoading] = useState(true);
@@ -2161,7 +2179,7 @@ function TipsForm({ me, phase, viewUser }) {
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     getUser(userId).then(u => {
-      if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); setBotSource(u.botSource || null); }
+      if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); setBotSource(u.botSource || null); setBotFilled(u.botFilledMatches || {}); }
       setLoading(false);
     });
   }, [userId]);
@@ -2416,7 +2434,20 @@ function TipsForm({ me, phase, viewUser }) {
               const rightAway    = hasAct && hasTip && tA === aA;
               const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
               return (
-                <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px', alignItems:'center'}}>
+                <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px', alignItems:'center',
+                  ...(botFilled[m.id] ? { borderLeft: `3px solid ${PANEL_EXPERTS.find(e=>e.id===botFilled[m.id])?.color || '#FFD700'}` } : {}),
+                }}>
+                  {/* Bot-fill-merke */}
+                  {botFilled[m.id] && (() => {
+                    const ex = PANEL_EXPERTS.find(e => e.id === botFilled[m.id]);
+                    return (
+                      <span title={`Tipset av ${ex?.name || 'bot'}`} style={{
+                        fontSize:9, color: ex?.color || '#FFD700', fontFamily:"'Fira Code',monospace",
+                        background: `${ex?.color || '#FFD700'}18`, border: `1px solid ${ex?.color || '#FFD700'}44`,
+                        borderRadius:4, padding:'1px 4px', flexShrink:0, whiteSpace:'nowrap',
+                      }}>🤖 {ex?.firstName || 'Bot'}</span>
+                    );
+                  })()}
                   {/* Date/info box */}
                   <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
                     style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
@@ -2549,7 +2580,20 @@ function TipsForm({ me, phase, viewUser }) {
                 };
 
                 return (
-                  <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px', alignItems:'center'}}>
+                  <div key={m.id} style={{...C.mRow, gap:4, flexWrap:'nowrap', padding:'6px 8px', alignItems:'center',
+                    ...(botFilled[m.id] ? { borderLeft: `3px solid ${PANEL_EXPERTS.find(e=>e.id===botFilled[m.id])?.color || '#FFD700'}` } : {}),
+                  }}>
+                    {/* Bot-fill-merke */}
+                    {botFilled[m.id] && (() => {
+                      const ex = PANEL_EXPERTS.find(e => e.id === botFilled[m.id]);
+                      return (
+                        <span title={`Tipset av ${ex?.name || 'bot'}`} style={{
+                          fontSize:9, color: ex?.color || '#FFD700', fontFamily:"'Fira Code',monospace",
+                          background: `${ex?.color || '#FFD700'}18`, border: `1px solid ${ex?.color || '#FFD700'}44`,
+                          borderRadius:4, padding:'1px 4px', flexShrink:0, whiteSpace:'nowrap',
+                        }}>🤖 {ex?.firstName || 'Bot'}</span>
+                      );
+                    })()}
                     {/* Info box */}
                     <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
                       style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
@@ -3876,23 +3920,10 @@ function ChatPage({ me }) {
       </div>
       <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
-        {msgs.map((m, i) => {
-          const mine = m.user === me.displayName;
-          const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
-          const botColor = botExpert?.color;
-          return (
-            <div key={m.id||i} style={{ ...C.chatMsg, alignSelf: mine?'flex-end':'flex-start' }}>
-              <span style={{ ...C.chatBubble, background: mine?'rgba(30,45,80,.9)':'rgba(20,25,40,.9)', border:`1px solid ${mine?'rgba(42,61,112,.8)':'rgba(42,48,80,.6)'}`, ...(botColor ? { borderLeft:`3px solid ${botColor}` } : {}) }}>
-                {m.image ? <img src={m.image} alt="bilde" style={{maxWidth:'100%',maxHeight:300,borderRadius:8,display:'block'}}/> : renderChatText(m.text)}
-              </span>
-              <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:mine?'flex-end':'flex-start'}}>
-                <span style={{...C.chatUser,color:mine?'rgba(255,215,0,.7)':botColor || 'rgba(255,255,255,.45)'}}>{m.user}</span>
-                <span style={C.chatTime}>{fmt(m.ts)}</span>
-                {mine && <button onClick={() => deleteChatMessage(m.id)} style={{background:'none',border:'none',color:'rgba(255,100,100,.4)',cursor:'pointer',fontSize:11,padding:'0 2px',lineHeight:1}} title="Slett">✕</button>}
-              </div>
-            </div>
-          );
-        })}
+        {msgs.map((m, i) => (
+          <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName}
+            onDelete={deleteChatMessage} />
+        ))}
       </div>
       <div style={C.chatInputRow}>
         <ImageUploadButton onImage={dataUrl => sendChatMessage(me.displayName, '', dataUrl)} />
@@ -3945,6 +3976,77 @@ function getAutoPhase() {
   }
   return 'finished';
 }
+
+// Hvilke kamper tilhører hvilken fase-lås
+const PHASE_MATCHES = {
+  group_lock:  GROUP_MATCHES.map(m => m.id),
+  r32_lock:    KNOCKOUT_MATCHES.filter(m => m.phase === 'r32').map(m => m.id),
+  r16_lock:    KNOCKOUT_MATCHES.filter(m => m.phase === 'r16').map(m => m.id),
+  qf_lock:     KNOCKOUT_MATCHES.filter(m => m.phase === 'qf').map(m => m.id),
+  sf_lock:     KNOCKOUT_MATCHES.filter(m => m.phase === 'sf').map(m => m.id),
+  bronze_lock: KNOCKOUT_MATCHES.filter(m => m.phase === 'bronze' || m.phase === 'final').map(m => m.id),
+};
+
+// Kjøres når fase låser – fyller ut manglende tips for alle brukere med tilfeldig ekspert
+async function autoFillMissingTips(lockPhase) {
+  const matchIds = PHASE_MATCHES[lockPhase];
+  if (!matchIds || matchIds.length === 0) return;
+
+  const users = await getAllUsers();
+  const realUsers = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+
+  for (const u of realUsers) {
+    // Sjekk om brukeren mangler noen av kampene i denne fasen
+    const missing = matchIds.filter(id => {
+      const t = u.tips?.[id];
+      return t?.home === undefined || t?.away === undefined;
+    });
+    if (missing.length === 0) continue;
+
+    // Velg tilfeldig ekspert
+    const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+    const botUser = await getUser('panel_' + expert.id);
+    if (!botUser?.tips) continue;
+
+    // Kopier bare de manglende kampene fra boten
+    const newTips = { ...(u.tips || {}) };
+    const filledBy = { ...(u.botFilledMatches || {}) };
+    missing.forEach(id => {
+      const botTip = botUser.tips[id];
+      if (botTip?.home !== undefined && botTip?.away !== undefined) {
+        newTips[id] = { home: botTip.home, away: botTip.away };
+        filledBy[id] = expert.id;
+      }
+    });
+
+    // Gruppe-ordre: fyll også hvis gruppe_lock og mangler
+    let newGrpO = u.groupOrders || {};
+    if (lockPhase === 'group_lock' && botUser.groupOrders) {
+      const missingGroups = Object.keys(botUser.groupOrders).filter(g => {
+        const o = u.groupOrders?.[g] || [];
+        return o.filter(Boolean).length < 4;
+      });
+      if (missingGroups.length > 0) {
+        newGrpO = { ...newGrpO };
+        missingGroups.forEach(g => {
+          if (!newGrpO[g] || newGrpO[g].filter(Boolean).length < 4) {
+            newGrpO[g] = botUser.groupOrders[g];
+            filledBy[`grp_${g}`] = expert.id;
+          }
+        });
+      }
+    }
+
+    await updateUser(u.id, {
+      tips: newTips,
+      groupOrders: newGrpO,
+      botFilledMatches: filledBy,
+      // Sett botSource kun hvis brukeren ikke hadde noen egne tips i det hele tatt
+      ...(!u.botSource && Object.keys(newTips).length === missing.length ? { botSource: expert.id } : {}),
+    });
+  }
+}
+
 
 // ── API-Football auto-fetch ───────────────────────────────────────────
 // World Cup 2026 competition ID on API-Football
@@ -4348,7 +4450,13 @@ export default function App() {
     const check = async () => {
       const auto = getAutoPhase();
       const cur = await getPhase();
-      if (auto !== cur) await setPhase(auto);
+      if (auto !== cur) {
+        await setPhase(auto);
+        // Trigger auto-fill for brukere som mangler tips når fase låser
+        if (auto.endsWith('_lock')) {
+          await autoFillMissingTips(auto);
+        }
+      }
     };
     check();
     const iv = setInterval(check, 60000);

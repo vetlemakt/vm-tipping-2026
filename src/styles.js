@@ -298,7 +298,12 @@ export const C = {
     padding: '12px 16px',
     background: 'rgba(0,0,0,.15)',
   },
-  chatMsg: { display: 'flex', flexDirection: 'column', gap: 2, maxWidth: '80%' },
+  chatMsg: { display: 'flex', flexDirection: 'row', gap: 6, maxWidth: '85%', alignItems: 'flex-end' },
+  chatMsgMine: { flexDirection: 'row-reverse' },
+  chatMeta: {
+    display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+    gap: 2, paddingBottom: 2, flexShrink: 0,
+  },
   chatBubble: {
     borderRadius: 12,
     padding: '6px 10px',
@@ -306,8 +311,8 @@ export const C = {
     lineHeight: 1.5,
     color: '#e8edf8',
   },
-  chatUser: { fontSize: 11, color: '#FFD700', fontFamily: "'Fira Code',monospace", marginBottom: 1 },
-  chatTime: { fontSize: 9, color: 'rgba(255,255,255,.55)', fontFamily: "'Fira Code',monospace" },
+  chatUser: { fontSize: 10, color: '#FFD700', fontFamily: "'Fira Code',monospace", whiteSpace: 'nowrap' },
+  chatTime: { fontSize: 9, color: 'rgba(255,255,255,.4)', fontFamily: "'Fira Code',monospace", whiteSpace: 'nowrap' },
   chatInputRow: {
     display: 'flex',
     gap: 6,
