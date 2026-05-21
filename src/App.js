@@ -1688,12 +1688,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     setEditingSummary(null); setSummaryText('');
   };
 
-  const fmt = ts => {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-  };
-
   const medals = ['🥇', '🥈', '🥉'];
   const myRank = users.findIndex(u => u.id === me.username) + 1;
   const finishedMatches = GROUP_MATCHES.filter(m => {
@@ -3860,12 +3854,6 @@ function ChatPage({ me }) {
     }
     prevMsgCount.current = msgs.length;
   }, [msgs]); // eslint-disable-line
-
-  const fmt = ts => {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-  };
 
   const sendMsg = async () => {
     const t = input.trim(); if (!t) return;
