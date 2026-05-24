@@ -2439,6 +2439,12 @@ function TipsForm({ me, phase, viewUser }) {
             })}
           </div>
 
+          {grpOk && (
+            <div style={{ textAlign: 'center', margin: '2px 0 10px', fontSize: isMobile ? 11 : 12, color: 'rgba(255,215,0,.6)', fontFamily: "'Kanit',sans-serif", fontWeight: 600, letterSpacing: 0.5, userSelect: 'none', pointerEvents: 'none' }}>
+              ↑ Fyll ut gruppeplassering manuelt! ↑
+            </div>
+          )}
+
           {/* Chronological matches */}
           <div style={C.matchList}>
             {chronoGroupMatches.map(m => {
