@@ -4282,7 +4282,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
             WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
           }}>
             <span key={phase + repeat} onAnimationEnd={() => setPhase('pause')}
-              style={{ fontSize: 11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', display:'inline-block', padding:'0 20px', animation:'tickerScroll 12s linear forwards' }}>
+              style={{ fontSize: 11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', display:'inline-block', padding:'0 20px', animation:`tickerScroll ${Math.max(8, Math.round(adminMessage.length * 0.18))}s linear forwards` }}>
               📢 {adminMessage}
             </span>
           </div>
