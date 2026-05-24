@@ -509,7 +509,7 @@ export const C = {
   specBox: {
     background: 'rgba(0,0,0,.2)', borderRadius: 12, padding: '12px 10px',
     marginBottom: 16, border: '1px solid rgba(255,255,255,.07)',
-    width: '100%', boxSizing: 'border-box', overflowX: 'hidden',
+    width: '100%', boxSizing: 'border-box',
   },
   specRow: {
     display: 'flex', alignItems: 'center', gap: 6,

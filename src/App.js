@@ -1308,7 +1308,6 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
   const [open, setOpen] = useState(false);
   const [openUp, setOpenUp] = useState(false);
   const wrapRef = useRef(null);
-  const listRef = useRef(null);
 
   useEffect(() => {
     const handler = (e) => {
@@ -1321,8 +1320,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
   const handleToggle = () => {
     if (!open && wrapRef.current) {
       const rect = wrapRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUp(spaceBelow < 280);
+      setOpenUp(window.innerHeight - rect.bottom < 280);
     }
     setOpen(o => !o);
   };
@@ -1333,7 +1331,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
   };
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
       <div
         onClick={handleToggle}
         style={{
@@ -1345,35 +1343,33 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
           width: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap',
         }}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', minWidth: 0 }}>
           {value ? (
             <>
-              {flagUrl(value) && <img src={flagUrl(value)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />}
-              {value}
+              {flagUrl(value) && <img src={flagUrl(value)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
             </>
           ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>{compact ? '– Velg –' : '– Velg lag –'}</span>}
         </span>
-        <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 8 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 4, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
       {open && (
-        <div ref={listRef} style={{
-          position: 'fixed',
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          [openUp ? 'bottom' : 'top']: 'calc(100% + 4px)',
+          minWidth: '100%',
+          width: 'max-content',
+          maxWidth: 220,
           zIndex: 2000,
           background: 'rgba(10,14,30,.99)', border: '1px solid rgba(255,215,0,.25)',
           borderRadius: 10, maxHeight: 260, overflowY: 'auto',
           boxShadow: '0 8px 32px rgba(0,0,0,.8)',
           WebkitOverflowScrolling: 'touch',
-          minWidth: 140,
-          ...((() => {
-            if (!wrapRef.current) return {};
-            const rect = wrapRef.current.getBoundingClientRect();
-            if (openUp) return { bottom: window.innerHeight - rect.top + 4, left: rect.left, width: Math.max(rect.width, 140) };
-            return { top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 140) };
-          })()),
         }}>
           <div
             onClick={() => { onChange(''); setOpen(false); }}
-            style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,.4)',
+            style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,.4)',
               borderBottom: '1px solid rgba(255,255,255,.07)', whiteSpace: 'nowrap' }}
           >– Velg lag –</div>
           {teams.map(t => (
@@ -1382,7 +1378,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
               onClick={() => { onChange(t); setOpen(false); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '9px 14px', cursor: 'pointer', fontSize: 14,
+                padding: '8px 14px', cursor: 'pointer', fontSize: 13,
                 color: t === value ? '#FFD700' : '#e8edf8',
                 background: t === value ? 'rgba(255,215,0,.08)' : 'transparent',
                 borderBottom: '1px solid rgba(255,255,255,.04)',
@@ -1390,8 +1386,8 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
               }}
             >
               {flagUrl(t)
-                ? <img src={flagUrl(t)} alt="" style={{ width: 20, height: 14, objectFit: 'cover', borderRadius: 2, flexShrink: 0, opacity: dimmed.includes(t) ? 0.4 : 1 }} />
-                : <span style={{ width: 20, flexShrink: 0 }} />}
+                ? <img src={flagUrl(t)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0, opacity: dimmed.includes(t) ? 0.4 : 1 }} />
+                : <span style={{ width: 18, flexShrink: 0 }} />}
               <span style={{ opacity: dimmed.includes(t) ? 0.4 : 1 }}>{t}</span>
               {dimmed.includes(t) && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>valgt</span>}
             </div>
@@ -2181,8 +2177,9 @@ function TipsForm({ me, phase, viewUser }) {
     });
   }, [userId]);
 
-  const grpOk = isOwn && phase === 'pre';
-  const koOk  = isOwn && OPEN_PHASES.has(phase);
+  const grpOk  = isOwn && phase === 'pre';
+  const specOk = isOwn && (phase === 'pre' || phase === 'group_lock');
+  const koOk   = isOwn && OPEN_PHASES.has(phase);
 
   const setTip = (id, field, val) => { setTips(p => ({ ...p, [id]: { ...p[id], [field]: val } })); setDirty(true); };
   const setOrd = (g, i, val) => {
@@ -2279,7 +2276,7 @@ function TipsForm({ me, phase, viewUser }) {
               <div key={key} style={{ ...C.specRow, gap: isMobile ? 5 : 9 }}>
                 <span style={{ ...C.specLabel, fontSize: isMobile ? 11 : 12 }}>{label}{tooltip && <InfoTooltip text={tooltip} />}</span>
                 <span style={{ ...C.ptsBadge, fontSize: isMobile ? 9 : 10, padding: isMobile ? '2px 4px' : '2px 6px', flexShrink: 0 }}>{pts}p</span>
-                {grpOk ? (
+                {specOk ? (
                   key === 'topscorer' ? (
                     <div style={{ width: isMobile ? 95 : 170, flexShrink: 0 }}>
                     <PlayerAutocomplete
