@@ -3117,8 +3117,6 @@ function AdminPanel() {
           </div>
         )}
         {aTab === 'missing' && (() => {
-          const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
-          // Faser med tilhørende kamper og label
           const phases = [
             { key: 'group',  label: 'Gruppespill',   matches: GROUP_MATCHES },
             { key: 'r32',    label: '16-delsfinaler', matches: KNOCKOUT_MATCHES.filter(m => m.phase === 'r32') },
