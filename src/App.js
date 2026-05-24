@@ -1358,17 +1358,17 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
       {open && (
         <div ref={listRef} style={{
           position: 'fixed',
-          width: '100%',
           zIndex: 2000,
           background: 'rgba(10,14,30,.99)', border: '1px solid rgba(255,215,0,.25)',
           borderRadius: 10, maxHeight: 260, overflowY: 'auto',
           boxShadow: '0 8px 32px rgba(0,0,0,.8)',
           WebkitOverflowScrolling: 'touch',
+          minWidth: 140,
           ...((() => {
             if (!wrapRef.current) return {};
             const rect = wrapRef.current.getBoundingClientRect();
-            if (openUp) return { bottom: window.innerHeight - rect.top + 4, left: rect.left };
-            return { top: rect.bottom + 4, left: rect.left };
+            if (openUp) return { bottom: window.innerHeight - rect.top + 4, left: rect.left, width: Math.max(rect.width, 140) };
+            return { top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 140) };
           })()),
         }}>
           <div
