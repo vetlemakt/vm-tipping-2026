@@ -2900,7 +2900,7 @@ function AdminPanel() {
       </div>
       <div style={C.cardBody}>
         <div style={C.tabs}>
-          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort'], ['msg', 'Melding'], ['matches', 'Kamper']].map(([t, l]) => (
+          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort'], ['msg', 'Melding'], ['matches', 'Kamper'], ['missing', '⚠️ Mangler']].map(([t, l]) => (
             <button key={t} style={{ ...C.tab, ...(aTab === t ? C.tabOn : {}) }} onClick={() => setATab(t)}>{l}</button>
           ))}
         </div>
@@ -3116,6 +3116,72 @@ function AdminPanel() {
             })}
           </div>
         )}
+        {aTab === 'missing' && (() => {
+          const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
+          // Faser med tilhørende kamper og label
+          const phases = [
+            { key: 'group',  label: 'Gruppespill',   matches: GROUP_MATCHES },
+            { key: 'r32',    label: '16-delsfinaler', matches: KNOCKOUT_MATCHES.filter(m => m.phase === 'r32') },
+            { key: 'r16',    label: '8-delsfinaler',  matches: KNOCKOUT_MATCHES.filter(m => m.phase === 'r16') },
+            { key: 'qf',     label: 'Kvartfinaler',   matches: KNOCKOUT_MATCHES.filter(m => m.phase === 'qf') },
+            { key: 'sf',     label: 'Semifinaler',    matches: KNOCKOUT_MATCHES.filter(m => m.phase === 'sf') },
+            { key: 'final',  label: 'Finale + bronse',matches: KNOCKOUT_MATCHES.filter(m => m.phase === 'bronze' || m.phase === 'final') },
+          ];
+          const realUsers = allUsers.filter(u => !u.id.startsWith('panel_'));
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <span style={C.secH}>Manglende tips per fase</span>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', margin: 0 }}>
+                Viser spillere som mangler minst én kamp i fasen. Disse risikerer bot-fill når fristen går ut.
+              </p>
+              {phases.map(({ key, label, matches }) => {
+                if (matches.length === 0) return null;
+                const missing = realUsers.map(u => {
+                  const missingMatches = matches.filter(m => {
+                    const t = u.tips?.[m.id];
+                    return t?.home === undefined || t?.away === undefined;
+                  });
+                  const missingGrp = key === 'group' ? Object.keys(
+                    Object.fromEntries(
+                      [...new Set(GROUP_MATCHES.map(m => m.group))].map(g => [g, (u.groupOrders?.[g] || []).filter(Boolean).length < 4])
+                    )
+                  ).filter(g => (u.groupOrders?.[g] || []).filter(Boolean).length < 4) : [];
+                  return { u, missingMatches, missingGrp };
+                }).filter(x => x.missingMatches.length > 0 || x.missingGrp.length > 0);
+
+                const allOk = missing.length === 0;
+                return (
+                  <div key={key} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: '10px 14px', border: `1px solid ${allOk ? 'rgba(74,222,128,.2)' : 'rgba(255,100,100,.2)'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: allOk ? 0 : 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: allOk ? '#4ade80' : '#fca5a5' }}>
+                        {allOk ? '✅' : '⚠️'} {label}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>
+                        {matches.length} kamper
+                      </span>
+                      {allOk && <span style={{ fontSize: 11, color: '#4ade80' }}>– alle har levert</span>}
+                    </div>
+                    {missing.map(({ u, missingMatches, missingGrp }) => (
+                      <div key={u.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '5px 0', borderTop: '1px solid rgba(255,255,255,.05)' }}>
+                        <span style={{ fontSize: 13, color: '#fca5a5', fontWeight: 600, minWidth: 110 }}>
+                          {u.displayName || u.id}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', lineHeight: 1.6 }}>
+                          {missingMatches.length > 0 && `${missingMatches.length} kamp${missingMatches.length > 1 ? 'er' : ''} mangler`}
+                          {missingGrp.length > 0 && ` • Gruppeordre: ${missingGrp.join(', ')}`}
+                          {u.botFilledMatches && Object.values(u.botFilledMatches).length > 0 &&
+                            <span style={{ color: '#FFD700' }}> • Bot har fylt {Object.values(u.botFilledMatches).length} felt</span>
+                          }
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
