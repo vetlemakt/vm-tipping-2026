@@ -1678,7 +1678,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     });
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
-        const reply = await chatWithExpert(expert, t, []);
+        const ctx = buildCompetitionContext(users, results);
+        const reply = await chatWithExpert(expert, t, [], ctx);
         await sendChatMessage(expert.name, reply, '');
       }, 1000 + i * 2000);
     });
@@ -3506,7 +3507,19 @@ ABSOLUTTE REGLER – BRYT ALDRI DISSE:
 6. Hvis du er fristet til å skrive hva en annen person sier: bare hopp over det og si din egen mening i stedet.
 `;
 
-async function chatWithExpert(expert, message, history) {
+// Bygger en tekstlig oversikt over konkurransen som sendes til boten
+function buildCompetitionContext(users, results) {
+  if (!users || users.length === 0) return '';
+  const sorted = [...users]
+    .map(u => ({ ...u, ...calcScore(u, results) }))
+    .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
+  const lines = sorted.map((u, i) =>
+    `${i + 1}. ${u.displayName}: ${u.total}p (${u.fulltreff} fulltreff)`
+  ).join('\n');
+  return `\n\nAKTUELL STILLINGSTABELL I TIPPEKONKURRANSEN:\n${lines}\n\nBruk dette aktivt hvis noen spør om konkurransen, hvem som leder, hvem som ligger dårlig an osv.`;
+}
+
+async function chatWithExpert(expert, message, history, competitionContext = '') {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
   // Maintain running conversation history per expert
   if (!expertChatHistory[expert.id]) expertChatHistory[expert.id] = [];
@@ -3536,7 +3549,7 @@ async function chatWithExpert(expert, message, history) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: 300,
-          system: expert.personality + '\n\n' + PANEL_GROUP_CONTEXT + CHAT_SYSTEM_SUFFIX,
+          system: expert.personality + '\n\n' + PANEL_GROUP_CONTEXT + competitionContext + CHAT_SYSTEM_SUFFIX,
           messages,
         })
       });
@@ -3840,12 +3853,20 @@ function ChatPage({ me }) {
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState('');
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [results, setResults] = useState({});
   const chatBoxRef = useRef(null);
   const { soundOn, toggleSound, playSound } = useChatSound();
   const prevMsgCount = useRef(0);
 
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
+  useEffect(() => { const u = subscribeResults(setResults); return u; }, []);
+  useEffect(() => {
+    getAllUsers().then(us => setUsers(
+      us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
+    ));
+  }, []);
   useEffect(() => {
     if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
   }, [msgs]);
@@ -3892,7 +3913,8 @@ function ChatPage({ me }) {
     });
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
-        const reply = await chatWithExpert(expert, t, []);
+        const ctx = buildCompetitionContext(users, results);
+        const reply = await chatWithExpert(expert, t, [], ctx);
         await sendChatMessage(expert.name, reply, '');
       }, 1000 + i * 2000);
     });
