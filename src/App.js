@@ -1152,46 +1152,68 @@ function SoundToggle({ soundOn, onToggle }) {
 
 function InfoTooltip({ text }) {
   const [show, setShow] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
   const isMobile = useIsMobile();
   const hideTimer = useRef(null);
+  const iconRef = useRef(null);
 
   const enter = () => { clearTimeout(hideTimer.current); setShow(true); };
   const leave = () => { hideTimer.current = setTimeout(() => setShow(false), 300); };
 
+  const handleClick = () => {
+    if (!show && iconRef.current) {
+      const rect = iconRef.current.getBoundingClientRect();
+      setCoords({ top: rect.top - 8, left: rect.left + rect.width / 2 });
+    }
+    setShow(s => !s);
+  };
+
+  const handleMouseEnter = () => {
+    if (iconRef.current) {
+      const rect = iconRef.current.getBoundingClientRect();
+      setCoords({ top: rect.top - 8, left: rect.left + rect.width / 2 });
+    }
+    enter();
+  };
+
+  const popup = show ? createPortal(
+    <>
+      {isMobile && <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:99998 }} />}
+      <div
+        onMouseEnter={() => !isMobile && enter()}
+        onMouseLeave={() => !isMobile && leave()}
+        style={{
+          position: 'fixed',
+          bottom: window.innerHeight - coords.top,
+          left: coords.left,
+          transform: 'translateX(-50%)',
+          zIndex: 99999,
+          background: 'rgba(10,14,30,.97)', border: '1px solid rgba(255,215,0,.3)',
+          borderRadius: 10, padding: '10px 14px', width: 260, fontSize: 12,
+          color: 'rgba(255,255,255,.85)', lineHeight: 1.6,
+          boxShadow: '0 8px 24px rgba(0,0,0,.6)',
+          pointerEvents: isMobile ? 'none' : 'auto',
+        }}>
+        <div style={{ position:'absolute', bottom:-6, left:'50%',
+          width:10, height:10, background:'rgba(10,14,30,.97)',
+          borderRight:'1px solid rgba(255,215,0,.3)', borderBottom:'1px solid rgba(255,215,0,.3)',
+          transform:'translateX(-50%) rotate(45deg)' }} />
+        {text}
+      </div>
+    </>,
+    document.body
+  ) : null;
+
   return (
     <span style={{ position:'relative', display:'inline-flex', alignItems:'center', marginLeft:5 }}>
       <span
-        onMouseEnter={() => !isMobile && enter()}
+        ref={iconRef}
+        onMouseEnter={() => !isMobile && handleMouseEnter()}
         onMouseLeave={() => !isMobile && leave()}
-        onClick={() => isMobile && setShow(s => !s)}
+        onClick={() => isMobile && handleClick()}
         style={{ cursor:'pointer', color:'rgba(255,215,0,.7)', fontSize:13, lineHeight:1, userSelect:'none' }}
       >ⓘ</span>
-      {show && (
-        <>
-          {isMobile && <div onClick={() => setShow(false)} style={{ position:'fixed', inset:0, zIndex:998 }} />}
-          {/* Invisible bridge between icon and popup to prevent mouseLeave firing */}
-          <div style={{ position:'absolute', bottom:'100%', left:'50%', transform:'translateX(-50%)', width:40, height:16, zIndex:999 }}
-            onMouseEnter={() => !isMobile && enter()}
-            onMouseLeave={() => !isMobile && leave()}
-          />
-          <div
-            onMouseEnter={() => !isMobile && enter()}
-            onMouseLeave={() => !isMobile && leave()}
-            style={{
-              position:'absolute', bottom:'130%', left:'50%', transform:'translateX(-50%)',
-              zIndex:999, background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.3)',
-              borderRadius:10, padding:'10px 14px', width:260, fontSize:12,
-              color:'rgba(255,255,255,.85)', lineHeight:1.6,
-              boxShadow:'0 8px 24px rgba(0,0,0,.6)',
-            }}>
-            <div style={{ position:'absolute', bottom:-6, left:'50%',
-              width:10, height:10, background:'rgba(10,14,30,.97)',
-              borderRight:'1px solid rgba(255,215,0,.3)', borderBottom:'1px solid rgba(255,215,0,.3)',
-              transform:'translateX(-50%) rotate(45deg)' }} />
-            {text}
-          </div>
-        </>
-      )}
+      {popup}
     </span>
   );
 }
@@ -1306,21 +1328,28 @@ function PlayerAutocomplete({ value, onChange, placeholder, compact = false }) {
 
 function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
   const [open, setOpen] = useState(false);
-  const [openUp, setOpenUp] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
   const wrapRef = useRef(null);
 
   useEffect(() => {
+    if (!open) return;
     const handler = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [open]);
 
   const handleToggle = () => {
     if (!open && wrapRef.current) {
       const rect = wrapRef.current.getBoundingClientRect();
-      setOpenUp(window.innerHeight - rect.bottom < 280);
+      const openUp = window.innerHeight - rect.bottom < 280;
+      setCoords({
+        top: openUp ? rect.top - 4 : rect.bottom + 4,
+        left: rect.left,
+        width: Math.max(rect.width, 160),
+        openUp,
+      });
     }
     setOpen(o => !o);
   };
@@ -1330,70 +1359,69 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
     return code ? `https://flagcdn.com/w20/${code}.png` : null;
   };
 
+  const dropdown = open ? createPortal(
+    <div style={{
+      position: 'fixed',
+      top: coords.openUp ? undefined : coords.top,
+      bottom: coords.openUp ? window.innerHeight - coords.top : undefined,
+      left: coords.left,
+      width: coords.width,
+      zIndex: 99999,
+      background: 'rgba(10,14,30,.99)',
+      border: '1px solid rgba(255,215,0,.25)',
+      borderRadius: 10,
+      maxHeight: 260,
+      overflowY: 'auto',
+      boxShadow: '0 8px 32px rgba(0,0,0,.9)',
+      WebkitOverflowScrolling: 'touch',
+    }}>
+      <div
+        onClick={() => { onChange(''); setOpen(false); }}
+        style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13,
+          color: 'rgba(255,255,255,.4)', borderBottom: '1px solid rgba(255,255,255,.07)',
+          whiteSpace: 'nowrap' }}
+      >– Velg lag –</div>
+      {teams.map(t => (
+        <div key={t} onClick={() => { onChange(t); setOpen(false); }} style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '8px 14px', cursor: 'pointer', fontSize: 13,
+          color: t === value ? '#FFD700' : '#e8edf8',
+          background: t === value ? 'rgba(255,215,0,.08)' : 'transparent',
+          borderBottom: '1px solid rgba(255,255,255,.04)',
+          whiteSpace: 'nowrap',
+        }}>
+          {flagUrl(t)
+            ? <img src={flagUrl(t)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0, opacity: dimmed.includes(t) ? 0.4 : 1 }} />
+            : <span style={{ width: 18, flexShrink: 0 }} />}
+          <span style={{ opacity: dimmed.includes(t) ? 0.4 : 1 }}>{t}</span>
+          {dimmed.includes(t) && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>valgt</span>}
+        </div>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
-      <div
-        onClick={handleToggle}
-        style={{
-          display: 'flex', alignItems: 'center', gap: compact ? 4 : 8, cursor: 'pointer',
-          userSelect: 'none', justifyContent: 'space-between',
-          background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.15)',
-          borderRadius: 8, padding: compact ? '6px 7px' : '8px 12px',
-          fontSize: compact ? 11 : 14, color: '#e8edf8',
-          width: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap',
-        }}
-      >
+      <div onClick={handleToggle} style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        cursor: 'pointer', userSelect: 'none',
+        background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.15)',
+        borderRadius: 8, padding: compact ? '6px 7px' : '8px 12px',
+        fontSize: compact ? 11 : 13, color: '#e8edf8',
+        width: '100%', boxSizing: 'border-box',
+      }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', minWidth: 0 }}>
           {value ? (
             <>
               {flagUrl(value) && <img src={flagUrl(value)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />}
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
             </>
-          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>{compact ? '– Velg –' : '– Velg lag –'}</span>}
+          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>– Velg –</span>}
         </span>
         <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 4, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
-      {open && (
-        <div style={{
-          position: 'absolute',
-          left: 0,
-          [openUp ? 'bottom' : 'top']: 'calc(100% + 4px)',
-          minWidth: '100%',
-          width: 'max-content',
-          maxWidth: 220,
-          zIndex: 2000,
-          background: 'rgba(10,14,30,.99)', border: '1px solid rgba(255,215,0,.25)',
-          borderRadius: 10, maxHeight: 260, overflowY: 'auto',
-          boxShadow: '0 8px 32px rgba(0,0,0,.8)',
-          WebkitOverflowScrolling: 'touch',
-        }}>
-          <div
-            onClick={() => { onChange(''); setOpen(false); }}
-            style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,.4)',
-              borderBottom: '1px solid rgba(255,255,255,.07)', whiteSpace: 'nowrap' }}
-          >– Velg lag –</div>
-          {teams.map(t => (
-            <div
-              key={t}
-              onClick={() => { onChange(t); setOpen(false); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 14px', cursor: 'pointer', fontSize: 13,
-                color: t === value ? '#FFD700' : '#e8edf8',
-                background: t === value ? 'rgba(255,215,0,.08)' : 'transparent',
-                borderBottom: '1px solid rgba(255,255,255,.04)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {flagUrl(t)
-                ? <img src={flagUrl(t)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0, opacity: dimmed.includes(t) ? 0.4 : 1 }} />
-                : <span style={{ width: 18, flexShrink: 0 }} />}
-              <span style={{ opacity: dimmed.includes(t) ? 0.4 : 1 }}>{t}</span>
-              {dimmed.includes(t) && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>valgt</span>}
-            </div>
-          ))}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }
@@ -3218,16 +3246,18 @@ function YouTubePlayer() {
       border: '1px solid rgba(255,215,0,.25)', borderRadius: 12,
       boxShadow: '0 8px 32px rgba(0,0,0,.5)',
       overflow: 'hidden',
-      width: minimized ? 40 : 240,
+      width: minimized ? 100 : 240,
       transition: 'width .3s ease',
     }}>
       {minimized ? (
         /* Minimert: bare noteikon-knapp */
         <button onClick={() => setMinimized(false)} title="VM-musikk" style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 40, height: 40, background: 'transparent', border: 'none',
-          cursor: 'pointer', fontSize: 18, color: '#FFD700',
-        }}>🎵</button>
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+          height: 40, padding: '0 12px', background: 'transparent', border: 'none',
+          cursor: 'pointer', color: '#FFD700',
+          fontFamily: "'Kanit',sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1,
+          whiteSpace: 'nowrap',
+        }}>VM-musikk ▲</button>
       ) : (
         /* Utvidet: header med tekst + knapper */
         <>
