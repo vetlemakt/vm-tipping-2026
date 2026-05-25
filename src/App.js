@@ -1331,6 +1331,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
   const wrapRef = useRef(null);
   const portalRef = useRef(null);
+  const touchStartY = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -1373,7 +1374,21 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
 
   const shortLabel = (team) => TEAM_SHORT[team] || team.slice(0, 3).toUpperCase();
 
+  const itemProps = (onSelect) => ({
+    // Mouse: preventDefault stops the document mousedown from closing before click fires
+    onMouseDown: (e) => e.preventDefault(),
+    onClick: onSelect,
+    // Touch: track start position, only select if not scrolling
+    onTouchStart: (e) => { touchStartY.current = e.touches[0].clientY; },
+    onTouchEnd: (e) => {
+      const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+      if (dy < 8) onSelect();
+    },
+  });
+
   const dropdown = open ? createPortal(
+    <>
+    <div onClick={() => setOpen(false)} style={{ position:'fixed', inset:0, zIndex:99998 }} />
     <div ref={portalRef} style={{
       position: 'fixed',
       top: coords.openUp ? undefined : coords.top,
@@ -1386,18 +1401,18 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
       borderRadius: 10,
       maxHeight: 260,
       overflowY: 'auto',
-      boxShadow: '0 8px 32px rgba(0,0,0,.9)',
       WebkitOverflowScrolling: 'touch',
+      boxShadow: '0 8px 32px rgba(0,0,0,.9)',
     }}>
       <div
-        onPointerDown={e => { e.stopPropagation(); handleSelect(''); }}
+        {...itemProps(() => handleSelect(''))}
         style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13,
           color: 'rgba(255,255,255,.4)', borderBottom: '1px solid rgba(255,255,255,.07)',
           whiteSpace: 'nowrap' }}
-      >Velg lag</div>
+      >– Velg lag –</div>
       {teams.map(t => (
         <div key={t}
-          onPointerDown={e => { e.stopPropagation(); handleSelect(t); }}
+          {...itemProps(() => handleSelect(t))}
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: compact ? '7px 10px' : '8px 14px', cursor: 'pointer',
@@ -1415,7 +1430,8 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
           {dimmed.includes(t) && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>valgt</span>}
         </div>
       ))}
-    </div>,
+    </div>
+    </>,
     document.body
   ) : null;
 
@@ -1437,7 +1453,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
                 {compact ? shortLabel(value) : value}
               </span>
             </>
-          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>Velg</span>}
+          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>– Velg –</span>}
         </span>
         <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 4, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
