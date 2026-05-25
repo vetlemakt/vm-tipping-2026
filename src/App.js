@@ -2183,6 +2183,10 @@ function TipsForm({ me, phase, viewUser }) {
   const [pulseId, setPulseId]   = useState(null);
   const pulseRef = useRef(null);
 
+  const grpOk  = isOwn && phase === 'pre';
+  const specOk = isOwn && (phase === 'pre' || phase === 'group_lock');
+  const koOk   = isOwn && OPEN_PHASES.has(phase);
+
   // Start pulse sequence when tips/spec/grpO loaded and grpOk
   useEffect(() => {
     if (!grpOk) return;
@@ -2261,10 +2265,6 @@ function TipsForm({ me, phase, viewUser }) {
       setLoading(false);
     });
   }, [userId]);
-
-  const grpOk  = isOwn && phase === 'pre';
-  const specOk = isOwn && (phase === 'pre' || phase === 'group_lock');
-  const koOk   = isOwn && OPEN_PHASES.has(phase);
 
   const setTip = (id, field, val) => { setTips(p => ({ ...p, [id]: { ...p[id], [field]: val } })); setDirty(true); };
   const setOrd = (g, i, val) => {
