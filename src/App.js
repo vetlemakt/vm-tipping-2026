@@ -1330,14 +1330,21 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
   const wrapRef = useRef(null);
+  const portalRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      const inWrap = wrapRef.current && wrapRef.current.contains(e.target);
+      const inPortal = portalRef.current && portalRef.current.contains(e.target);
+      if (!inWrap && !inPortal) setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('mousedown', handler, true);
+    document.addEventListener('touchstart', handler, true);
+    return () => {
+      document.removeEventListener('mousedown', handler, true);
+      document.removeEventListener('touchstart', handler, true);
+    };
   }, [open]);
 
   const handleToggle = () => {
@@ -1354,18 +1361,25 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
     setOpen(o => !o);
   };
 
+  const handleSelect = (val) => {
+    onChange(val);
+    setOpen(false);
+  };
+
   const flagUrl = (team) => {
     const code = COUNTRY_CODES[team];
     return code ? `https://flagcdn.com/w20/${code}.png` : null;
   };
 
+  const shortLabel = (team) => TEAM_SHORT[team] || team.slice(0, 3).toUpperCase();
+
   const dropdown = open ? createPortal(
-    <div style={{
+    <div ref={portalRef} style={{
       position: 'fixed',
       top: coords.openUp ? undefined : coords.top,
       bottom: coords.openUp ? window.innerHeight - coords.top : undefined,
       left: coords.left,
-      width: coords.width,
+      width: Math.max(coords.width, 160),
       zIndex: 99999,
       background: 'rgba(10,14,30,.99)',
       border: '1px solid rgba(255,215,0,.25)',
@@ -1376,25 +1390,28 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
       WebkitOverflowScrolling: 'touch',
     }}>
       <div
-        onMouseDown={e => e.preventDefault()}
-        onClick={() => { onChange(''); setOpen(false); }}
+        onPointerDown={e => { e.stopPropagation(); handleSelect(''); }}
         style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13,
           color: 'rgba(255,255,255,.4)', borderBottom: '1px solid rgba(255,255,255,.07)',
           whiteSpace: 'nowrap' }}
-      >– Velg lag –</div>
+      >Velg lag</div>
       {teams.map(t => (
-        <div key={t} onMouseDown={e => e.preventDefault()} onClick={() => { onChange(t); setOpen(false); }} style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '8px 14px', cursor: 'pointer', fontSize: 13,
-          color: t === value ? '#FFD700' : '#e8edf8',
-          background: t === value ? 'rgba(255,215,0,.08)' : 'transparent',
-          borderBottom: '1px solid rgba(255,255,255,.04)',
-          whiteSpace: 'nowrap',
-        }}>
+        <div key={t}
+          onPointerDown={e => { e.stopPropagation(); handleSelect(t); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: compact ? '7px 10px' : '8px 14px', cursor: 'pointer',
+            fontSize: compact ? 12 : 13,
+            color: t === value ? '#FFD700' : '#e8edf8',
+            background: t === value ? 'rgba(255,215,0,.08)' : 'transparent',
+            borderBottom: '1px solid rgba(255,255,255,.04)',
+            whiteSpace: 'nowrap',
+            opacity: dimmed.includes(t) ? 0.45 : 1,
+          }}>
           {flagUrl(t)
-            ? <img src={flagUrl(t)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0, opacity: dimmed.includes(t) ? 0.4 : 1 }} />
+            ? <img src={flagUrl(t)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />
             : <span style={{ width: 18, flexShrink: 0 }} />}
-          <span style={{ opacity: dimmed.includes(t) ? 0.4 : 1 }}>{t}</span>
+          <span>{compact ? shortLabel(t) : t}</span>
           {dimmed.includes(t) && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>valgt</span>}
         </div>
       ))}
@@ -1416,9 +1433,11 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
           {value ? (
             <>
               {flagUrl(value) && <img src={flagUrl(value)} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />}
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {compact ? shortLabel(value) : value}
+              </span>
             </>
-          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>– Velg –</span>}
+          ) : <span style={{ color: 'rgba(255,255,255,.4)' }}>Velg</span>}
         </span>
         <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginLeft: 4, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
