@@ -2178,6 +2178,62 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
 function TipsForm({ me, phase, viewUser }) {
   const isMobile = useIsMobile();
   const isOwn = !viewUser || viewUser.id === me.username;
+
+  const [pulseId, setPulseId]   = useState(null);
+  const pulseRef = useRef(null);
+
+  // Start pulse sequence when tips/spec/grpO loaded and grpOk
+  useEffect(() => {
+    if (!grpOk) return;
+    // Small delay so data settles first
+    const t = setTimeout(() => startPulseSequence(), 1200);
+    return () => clearTimeout(t);
+  }, [grpOk]); // eslint-disable-line
+
+  const startPulseSequence = () => {
+    if (pulseRef.current) clearTimeout(pulseRef.current);
+    // Build ordered list of empty field IDs
+    const buildSeq = () => {
+      const seq = [];
+      // 1. Spesialtips
+      SPEC_FIELDS.forEach(({ key }) => {
+        if (!spec[key]) seq.push(`spec_${key}`);
+      });
+      // 2. Grupper A–L
+      const groups = [...new Set(GROUP_MATCHES.map(m => m.group))].sort();
+      groups.forEach(g => {
+        const order = grpO[g] || [];
+        if (order.filter(Boolean).length < 4) seq.push(`grp_${g}`);
+      });
+      // 3. Kamper i kronologisk rekkefølge
+      [...GROUP_MATCHES].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(m => {
+        const t = tips[m.id];
+        if (t?.home === undefined || t?.away === undefined) seq.push(`match_${m.id}`);
+      });
+      return seq;
+    };
+
+    let runs = 0;
+    const seq = buildSeq();
+    if (seq.length === 0) return;
+
+    const step = (idx) => {
+      if (idx >= seq.length) {
+        runs++;
+        if (runs >= 3) { setPulseId(null); return; }
+        pulseRef.current = setTimeout(() => step(0), 400);
+        return;
+      }
+      setPulseId(seq[idx]);
+      pulseRef.current = setTimeout(() => step(idx + 1), 320);
+    };
+    step(0);
+  };
+
+  const pulseStyle = (id) => pulseId === id ? {
+    animation: 'fieldPulse 0.6s ease-out forwards',
+    borderColor: 'rgba(255,215,0,.8)',
+  } : {};
   const userId = viewUser ? viewUser.id : me.username;
 
   const [tips, setTips]   = useState({});
@@ -2306,7 +2362,7 @@ function TipsForm({ me, phase, viewUser }) {
                 <span style={{ ...C.ptsBadge, fontSize: isMobile ? 9 : 10, padding: isMobile ? '2px 4px' : '2px 6px', flexShrink: 0 }}>{pts}p</span>
                 {specOk ? (
                   key === 'topscorer' ? (
-                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0 }}>
+                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0, borderRadius: 8, ...pulseStyle(`spec_${key}`) }}>
                     <PlayerAutocomplete
                       value={spec[key] || ''}
                       onChange={val => setSp(key, val)}
@@ -2315,7 +2371,7 @@ function TipsForm({ me, phase, viewUser }) {
                     />
                     </div>
                   ) : (
-                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0 }}>
+                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0, borderRadius: 8, ...pulseStyle(`spec_${key}`) }}>
                       <TeamSelect
                         value={spec[key] || ''}
                         onChange={val => setSp(key, val)}
@@ -2416,6 +2472,7 @@ function TipsForm({ me, phase, viewUser }) {
                     borderRadius: 8, padding: '5px 3px',
                     cursor: 'pointer', textAlign: 'center',
                     transition: 'all .15s', minWidth: 0,
+                    ...(!filled && pulseId === `grp_${g}` ? { animation: 'fieldPulse 0.6s ease-out forwards', borderColor: 'rgba(255,215,0,.8)' } : {}),
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.1)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
@@ -2497,6 +2554,7 @@ function TipsForm({ me, phase, viewUser }) {
                     background:'rgba(255,255,255,.08)', borderRadius:8,
                     border: superbonus ? '1px solid #FFD700' : '1px solid rgba(255,255,255,.15)',
                     padding:'2px 8px', width:76, flexShrink:0,
+                    ...((t?.home === undefined || t?.away === undefined) && pulseId === `match_${m.id}` ? { animation: 'fieldPulse 0.6s ease-out forwards', borderColor: 'rgba(255,215,0,.8)' } : {}),
                   }}>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!grpOk}
@@ -4520,7 +4578,14 @@ export default function App() {
 
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = '@keyframes tickerScroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }';
+    style.textContent = `
+      @keyframes tickerScroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+      @keyframes fieldPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(255,215,0,0); border-color: rgba(255,255,255,.15); }
+        40%  { box-shadow: 0 0 0 4px rgba(255,215,0,.35); border-color: rgba(255,215,0,.8); }
+        100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); border-color: rgba(255,255,255,.15); }
+      }
+    `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
