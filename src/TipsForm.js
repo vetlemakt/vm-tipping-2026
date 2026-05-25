@@ -10,7 +10,7 @@ export default function TipsForm({ me }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   
-  // Tilstand for å holde styr på hvilket felt som pulserer akkurat nå
+  // State for å holde styr på hvilket felt ID som pulserer akkurat nå
   const [activePulseField, setActivePulseField] = useState(null);
 
   // Grupper kampene etter gruppe (A, B, C...)
@@ -53,170 +53,191 @@ export default function TipsForm({ me }) {
     }
   };
 
-  // Effekt for den sekvensielle pulseringen (kjører 3 runder og stopper)
+  // Effekt som kjører den sekvensielle pulseringen nøyaktig 3 ganger på uutfylte felt
   useEffect(() => {
     const emptyFields = [];
 
-    // 1. Spesialtips (Verdensmester, Toppscorer osv.) i rekkefølge
-    if (SPEC_FIELDS && Array.isArray(SPEC_FIELDS)) {
-      SPEC_FIELDS.forEach(field => {
-        if (!myTips[field.key]) {
-          emptyFields.push({ id: field.key });
-        }
-      });
-    } else {
-      // Fallback hvis SPEC_FIELDS ikke er lastet ordentlig inn i simuleringen
-      const fields = ['champion', 'runnerUp', 'topScorer'];
-      fields.forEach(key => {
-        if (!myTips[key]) emptyFields.push({ id: key });
-      });
-    }
+    // 1. Legg til tomme spesialtips (Verdensmester, Toppscorer etc) først
+    const specFieldsList = SPEC_FIELDS || [
+      { key: 'champion', label: '🥇 Verdensmester' },
+      { key: 'runnerUp', label: '🥈 Sølvvinner' },
+      { key: 'topScorer', label: '⚽ Toppscorer' }
+    ];
 
-    // 2. Gruppekamper sortert fra gruppe A til L (venstre til høyre, deretter nedover)
-    // Siden GROUP_MATCHES allerede ligger sortert kronologisk/gruppevis i constants.js,
-    // følger vi rekkefølgen direkte her.
+    specFieldsList.forEach(field => {
+      if (!myTips[field.key]) {
+        emptyFields.push({ id: field.key });
+      }
+    });
+
+    // 2. Legg til tomme gruppekamper (fra venstre til høyre i gruppene, og nedover kampene)
+    // GROUP_MATCHES er allerede sortert kronologisk/gruppevis (A->B->C... og kamp for kamp)
     GROUP_MATCHES.forEach(match => {
-      if (myTips[match.id]?.h === undefined || myTips[match.id]?.h === '') {
+      const matchTip = myTips[match.id];
+      if (matchTip?.h === undefined || matchTip?.h === '') {
         emptyFields.push({ id: `${match.id}-h` });
       }
-      if (myTips[match.id]?.a === undefined || myTips[match.id]?.a === '') {
+      if (matchTip?.a === undefined || matchTip?.a === '') {
         emptyFields.push({ id: `${match.id}-a` });
       }
     });
 
+    // Hvis alle felt er ferdig utfylt, gjør vi ingenting
     if (emptyFields.length === 0) return;
 
-    let currentLoop = 0;
+    let loopCount = 0;
     let currentIndex = 0;
     let timer = null;
 
-    const runPulse = () => {
-      if (currentLoop >= 3) {
-        setActivePulseField(null); // Stopp etter 3 runder
+    const performPulse = () => {
+      if (loopCount >= 3) {
+        setActivePulseField(null); // Slå av effekten etter 3 runder
         return;
       }
 
-      const currentField = emptyFields[currentIndex];
-      setActivePulseField(currentField.id);
+      const current = emptyFields[currentIndex];
+      setActivePulseField(current.id);
 
-      // Gå raskt videre til neste felt (f.eks. etter 500ms for en kvikk puls)
+      // Gå raskt videre til neste tomme felt (600ms gir en fin, kvikk puls)
       timer = setTimeout(() => {
         currentIndex++;
         if (currentIndex >= emptyFields.length) {
           currentIndex = 0;
-          currentLoop++;
+          loopCount++;
         }
-        runPulse();
-      }, 500);
+        performPulse();
+      }, 600);
     };
 
-    runPulse();
+    // Start animasjonsekvensen
+    performPulse();
 
+    // Rydd opp timeren hvis komponenten demonteres under pulseringen
     return () => clearTimeout(timer);
-  }, []); // Kjøres én gang ved mount
+  }, []);
 
-  // Helper for å generere pulserende stil dynamisk
-  const getPulseStyle = (fieldId) => {
+  // Hjelpefunksjon for å hente den pulserende stilen dynamisk
+  const getInputPulseStyle = (fieldId, baseStyle = {}) => {
     const isPulsering = activePulseField === fieldId;
     return {
-      border: isPulsering ? '2px solid #FFD700' : '1px solid rgba(255, 215, 0, 0.2)',
-      boxShadow: isPulsering ? '0 0 14px rgba(255, 215, 0, 0.9)' : 'none',
+      ...baseStyle,
+      border: isPulsering ? '2px solid #FFD700' : baseStyle.border || '1px solid rgba(255, 255, 255, 0.2)',
+      boxShadow: isPulsering ? '0 0 14px rgba(255, 215, 0, 0.85)' : 'none',
       transition: 'all 0.25s ease-in-out',
-      background: 'rgba(255, 255, 255, 0.05)',
-      color: '#e8edf8',
     };
   };
 
+  const specFieldsList = SPEC_FIELDS || [
+    { key: 'champion', label: '🥇 Verdensmester' },
+    { key: 'runnerUp', label: '🥈 Sølvvinner' },
+    { key: 'topScorer', label: '⚽ Toppscorer' }
+  ];
+
   return (
-    <div style={{ ...C.card, padding: 20, marginBottom: 80, maxWidth: 600, margin: '0 auto' }}>
-      <h2 style={{ marginBottom: 20, color: '#FFD700', borderBottom: '1px solid rgba(255,215,0,0.2)', paddingBottom: 8 }}>
-        🏆 Dine Tips
+    <div className="fu" style={{ ...C.card, padding: '16px 20px 40px', maxWidth: 650, margin: '0 auto', marginBottom: 100 }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: '#FFD700', marginBottom: 16, textAlign: 'center', letterSpacing: 0.5 }}>
+        ✏️ LEVER DINE TIPS
       </h2>
 
-      {message && <div style={{ ...C.botBanner, textAlign: 'center', marginBottom: 16 }}>{message}</div>}
+      {message && (
+        <div style={{ ...C.botBanner, textAlign: 'center', margin: '0 auto 16px', background: 'rgba(5, 150, 105, 0.15)', borderColor: '#059669', color: '#34d399' }}>
+          {message}
+        </div>
+      )}
 
-      {/* Seksjon for Spesialtips (Verdensmester osv.) */}
-      <div style={{ marginBottom: 30, background: 'rgba(255,255,255,0.02)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-        <h3 style={{ fontSize: 16, marginBottom: 12, color: 'rgba(255,255,255,0.7)' }}>Spesialtips</h3>
-        {(SPEC_FIELDS || []).map((field) => (
-          <div key={field.key} style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 13, marginBottom: 6, color: '#cbd5e1' }}>{field.label}</label>
-            <input
-              type="text"
-              placeholder="Skriv ditt tips..."
-              value={myTips[field.key] || ''}
-              onChange={(e) => handleSpecialChange(field.key, e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                fontSize: 14,
-                ...getPulseStyle(field.key)
-              }}
-            />
-          </div>
-        ))}
+      {/* Seksjon for Spesialtips (Verdensmester, Toppscorer osv.) */}
+      <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: 12, padding: 16, marginBottom: 24 }}>
+        <h3 style={{ fontSize: 15, color: 'rgba(255,215,0,0.8)', marginBottom: 12, fontWeight: 600, borderBottom: '1px solid rgba(255,215,0,0.15)', paddingBottom: 4 }}>
+          Spesialtips
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {specFieldsList.map((field) => (
+            <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 500 }}>{field.label}</label>
+              <input
+                type="text"
+                placeholder={`Velg ditt tips for ${field.label.toLowerCase()}...`}
+                value={myTips[field.key] || ''}
+                onChange={(e) => handleSpecialChange(field.key, e.target.value)}
+                style={getInputPulseStyle(field.key, {
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(0,0,0,0.2)',
+                  color: '#e8edf8',
+                  fontSize: 14,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  outline: 'none'
+                })}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Seksjon for Grupper og Kamper */}
+      {/* Grupper og Kamper */}
       {Object.keys(groupedMatches).sort().map((group) => (
-        <div key={group} style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: 18, color: '#FFD700', marginBottom: 12, paddingLeft: 4 }}>
+        <div key={group} style={{ marginBottom: 28 }}>
+          <h3 style={{ fontSize: 16, color: '#FFD700', borderBottom: '1px solid rgba(255,215,0,0.15)', paddingBottom: 4, marginBottom: 12, fontWeight: 600 }}>
             Gruppe {group}
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {groupedMatches[group].map((m) => (
               <div 
                 key={m.id} 
                 style={{ 
                   display: 'flex', 
+                  flexDirection: 'row', 
                   alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  padding: '10px 14px', 
-                  background: 'rgba(255,255,255,0.03)', 
-                  borderRadius: 10,
-                  border: '1px solid rgba(255,255,255,0.05)'
+                  padding: '10px 12px', 
+                  background: 'rgba(255,255,255,0.02)', 
+                  border: '1px solid rgba(255,255,255,0.04)', 
+                  borderRadius: 8 
                 }}
               >
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                <div style={{ flex: 1, textAlign: 'right', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
                   <span>{m.t1}</span> <Flag team={m.t1} />
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 12px' }}>
                   <input
                     type="number"
                     min="0"
                     value={myTips[m.id]?.h ?? ''}
                     onChange={(e) => handleScoreChange(m.id, 'h', e.target.value)}
-                    style={{ 
-                      width: 42, 
-                      height: 42, 
-                      textAlign: 'center', 
-                      borderRadius: 8, 
-                      fontSize: 18, 
-                      fontWeight: 'bold',
-                      ...getPulseStyle(`${m.id}-h`)
-                    }}
+                    style={getInputPulseStyle(`${m.id}-h`, {
+                      width: 40,
+                      height: 40,
+                      textAlign: 'center',
+                      borderRadius: 6,
+                      background: 'rgba(0,0,0,0.2)',
+                      color: '#e8edf8',
+                      fontSize: 18,
+                      border: '1px solid #cbd5e1',
+                      outline: 'none'
+                    })}
                   />
-                  <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 'bold' }}>-</span>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>-</span>
                   <input
                     type="number"
                     min="0"
                     value={myTips[m.id]?.a ?? ''}
                     onChange={(e) => handleScoreChange(m.id, 'a', e.target.value)}
-                    style={{ 
-                      width: 42, 
-                      height: 42, 
-                      textAlign: 'center', 
-                      borderRadius: 8, 
-                      fontSize: 18, 
-                      fontWeight: 'bold',
-                      ...getPulseStyle(`${m.id}-a`)
-                    }}
+                    style={getInputPulseStyle(`${m.id}-a`, {
+                      width: 40,
+                      height: 40,
+                      textAlign: 'center',
+                      borderRadius: 6,
+                      background: 'rgba(0,0,0,0.2)',
+                      color: '#e8edf8',
+                      fontSize: 18,
+                      border: '1px solid #cbd5e1',
+                      outline: 'none'
+                    })}
                   />
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}>
+                <div style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Flag team={m.t2} /> <span>{m.t2}</span>
                 </div>
               </div>
@@ -226,15 +247,15 @@ export default function TipsForm({ me }) {
       ))}
 
       {/* Flytende lagre-knapp nederst */}
-      <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', width: '90%', maxWidth: 400, zIndex: 100 }}>
+      <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', width: '90%', maxWidth: 400, zIndex: 999 }}>
         <button 
           onClick={saveTips}
           disabled={saving}
           style={{ 
-            width: '100%', padding: '14px', borderRadius: 12, border: 'none', 
+            width: '100%', padding: '15px', borderRadius: 12, border: 'none', 
             background: '#059669', color: 'white', fontWeight: 'bold', fontSize: 16,
-            boxShadow: '0 4px 16px rgba(5, 150, 105, 0.4)', cursor: 'pointer',
-            transition: 'all 0.2s'
+            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)', cursor: 'pointer',
+            transition: 'transform 0.1s'
           }}
         >
           {saving ? 'Lagrer...' : 'Lagre Tips'}
