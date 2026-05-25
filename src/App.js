@@ -1376,13 +1376,14 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
       WebkitOverflowScrolling: 'touch',
     }}>
       <div
+        onMouseDown={e => e.preventDefault()}
         onClick={() => { onChange(''); setOpen(false); }}
         style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13,
           color: 'rgba(255,255,255,.4)', borderBottom: '1px solid rgba(255,255,255,.07)',
           whiteSpace: 'nowrap' }}
       >– Velg lag –</div>
       {teams.map(t => (
-        <div key={t} onClick={() => { onChange(t); setOpen(false); }} style={{
+        <div key={t} onMouseDown={e => e.preventDefault()} onClick={() => { onChange(t); setOpen(false); }} style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '8px 14px', cursor: 'pointer', fontSize: 13,
           color: t === value ? '#FFD700' : '#e8edf8',
@@ -4348,10 +4349,9 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   useEffect(() => {
     if (!adminMessage || phase === 'static') return;
     if (phase === 'pause') {
-      if (repeat < 1) { setRepeat(r => r + 1); setPhase('scroll'); }
-      else setPhase('static');
+      setPhase('static');
     }
-  }, [phase, repeat, adminMessage]);
+  }, [phase, adminMessage]);
 
   const vmOver = VM_START <= Date.now();
   // Priority: liveEvent > adminMessage > countdown
@@ -4410,7 +4410,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
             WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
           }}>
             <span key={phase + repeat} onAnimationEnd={() => setPhase('pause')}
-              style={{ fontSize: 11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', display:'inline-block', padding:'0 20px', animation:`tickerScroll ${Math.max(8, Math.round(adminMessage.length * 0.18))}s linear forwards` }}>
+              style={{ fontSize: 11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', display:'inline-block', padding:'0 20px', animation:`tickerScroll ${Math.max(4, Math.round(adminMessage.length * 0.09))}s linear forwards` }}>
               📢 {adminMessage}
             </span>
           </div>
