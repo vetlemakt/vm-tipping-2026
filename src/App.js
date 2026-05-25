@@ -2439,9 +2439,9 @@ function TipsForm({ me, phase, viewUser }) {
             })}
           </div>
 
-          {grpOk && (
-            <div style={{ textAlign: 'center', margin: '2px 0 10px', fontSize: isMobile ? 11 : 12, color: 'rgba(255,215,0,.6)', fontFamily: "'Kanit',sans-serif", fontWeight: 600, letterSpacing: 0.5, userSelect: 'none', pointerEvents: 'none' }}>
-              ↑ Fyll ut gruppeplassering manuelt! ↑
+          {isOwn && (
+            <div style={{ textAlign: 'center', margin: '4px 0 12px', fontSize: isMobile ? 11 : 13, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 0.5, userSelect: 'none', pointerEvents: 'none', opacity: 0.85 }}>
+              ↑ Trykk på en gruppe for å fylle ut gruppeplassering ↑
             </div>
           )}
 
