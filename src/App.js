@@ -216,7 +216,7 @@ function StatusBar({ phase, isAdmin }) {
       color: isOpen ? '#a0ffb8' : '#ffaaaa',
       height: 32, fontSize: 12, fontWeight: 600, letterSpacing: 1,
       borderTop: `1px solid ${isOpen ? 'rgba(100,255,150,.15)' : 'rgba(255,100,100,.15)'}`,
-      fontFamily: "'Kanit',sans-serif",
+      fontFamily: "'Inter',sans-serif",
     }}>
       {isOpen ? 'Åpent – lever dine tips!' : ws.label}
       <button onClick={() => setVisible(false)} style={{
@@ -301,7 +301,7 @@ function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessa
                 );
               })}
               <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap:6, paddingBottom:8 }}>
-                <span style={{ fontSize:14, color:'#FFD700', fontFamily:"'Kanit',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>{user.displayName}</span>
+                <span style={{ fontSize:14, color:'#FFD700', fontFamily:"'Inter',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>{user.displayName}</span>
                 <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
               </div>
             </div>
@@ -320,7 +320,7 @@ function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessa
             const isOn = tab === n.id;
             return (
               <button key={n.id} onClick={() => { setTab(n.id); setMenuOpen(false); }}
-                style={{ display:'flex', alignItems:'center', gap:12, width:'100%', background: isOn?`${color}18`:'transparent', border:'none', borderLeft: isOn?`4px solid ${color}`:'4px solid transparent', color: isOn?color:'rgba(255,255,255,.8)', padding:'14px 20px', cursor:'pointer', fontFamily:"'Kanit',sans-serif", fontSize:16, fontWeight:600, textAlign:'left' }}>
+                style={{ display:'flex', alignItems:'center', gap:12, width:'100%', background: isOn?`${color}18`:'transparent', border:'none', borderLeft: isOn?`4px solid ${color}`:'4px solid transparent', color: isOn?color:'rgba(255,255,255,.8)', padding:'14px 20px', cursor:'pointer', fontFamily:"'Inter',sans-serif", fontSize:16, fontWeight:600, textAlign:'left' }}>
                 {n.img ? <img src={n.img} alt={n.label} style={{width:22,height:22,objectFit:'contain'}}/> : <span style={{fontSize:18}}>{n.icon}</span>}
                 {n.label}
               </button>
@@ -674,7 +674,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
       background: '#f5e6c0',
       flexShrink: 0,
       position: 'relative',
-      fontFamily: "'Kanit',sans-serif",
+      fontFamily: "'Inter',sans-serif",
       overflow: 'visible',
     }}>
 
@@ -756,7 +756,7 @@ function PaniniCard({ player, blur, showName, compact, tiny, quizLabel }) {
           fontWeight: 800,
           padding: '2px 6px',
           borderRadius: 4,
-          fontFamily: "'Kanit',sans-serif",
+          fontFamily: "'Inter',sans-serif",
         }}>
           #{player.num}
         </div>
@@ -910,7 +910,7 @@ En spiller i VM-tipping-konkurransen klarte ikke å gjenkjenne fotballspilleren 
       borderLeft: `3px solid ${expert.color}`,
       borderRadius: 8,
     }}>
-      <div style={{ fontSize: 11, color: expert.color, fontWeight: 700, marginBottom: 4, fontFamily: "'Kanit',sans-serif" }}>
+      <div style={{ fontSize: 11, color: expert.color, fontWeight: 700, marginBottom: 4, fontFamily: "'Inter',sans-serif" }}>
         {expert.emoji} {expert.name}
       </div>
       {loading ? (
@@ -1020,7 +1020,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
           }
           return (
             <button key={opt} onClick={() => handleAnswer(opt)}
-              style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', background:bg, border, borderRadius:8, padding:'10px 14px', marginBottom:8, cursor: answered ? 'default' : 'pointer', fontFamily:"'Kanit',sans-serif", fontSize:13, color: answered && isCorrect ? '#FFD700' : '#e8edf8', fontWeight: answered && isCorrect ? 700 : 400, textAlign:'left' }}>
+              style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', background:bg, border, borderRadius:8, padding:'10px 14px', marginBottom:8, cursor: answered ? 'default' : 'pointer', fontFamily:"'Inter',sans-serif", fontSize:13, color: answered && isCorrect ? '#FFD700' : '#e8edf8', fontWeight: answered && isCorrect ? 700 : 400, textAlign:'left' }}>
               <span>{opt}</span>
               {icon && <span>{icon}</span>}
             </button>
@@ -1520,7 +1520,7 @@ function ImageUploadButton({ onImage }) {
             <label style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '13px 16px', cursor: 'pointer', color: '#e8edf8', fontSize: 14,
-              fontFamily: "'Kanit',sans-serif", borderBottom: '1px solid rgba(255,255,255,.07)',
+              fontFamily: "'Inter',sans-serif", borderBottom: '1px solid rgba(255,255,255,.07)',
             }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,180,0,.1)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -1532,7 +1532,7 @@ function ImageUploadButton({ onImage }) {
             <label style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '13px 16px', cursor: 'pointer', color: '#e8edf8', fontSize: 14,
-              fontFamily: "'Kanit',sans-serif",
+              fontFamily: "'Inter',sans-serif",
             }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,180,0,.1)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -2111,7 +2111,7 @@ function renderPtsBadge(pts) {
   if (pts === null) return null;
   return (
     <span style={{
-      fontSize: 15, fontFamily: "'Kanit',sans-serif", fontWeight: 800, minWidth: 20,
+      fontSize: 15, fontFamily: "'Inter',sans-serif", fontWeight: 800, minWidth: 20,
       textAlign: 'right', flexShrink: 0,
       color: pts > 0 ? '#FFD700' : '#e8edf8',
     }}>
@@ -2212,7 +2212,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
         {allGroupPlayed && actOrder && (
           <div style={{ marginTop:14, paddingTop:10, borderTop:'1px solid rgba(255,255,255,.1)', textAlign:'center' }}>
             <span style={{ fontSize:13, color:'rgba(255,255,255,.5)', marginRight:6 }}>Gruppepoeng:</span>
-            <span style={{ fontSize:18, fontWeight:800, color:'#FFD700', fontFamily:"'Kanit',sans-serif" }}>{totalGrpPts}</span>
+            <span style={{ fontSize:18, fontWeight:800, color:'#FFD700', fontFamily:"'Inter',sans-serif" }}>{totalGrpPts}</span>
           </div>
         )}
 
@@ -2523,7 +2523,7 @@ function TipsForm({ me, phase, viewUser }) {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.1)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
                 >
-                  <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 800, color: filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Kanit',sans-serif", marginBottom: 3, lineHeight: 1 }}>{g}</div>
+                  <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 800, color: filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Inter',sans-serif", marginBottom: 3, lineHeight: 1 }}>{g}</div>
                   {(order.length === 4 ? order : [...order.filter(Boolean), ...teams.filter(t => !order.includes(t))]).map((team, i) => {
                     const code = COUNTRY_CODES[team];
                     const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
@@ -2543,7 +2543,7 @@ function TipsForm({ me, phase, viewUser }) {
           </div>
 
           {isOwn && (
-            <div style={{ textAlign: 'center', margin: '4px 0 12px', fontSize: isMobile ? 11 : 13, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 0.5, userSelect: 'none', pointerEvents: 'none', opacity: 0.85 }}>
+            <div style={{ textAlign: 'center', margin: '4px 0 12px', fontSize: isMobile ? 11 : 13, color: '#FFD700', fontFamily: "'Inter',sans-serif", fontWeight: 700, letterSpacing: 0.5, userSelect: 'none', pointerEvents: 'none', opacity: 0.85 }}>
               ↑ Trykk på en gruppe for å fylle ut gruppeplassering ↑
             </div>
           )}
@@ -2584,9 +2584,9 @@ function TipsForm({ me, phase, viewUser }) {
                     style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.12)'}
                     onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
-                    <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
-                    {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
-                    <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Kanit',sans-serif"}}>Gruppe {m.group}</span>
+                    <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
+                    {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Inter',sans-serif"}}>{m.time}</span>}
+                    <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Inter',sans-serif"}}>Gruppe {m.group}</span>
                   </div>
                   {/* Home team – flex:1 so it pushes score box to center */}
                   <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end',minWidth:0}}>
@@ -2732,8 +2732,8 @@ function TipsForm({ me, phase, viewUser }) {
                       onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.12)'}
                       onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
                       <span style={{fontSize:9,color:'rgba(255,255,255,.5)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>Kamp {m.matchNum}</span>
-                      {m.date && <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Kanit',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>}
-                      {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Kanit',sans-serif"}}>{m.time}</span>}
+                      {m.date && <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>}
+                      {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Inter',sans-serif"}}>{m.time}</span>}
                     </div>
                     {/* Home */}
                     <TeamLabel slot={shortenSlot(m.home)} resolved={resolvedHome} tip={tipHome} align="right" />
@@ -2825,7 +2825,7 @@ function VideoButton({ compact = false }) {
       background: 'rgba(88,101,242,.2)', border: '1px solid rgba(88,101,242,.5)',
       color: '#8891f2', borderRadius: 6, padding: compact ? '0 5px' : '0 8px', height: 26,
       cursor: 'pointer', fontSize: compact ? 10 : 11,
-      fontFamily: "'Kanit',sans-serif", fontWeight: 600,
+      fontFamily: "'Inter',sans-serif", fontWeight: 600,
       textDecoration: 'none', flexShrink: 0,
     }}>
       <DiscordIcon size={13} />{!compact && ' Discord'}
@@ -3302,7 +3302,7 @@ function InfoPage() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
       <div style={{ background:'rgba(22,27,44,.75)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28, marginBottom:16 }}>
-        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, marginBottom:20 }}>Om VM-tipping 2026</h2>
+        <h2 style={{ fontFamily:"'Inter',sans-serif", fontSize:22, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, marginBottom:20 }}>Om VM-tipping 2026</h2>
 
         <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🏆 Poengsystem – Kamper</h3>
         <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
@@ -3429,7 +3429,7 @@ function YouTubePlayer() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           height: 40, padding: '0 12px', background: 'transparent', border: 'none',
           cursor: 'pointer', color: '#FFD700',
-          fontFamily: "'Kanit',sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1,
+          fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1,
           whiteSpace: 'nowrap',
         }}>VM-musikk ▲</button>
       ) : (
@@ -3441,7 +3441,7 @@ function YouTubePlayer() {
             background: 'rgba(255,215,0,.08)',
             borderBottom: '1px solid rgba(255,215,0,.15)',
           }}>
-            <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, letterSpacing: 1 }}>
+            <span style={{ fontSize: 12, color: '#FFD700', fontFamily: "'Inter',sans-serif", fontWeight: 700, letterSpacing: 1 }}>
               🎵 VM-musikk
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -3833,7 +3833,7 @@ function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
           </div>
           {/* Info */}
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Kanit',sans-serif", fontSize:17, fontWeight:700, color:expert.color, cursor:'pointer', textDecoration:'underline', textDecorationColor:expert.color+'66' }}
+            <div style={{ fontFamily:"'Inter',sans-serif", fontSize:17, fontWeight:700, color:expert.color, cursor:'pointer', textDecoration:'underline', textDecorationColor:expert.color+'66' }}
               onClick={() => onShowTips && onShowTips(expert)}>{expert.name}</div>
             <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginBottom:2 }}>{expert.age} år · {expert.from}</div>
             <div style={{ fontSize:12, color:expert.color, fontStyle:'italic', marginBottom:8 }}>{expert.tagline}</div>
@@ -3844,7 +3844,7 @@ function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
               </div>
             )}
             <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap', alignItems:'center' }}>
-              <button style={{ background:`linear-gradient(135deg, ${expert.color}, ${expert.color}bb)`, color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Kanit',sans-serif", letterSpacing:.5, opacity:loading?0.6:1, whiteSpace:'nowrap' }}
+              <button style={{ background:`linear-gradient(135deg, ${expert.color}, ${expert.color}bb)`, color:'#fff', border:'none', borderRadius:8, padding:'7px 14px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Inter',sans-serif", letterSpacing:.5, opacity:loading?0.6:1, whiteSpace:'nowrap' }}
                 onClick={() => setConfirm(true)} disabled={loading}>
                 {loading ? '⟳' : done ? '✅ Valgt!' : 'Bruk ekspert'}
               </button>
@@ -4014,7 +4014,7 @@ function PanelPage({ me }) {
   return (
     <div className="fu">
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontFamily:"'Kanit',sans-serif", fontSize:22, fontWeight:700, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, margin:0 }}>🎙️ Ekspertpanel</h2>
+        <h2 style={{ fontFamily:"'Inter',sans-serif", fontSize:22, fontWeight:700, color:'#FFD700', textTransform:'uppercase', letterSpacing:2, margin:0 }}>🎙️ Ekspertpanel</h2>
         <p style={{ color:'rgba(255,255,255,.5)', fontSize:13, marginTop:6, lineHeight:1.7 }}>
           Fem eksperter med sine egne tips og sterke meninger. Call på dem i chatten med <span style={{color:'#FFD700'}}>@fornavn</span>. Trykk på bildet for å zoome.<br/>
           Du kan la en av ekspertene fylle ut alle dine tips ved å trykke <span style={{color:'#FFD700'}}>"Bruk ekspert"</span> på profilen deres.<br/>
@@ -4412,7 +4412,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
     if (liveEvent.type === 'goal') {
       const { shortHome, shortAway, homeGoals, awayGoals, homeScored, playerName, minute, suffix } = liveEvent;
       return (
-        <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
           <span style={{ color:'rgba(255,255,255,.8)' }}>{shortHome}-{shortAway} </span>
           <span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.8)' }}>{homeGoals}</span>
           <span style={{ color:'rgba(255,255,255,.5)' }}>-</span>
@@ -4422,7 +4422,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
       );
     }
     // card or finished
-    return <div style={{ fontSize:11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, textAlign:'center', whiteSpace:'nowrap' }}>{liveEvent.text}</div>;
+    return <div style={{ fontSize:11, color: YEL, fontFamily:"'Inter',sans-serif", fontWeight:700, textAlign:'center', whiteSpace:'nowrap' }}>{liveEvent.text}</div>;
   };
 
   const displayText = !liveEvent && (adminMessage
@@ -4455,12 +4455,12 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
             WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
           }}>
             <span key={phase + repeat} onAnimationEnd={() => setPhase('pause')}
-              style={{ fontSize: 11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, whiteSpace:'nowrap', display:'inline-block', padding:'0 20px', animation:`tickerScroll ${Math.max(4, Math.round(adminMessage.length * 0.09))}s linear forwards` }}>
+              style={{ fontSize: 11, color: YEL, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', display:'inline-block', padding:'0 20px', animation:`tickerScroll ${Math.max(4, Math.round(adminMessage.length * 0.09))}s linear forwards` }}>
               📢 {adminMessage}
             </span>
           </div>
         ) : (
-          <div style={{ fontSize:11, color: YEL, fontFamily:"'Kanit',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>
+          <div style={{ fontSize:11, color: YEL, fontFamily:"'Inter',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>
             {displayText}
           </div>
         )
