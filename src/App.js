@@ -64,6 +64,7 @@ const Flag = ({ team, size=20 }) => {
     />
   );
 };
+// eslint-disable-next-line no-unused-vars
 const winStatus = p => ({ open: OPEN_PHASES.has(p), ...(WS_MSGS[p] || WS_MSGS.pre) });
 
 const useIsMobile = () => {
