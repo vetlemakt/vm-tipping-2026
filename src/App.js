@@ -1388,7 +1388,7 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
 
   const dropdown = open ? createPortal(
     <>
-    <div onClick={() => setOpen(false)} style={{ position:'fixed', inset:0, zIndex:99998 }} />
+    <div onClick={() => setOpen(false)} onTouchEnd={() => setOpen(false)} style={{ position:'fixed', inset:0, zIndex:99998, cursor:'pointer' }} />
     <div ref={portalRef} style={{
       position: 'fixed',
       top: coords.openUp ? undefined : coords.top,
@@ -2590,7 +2590,7 @@ function TipsForm({ me, phase, viewUser }) {
                     background:'rgba(255,255,255,.08)', borderRadius:8,
                     border: superbonus ? '1px solid #FFD700' : '1px solid rgba(255,255,255,.15)',
                     padding:'2px 8px', width:76, flexShrink:0,
-                    ...((t?.home === undefined || t?.away === undefined) && pulseId === `match_${m.id}` ? { animation: 'fieldPulse 0.6s ease-out forwards', borderColor: 'rgba(255,215,0,.8)' } : {}),
+
                   }}>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!grpOk}
