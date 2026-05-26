@@ -4820,6 +4820,222 @@ async function fetchFinishedMatch() {
 }
 
 
+
+// ══════════════════════════════════════════════════════════════════════
+//  PODIUM POPUP – vises på /podium eller etter VM er ferdig
+// ══════════════════════════════════════════════════════════════════════
+function useConfetti(active) {
+  useEffect(() => {
+    if (!active) return;
+    const canvas = document.getElementById('vm-confetti-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // VM logo colors: gold, dark blue, white, green accents
+    const COLORS = ['#FFD700','#FFD700','#FFD700','#01174C','#ffffff','#4ade80','#fbbf24','#f59e0b'];
+
+    const particles = Array.from({ length: 160 }, () => ({
+      x: Math.random() * canvas.width,
+      y: canvas.height + Math.random() * 200,           // start below bottom (burst from behind popup)
+      vx: (Math.random() - 0.5) * 6,
+      vy: -(Math.random() * 14 + 6),                    // shoot upward
+      gravity: 0.22,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      w: Math.random() * 9 + 5,
+      h: Math.random() * 5 + 3,
+      angle: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.2,
+      opacity: 1,
+      zIndex: Math.random() > 0.5 ? 'front' : 'back',  // half in front, half behind popup
+    }));
+
+    let raf;
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let allDone = true;
+      particles.forEach(p => {
+        p.vy += p.gravity;
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.angle += p.spin;
+        p.opacity = Math.max(0, p.opacity - 0.004);
+        if (p.y < canvas.height + 50) allDone = false;
+        ctx.save();
+        ctx.globalAlpha = p.opacity;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      if (!allDone) raf = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const onResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    window.addEventListener('resize', onResize);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
+  }, [active]);
+}
+
+function PodiumPopup({ gold, silver, bronze, onClose }) {
+  useConfetti(true);
+
+  // Image native size: 730×500
+  // We display the image fitting within viewport width (max 730px)
+  // Scale factor used to map pixel coords → display coords
+  const IMG_W = 730, IMG_H = 500;
+
+  // Name box pixel coords (in image space):
+  // Silver:  TL(172,346) BR(227,363)
+  // Gold:    TL(334,315) BR(403,333)
+  // Bronze:  TL(513,370) BR(567,387)
+  const BOXES = [
+    { name: silver, x1:172, y1:346, x2:227, y2:363 },
+    { name: gold,   x1:334, y1:315, x2:403, y2:333 },
+    { name: bronze, x1:513, y1:370, x2:567, y2:387 },
+  ];
+
+  return createPortal(
+    <>
+      {/* Confetti canvas – full screen, split z-index via two layers */}
+      {/* Back layer (behind popup) */}
+      <canvas id="vm-confetti-canvas" style={{
+        position: 'fixed', inset: 0, zIndex: 1998,
+        pointerEvents: 'none', width: '100%', height: '100%',
+      }} />
+
+      {/* Backdrop */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 1999,
+        background: 'rgba(0,0,0,.82)', backdropFilter: 'blur(4px)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '16px',
+      }}>
+
+        {/* Popup card */}
+        <div style={{
+          position: 'relative',
+          width: '100%', maxWidth: IMG_W,
+          borderRadius: 16,
+          boxShadow: '0 0 60px rgba(255,215,0,.4), 0 24px 80px rgba(0,0,0,.8)',
+          border: '2px solid rgba(255,215,0,.5)',
+          overflow: 'hidden',
+          zIndex: 2000,
+        }}>
+          {/* The podium image – fills container width */}
+          <img
+            src="/podium.png"
+            alt="Seierspall"
+            style={{ width: '100%', display: 'block' }}
+          />
+
+          {/* Name overlays – positioned as % of image */}
+          {BOXES.map(({ name, x1, y1, x2, y2 }, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              left:   `${(x1 / IMG_W) * 100}%`,
+              top:    `${(y1 / IMG_H) * 100}%`,
+              width:  `${((x2 - x1) / IMG_W) * 100}%`,
+              height: `${((y2 - y1) / IMG_H) * 100}%`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+            }}>
+              <span style={{
+                color: '#ffffff',
+                fontFamily: "'Kanit', sans-serif",
+                fontWeight: 700,
+                fontSize: 'clamp(5px, 1.5vw, 11px)',
+                textAlign: 'center',
+                lineHeight: 1,
+                textShadow: '0 1px 3px rgba(0,0,0,.8)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}>
+                {name}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            marginTop: 20,
+            background: 'linear-gradient(135deg, #FFD700, #f59e0b)',
+            border: 'none', borderRadius: 12,
+            color: '#01174C', fontFamily: "'Kanit', sans-serif",
+            fontWeight: 800, fontSize: 18, letterSpacing: 1,
+            padding: '12px 48px', cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(255,215,0,.5)',
+            zIndex: 2001, position: 'relative',
+          }}
+        >
+          Snakkes! 🏆
+        </button>
+      </div>
+
+      {/* Front confetti layer (same canvas element is already above popup via z-index trick)
+          We use a second canvas for front-layer particles */}
+      <canvas id="vm-confetti-front" style={{
+        position: 'fixed', inset: 0, zIndex: 2002,
+        pointerEvents: 'none', width: '100%', height: '100%',
+      }} />
+    </>,
+    document.body
+  );
+}
+
+// Runs front-layer confetti on the second canvas
+function FrontConfetti() {
+  useEffect(() => {
+    const canvas = document.getElementById('vm-confetti-front');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const COLORS = ['#FFD700','#FFD700','#f59e0b','#ffffff','#4ade80'];
+    const particles = Array.from({ length: 60 }, () => ({
+      x: Math.random() * canvas.width,
+      y: canvas.height + Math.random() * 100,
+      vx: (Math.random() - 0.5) * 4,
+      vy: -(Math.random() * 10 + 4),
+      gravity: 0.18,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      w: Math.random() * 8 + 4,
+      h: Math.random() * 4 + 2,
+      angle: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.15,
+      opacity: 1,
+    }));
+    let raf;
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let allDone = true;
+      particles.forEach(p => {
+        p.vy += p.gravity; p.x += p.vx; p.y += p.vy;
+        p.angle += p.spin; p.opacity = Math.max(0, p.opacity - 0.005);
+        if (p.y < canvas.height + 50) allDone = false;
+        ctx.save(); ctx.globalAlpha = p.opacity;
+        ctx.translate(p.x, p.y); ctx.rotate(p.angle);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+      });
+      if (!allDone) raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return null;
+}
+
 // ══════════════════════════════════════════════════════════════════════
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -4829,6 +5045,25 @@ export default function App() {
     } catch { return null; }
   });
   const [tab, setTab] = useState('dashboard');
+  const podiumMode = window.location.pathname === '/podium';
+  const [podiumDismissed, setPodiumDismissed] = useState(false);
+  const [podiumPlayers, setPodiumPlayers] = useState({ gold: '', silver: '', bronze: '' });
+
+  // Fetch top 3 for podium
+  useEffect(() => {
+    if (!podiumMode) return;
+    Promise.all([getAllUsers(), getResults()]).then(([users, results]) => {
+      const ranked = users
+        .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
+        .map(u => ({ ...u, ...calcScore(u, results) }))
+        .sort((a, b) => b.total - a.total);
+      setPodiumPlayers({
+        gold:   ranked[0]?.displayName || '–',
+        silver: ranked[1]?.displayName || '–',
+        bronze: ranked[2]?.displayName || '–',
+      });
+    });
+  }, []); // eslint-disable-line
 
   // Browser back/forward navigation
   const setTabWithHistory = useCallback((newTab) => {
@@ -4938,6 +5173,17 @@ export default function App() {
         {' '}© 2026 Vetle Baden Skatvoldsmyr · Ønsker du å bruke koden så spør :)
       </div>
       <DeadlineBar user={user} isAdmin={user.isAdmin} />
+      {podiumMode && !podiumDismissed && (
+        <>
+          <FrontConfetti />
+          <PodiumPopup
+            gold={podiumPlayers.gold}
+            silver={podiumPlayers.silver}
+            bronze={podiumPlayers.bronze}
+            onClose={() => setPodiumDismissed(true)}
+          />
+        </>
+      )}
       <YouTubePlayer />
       {showMsgPopup && <AdminMessagePopup message={adminMessage} onClose={() => setShowMsgPopup(false)} />}
     </div>
