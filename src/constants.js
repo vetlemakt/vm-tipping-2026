@@ -20,22 +20,22 @@ export const GROUPS = {
 export const ALL_TEAMS = [...new Set(Object.values(GROUPS).flat())].sort();
 
 export const STADIUMS = {
-  azteca:       { name: 'Estadio Azteca',              city: 'Mexico City',              country: 'Mexico',  img: '/02_Mexico_City_Estadio_Azteca.jpg' },
-  akron:        { name: 'Estadio Akron',               city: 'Zapopan (Guadalajara)',    country: 'Mexico',  img: '/16_Guadalajara_Stadium.jpg' },
-  bbva:         { name: 'Estadio BBVA',                city: 'Monterrey',                country: 'Mexico',  img: '/15_Monterrey_Estadio_BBVA.jpg' },
-  bmo:          { name: 'BMO Field',                   city: 'Toronto',                  country: 'Canada',  img: '/01_Toronto_BMO_Field.jpg' },
-  bcplace:      { name: 'BC Place',                    city: 'Vancouver',                country: 'Canada',  img: '/14_Vancouver_BC_Place.jpg' },
-  sofi:         { name: 'SoFi Stadium',                city: 'Inglewood (Los Angeles)',  country: 'USA',     img: '/04_Los_Angeles_SoFi_Stadium.jpg' },
-  levis:        { name: "Levi's Stadium",              city: 'Santa Clara (San Francisco)', country: 'USA',  img: '/09_San_Francisco_Levis_Stadium.jpg' },
-  metlife:      { name: 'MetLife Stadium',             city: 'East Rutherford (New York)', country: 'USA',   img: '/03_New_York_MetLife_Stadium.jpg' },
-  gillette:     { name: 'Gillette Stadium',            city: 'Foxborough (Boston)',       country: 'USA',    img: '/12_Boston_Gillette_Stadium.jpg' },
-  att:          { name: 'AT&T Stadium',                city: 'Arlington (Dallas)',        country: 'USA',    img: '/07_Dallas_ATT_Stadium.jpg' },
-  nrg:          { name: 'NRG Stadium',                 city: 'Houston',                  country: 'USA',    img: '/08_Houston_NRG_Stadium.jpg' },
-  linc:         { name: 'Lincoln Financial Field',     city: 'Philadelphia',             country: 'USA',    img: '/11_Philadelphia_Lincoln_Financial_Field.jpg' },
-  mercedesbenz: { name: 'Mercedes-Benz Stadium',       city: 'Atlanta',                  country: 'USA',    img: '/05_Atlanta_Mercedes-Benz_Stadium.jpg' },
-  lumen:        { name: 'Lumen Field',                 city: 'Seattle',                  country: 'USA',    img: '/10_Seattle_Lumen_Field.jpg' },
-  hardrock:     { name: 'Hard Rock Stadium',           city: 'Miami Gardens (Miami)',    country: 'USA',    img: '/13_Miami_Hard_Rock_Stadium.jpg' },
-  arrowhead:    { name: 'Arrowhead Stadium',           city: 'Kansas City',              country: 'USA',    img: '/06_Kansas_City_Arrowhead_Stadium.jpg' },
+  azteca:       { name: 'Estadio Azteca',              city: 'Mexico City',                country: 'Mexico', capacity: 87523, clubs: 'Club América · Cruz Azul',                              img: '/02_Mexico_City_Estadio_Azteca.jpg' },
+  akron:        { name: 'Estadio Akron',               city: 'Zapopan (Guadalajara)',      country: 'Mexico', capacity: 49850, clubs: 'Chivas de Guadalajara',                                 img: '/16_Guadalajara_Stadium.jpg' },
+  bbva:         { name: 'Estadio BBVA',                city: 'Monterrey',                  country: 'Mexico', capacity: 53500, clubs: 'CF Monterrey',                                          img: '/15_Monterrey_Estadio_BBVA.jpg' },
+  bmo:          { name: 'BMO Field',                   city: 'Toronto',                    country: 'Canada', capacity: 30000, clubs: 'Toronto FC',                                            img: '/01_Toronto_BMO_Field.jpg' },
+  bcplace:      { name: 'BC Place',                    city: 'Vancouver',                  country: 'Canada', capacity: 54500, clubs: 'Vancouver Whitecaps FC',                                img: '/14_Vancouver_BC_Place.jpg' },
+  sofi:         { name: 'SoFi Stadium',                city: 'Inglewood (Los Angeles)',    country: 'USA',    capacity: 70240, clubs: 'LA Rams · LA Chargers',                                 img: '/04_Los_Angeles_SoFi_Stadium.jpg' },
+  levis:        { name: "Levi's Stadium",              city: 'Santa Clara (San Francisco)',country: 'USA',    capacity: 68500, clubs: 'San Francisco 49ers',                                   img: '/09_San_Francisco_Levis_Stadium.jpg' },
+  metlife:      { name: 'MetLife Stadium',             city: 'East Rutherford (New York)', country: 'USA',    capacity: 82500, clubs: 'NY Giants · NY Jets',                                   img: '/03_New_York_MetLife_Stadium.jpg' },
+  gillette:     { name: 'Gillette Stadium',            city: 'Foxborough (Boston)',         country: 'USA',   capacity: 65878, clubs: 'New England Patriots · New England Revolution',         img: '/12_Boston_Gillette_Stadium.jpg' },
+  att:          { name: 'AT&T Stadium',                city: 'Arlington (Dallas)',          country: 'USA',   capacity: 80000, clubs: 'Dallas Cowboys',                                        img: '/07_Dallas_ATT_Stadium.jpg' },
+  nrg:          { name: 'NRG Stadium',                 city: 'Houston',                    country: 'USA',   capacity: 72220, clubs: 'Houston Texans',                                        img: '/08_Houston_NRG_Stadium.jpg' },
+  linc:         { name: 'Lincoln Financial Field',     city: 'Philadelphia',               country: 'USA',   capacity: 69796, clubs: 'Philadelphia Eagles',                                   img: '/11_Philadelphia_Lincoln_Financial_Field.jpg' },
+  mercedesbenz: { name: 'Mercedes-Benz Stadium',       city: 'Atlanta',                    country: 'USA',   capacity: 71000, clubs: 'Atlanta Falcons · Atlanta United FC',                   img: '/05_Atlanta_Mercedes-Benz_Stadium.jpg' },
+  lumen:        { name: 'Lumen Field',                 city: 'Seattle',                    country: 'USA',   capacity: 69000, clubs: 'Seattle Seahawks · Seattle Sounders FC',                img: '/10_Seattle_Lumen_Field.jpg' },
+  hardrock:     { name: 'Hard Rock Stadium',           city: 'Miami Gardens (Miami)',       country: 'USA',   capacity: 65326, clubs: 'Miami Dolphins',                                        img: '/13_Miami_Hard_Rock_Stadium.jpg' },
+  arrowhead:    { name: 'Arrowhead Stadium',           city: 'Kansas City',                country: 'USA',   capacity: 76416, clubs: 'Kansas City Chiefs',                                    img: '/06_Kansas_City_Arrowhead_Stadium.jpg' },
 };
 
 // All times in CEST (Central European Summer Time = ET + 6h)

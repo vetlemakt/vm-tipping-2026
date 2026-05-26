@@ -201,31 +201,175 @@ function AuthScreen({ onLogin }) {
   );
 }
 
-// ── Status Bar (bottom) ─────────────────────────────────────────────
-function StatusBar({ phase, isAdmin }) {
-  const [visible, setVisible] = useState(true);
-  const ws = winStatus(phase);
-  if (isAdmin || !visible) return null;
-  const isOpen = ws.open;
+// ── Deadline Bar (bottom) ────────────────────────────────────────────
+// Deadlines: 10 min before first match of each phase (CEST = UTC+2)
+const DEADLINES = [
+  {
+    key: 'group',
+    label: 'innlevering av gruppespillskamper, spesialtips og gruppeplassering',
+    shortLabel: 'Gruppespillet starter',
+    // First group match: A1, 2026-06-11 21:00 CEST = 19:00 UTC
+    deadline: new Date('2026-06-11T18:50:00Z'),
+    checkDone: (user) => {
+      const tips = user?.tips || {};
+      const grpO = user?.groupOrders || {};
+      const spec = user?.specialTips || {};
+      const allMatchesFilled = GROUP_MATCHES.every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
+      const allGroupsFilled = Object.keys(GROUPS).every(g => (grpO[g] || []).filter(Boolean).length === 4);
+      const allSpecFilled = SPEC_FIELDS.every(f => !!spec[f.key]);
+      return allMatchesFilled && allGroupsFilled && allSpecFilled;
+    },
+  },
+  {
+    key: 'r32',
+    label: '16-delsfinaler',
+    shortLabel: '16-delsfinalene starter',
+    // First r32 match: r32_1, 2026-06-28 21:00 CEST = 19:00 UTC
+    deadline: new Date('2026-06-28T18:50:00Z'),
+    checkDone: (user) => {
+      const tips = user?.tips || {};
+      return KNOCKOUT_MATCHES.filter(m => m.phase === 'r32').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
+    },
+  },
+  {
+    key: 'r16',
+    label: '8-delsfinaler',
+    shortLabel: '8-delsfinalene starter',
+    // First r16 match: r16_2, 2026-07-04 19:00 CEST = 17:00 UTC
+    deadline: new Date('2026-07-04T16:50:00Z'),
+    checkDone: (user) => {
+      const tips = user?.tips || {};
+      return KNOCKOUT_MATCHES.filter(m => m.phase === 'r16').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
+    },
+  },
+  {
+    key: 'qf',
+    label: 'kvartfinaler',
+    shortLabel: 'Kvartfinalene starter',
+    // First qf match: qf_1, 2026-07-09 22:00 CEST = 20:00 UTC
+    deadline: new Date('2026-07-09T19:50:00Z'),
+    checkDone: (user) => {
+      const tips = user?.tips || {};
+      return KNOCKOUT_MATCHES.filter(m => m.phase === 'qf').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
+    },
+  },
+  {
+    key: 'sf',
+    label: 'semifinaler',
+    shortLabel: 'Semifinalene starter',
+    // First sf match: sf_1, 2026-07-14 21:00 CEST = 19:00 UTC
+    deadline: new Date('2026-07-14T18:50:00Z'),
+    checkDone: (user) => {
+      const tips = user?.tips || {};
+      return KNOCKOUT_MATCHES.filter(m => m.phase === 'sf').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
+    },
+  },
+  {
+    key: 'finals',
+    label: 'finaler',
+    shortLabel: 'Finalene starter',
+    // Bronze: 2026-07-18 23:00 CEST = 21:00 UTC
+    deadline: new Date('2026-07-18T20:50:00Z'),
+    checkDone: (user) => {
+      const tips = user?.tips || {};
+      return KNOCKOUT_MATCHES.filter(m => m.phase === 'bronze' || m.phase === 'final').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
+    },
+  },
+];
+
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+function DeadlineBar({ user, isAdmin }) {
+  const [now, setNow] = useState(() => Date.now());
+  const [freshUser, setFreshUser] = useState(null);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('vm_deadline_dismissed') || '{}'); } catch { return {}; }
+  });
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Poll fresh user data every 60s for accurate completion check
+  useEffect(() => {
+    if (!user?.username || isAdmin) return;
+    const fetchUser = () => {
+      getUser(user.username).then(u => { if (u) setFreshUser(u); }).catch(() => {});
+    };
+    fetchUser();
+    const iv2 = setInterval(fetchUser, 60000);
+    return () => clearInterval(iv2);
+  }, [user?.username]); // eslint-disable-line
+
+  if (isAdmin) return null;
+
+  const checkUser = freshUser || user;
+
+  // Find the next upcoming deadline within 3 days that user hasn't completed
+  const activeDeadline = DEADLINES.find(dl => {
+    const dlMs = dl.deadline.getTime();
+    if (dlMs <= now) return false; // already passed
+    if (dlMs - now > THREE_DAYS_MS) return false; // too far away
+    if (dismissed[dl.key]) return false; // user dismissed
+    if (dl.checkDone(checkUser)) return false; // already done
+    return true;
+  });
+
+  if (!activeDeadline) return null;
+
+  const dlMs = activeDeadline.deadline.getTime();
+  const diffMs = dlMs - now;
+  const diffDays = Math.floor(diffMs / 86400000);
+  const diffHours = Math.floor((diffMs % 86400000) / 3600000);
+  const diffMins = Math.floor((diffMs % 3600000) / 60000);
+
+  let timeStr;
+  const isGroup = activeDeadline.key === 'group';
+  const underOneDayMs = 86400000;
+  if (diffMs >= underOneDayMs) {
+    // More than 24 hours left: show days
+    timeStr = isGroup
+      ? `${diffDays} dag${diffDays !== 1 ? 'er' : ''} til VM starter! ${diffHours} timer, ${diffMins} minutter til deadline for ${activeDeadline.label}!`
+      : `${diffDays} dag${diffDays !== 1 ? 'er' : ''} igjen til deadline for tips i ${activeDeadline.label}!`;
+  } else if (diffHours >= 1) {
+    // Under 24 hours: switch to hours + minutes for all phases
+    timeStr = isGroup
+      ? `${diffHours} time${diffHours !== 1 ? 'r' : ''}, ${diffMins} minutter til deadline for innlevering av gruppespillskamper, spesialtips og gruppeplassering! LYKKE TIL!`
+      : `${diffHours} time${diffHours !== 1 ? 'r' : ''} og ${diffMins} minutter til deadline for tips i ${activeDeadline.label}!`;
+  } else {
+    timeStr = isGroup
+      ? `${diffMins} minutt${diffMins !== 1 ? 'er' : ''} til deadline for innlevering av gruppespillskamper, spesialtips og gruppeplassering! LYKKE TIL! ⚠️`
+      : `${diffMins} minutt${diffMins !== 1 ? 'er' : ''} til deadline for tips i ${activeDeadline.label}! ⚠️`;
+  }
+
+  const dismiss = () => {
+    const next = { ...dismissed, [activeDeadline.key]: true };
+    setDismissed(next);
+    try { localStorage.setItem('vm_deadline_dismissed', JSON.stringify(next)); } catch {}
+  };
+
+  const urgent = diffMs < 3600000; // less than 1 hour
+
   return (
     <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: isOpen ? 'rgba(0,80,30,.92)' : 'rgba(100,20,20,.92)',
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 400,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: urgent ? 'rgba(120,30,10,.95)' : 'rgba(0,80,30,.92)',
       backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-      color: isOpen ? '#a0ffb8' : '#ffaaaa',
-      height: 32, fontSize: 12, fontWeight: 600, letterSpacing: 1,
-      borderTop: `1px solid ${isOpen ? 'rgba(100,255,150,.15)' : 'rgba(255,100,100,.15)'}`,
-      fontFamily: "'Inter',sans-serif",
+      color: urgent ? '#ffccaa' : '#a0ffb8',
+      height: 32, fontSize: 12, fontWeight: 600, letterSpacing: 0.5,
+      borderTop: `1px solid ${urgent ? 'rgba(255,120,80,.25)' : 'rgba(100,255,150,.15)'}`,
+      fontFamily: "'Kanit', sans-serif",
+      animation: urgent ? 'pulse 2s ease-in-out infinite' : 'none',
     }}>
-      {isOpen ? 'Åpent – lever dine tips!' : ws.label}
-      <button onClick={() => setVisible(false)} style={{
+      <span style={{ padding: '0 32px', textAlign: 'center' }}>⏳ {timeStr}</span>
+      <button onClick={dismiss} style={{
         position: 'absolute', right: 12,
         background: 'rgba(255,255,255,.15)', border: 'none',
         color: 'rgba(255,255,255,.6)', borderRadius: '50%',
         width: 18, height: 18, cursor: 'pointer', fontSize: 11,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'inherit',
       }}>×</button>
     </div>
   );
@@ -301,7 +445,7 @@ function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessa
                 );
               })}
               <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap:6, paddingBottom:8 }}>
-                <span style={{ fontSize:14, color:'#FFD700', fontFamily:"'Kanit',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>{user.displayName}</span>
+                <span style={{ fontSize:14, color:'#FFD700', fontFamily:"'Inter',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>{user.displayName}</span>
                 <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
               </div>
             </div>
@@ -312,50 +456,25 @@ function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessa
       {/* Info/countdown overlay – floats over banner, centered */}
       <VMCountdownBanner adminMessage={adminMessage} onAdminMessageClick={onAdminMessageClick} isMobile={isMobile} bannerH={bannerH} />
 
-      {/* Mobile dropdown – backdrop + right-aligned panel */}
+      {/* Mobile dropdown */}
       {isMobile && menuOpen && (
-        <>
-          {/* Backdrop – tap outside to close */}
-          <div
-            onClick={() => setMenuOpen(false)}
-            style={{ position:'fixed', inset:0, zIndex:99 }}
-          />
-          {/* Menu panel – anchored to right, width = auto/content */}
-          <div style={{
-            position:'absolute', top: bannerH, right:0,
-            minWidth:200, width:'auto',
-            background:'#01174C',
-            zIndex:100,
-            borderLeft:'2px solid rgba(255,215,0,.25)',
-            borderBottom:'2px solid rgba(255,215,0,.25)',
-            borderBottomLeftRadius:12,
-            boxShadow:'-8px 8px 24px rgba(0,0,0,.6)',
-          }}>
-            {nav.map(n => {
-              const color = NAV_COLORS[n.id] || '#FFD700';
-              const isOn = tab === n.id;
-              return (
-                <button key={n.id} onClick={() => { setTab(n.id); setMenuOpen(false); }}
-                  style={{
-                    display:'flex', alignItems:'center', gap:12,
-                    width:'100%', background: isOn?`${color}18`:'transparent',
-                    border:'none', borderLeft: isOn?`4px solid ${color}`:'4px solid transparent',
-                    color: isOn?color:'rgba(255,255,255,.85)',
-                    padding:'13px 20px', cursor:'pointer',
-                    fontFamily:"'Kanit', sans-serif", fontSize:16, fontWeight:600,
-                    textAlign:'left', whiteSpace:'nowrap',
-                  }}>
-                  {n.img ? <img src={n.img} alt={n.label} style={{width:22,height:22,objectFit:'contain'}}/> : <span style={{fontSize:18}}>{n.icon}</span>}
-                  {n.label}
-                </button>
-              );
-            })}
-            <div style={{ borderTop:'1px solid rgba(255,255,255,.1)', padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
-              <span style={{ color:'rgba(255,255,255,.6)', fontSize:14, fontFamily:"'Kanit',sans-serif", whiteSpace:'nowrap' }}>{user.displayName}</span>
-              <button style={{...C.btnLogout, fontFamily:"'Kanit',sans-serif"}} onClick={() => { onLogout(); setMenuOpen(false); }}>Logg ut</button>
-            </div>
+        <div style={{ position:'absolute', top: bannerH, right:0, left:0, background:'#01174C', zIndex:100, borderBottom:'2px solid rgba(255,215,0,.3)', boxShadow:'0 8px 24px rgba(0,0,0,.5)' }}>
+          {nav.map(n => {
+            const color = NAV_COLORS[n.id] || '#FFD700';
+            const isOn = tab === n.id;
+            return (
+              <button key={n.id} onClick={() => { setTab(n.id); setMenuOpen(false); }}
+                style={{ display:'flex', alignItems:'center', gap:12, width:'100%', background: isOn?`${color}18`:'transparent', border:'none', borderLeft: isOn?`4px solid ${color}`:'4px solid transparent', color: isOn?color:'rgba(255,255,255,.8)', padding:'14px 20px', cursor:'pointer', fontFamily:"'Inter',sans-serif", fontSize:16, fontWeight:600, textAlign:'left' }}>
+                {n.img ? <img src={n.img} alt={n.label} style={{width:22,height:22,objectFit:'contain'}}/> : <span style={{fontSize:18}}>{n.icon}</span>}
+                {n.label}
+              </button>
+            );
+          })}
+          <div style={{ borderTop:'1px solid rgba(255,255,255,.1)', padding:'12px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <span style={{ color:'rgba(255,255,255,.6)', fontSize:14 }}>{user.displayName}</span>
+            <button style={C.btnLogout} onClick={() => { onLogout(); setMenuOpen(false); }}>Logg ut</button>
           </div>
-        </>
+        </div>
       )}
       {/* Status stripe */}
     </div>
@@ -2148,18 +2267,31 @@ function renderPtsBadge(pts) {
 // ══════════════════════════════════════════════════════════════════════
 //  MATCH INFO POPUP
 // ══════════════════════════════════════════════════════════════════════
-function MatchInfoPopup({ match, onClose }) {
+function MatchInfoPopup({ match, onClose, anchorRef }) {
   const s = STADIUMS[match.stadium] || {};
   const fmtD = d => { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}.${m}.${y}`; };
+
+  // Position: try to show near the anchor element if provided
+  const [pos, setPos] = useState({ bottom: 28, left: 12 });
+  useEffect(() => {
+    if (anchorRef?.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const left = Math.min(rect.right + 8, window.innerWidth - 292);
+      const top = Math.max(rect.top - 10, 10);
+      setPos({ top, left, bottom: undefined });
+    }
+  }, []); // eslint-disable-line
+
   return createPortal(
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
       <div onClick={e => e.stopPropagation()} style={{
-        position:'fixed', zIndex:900, width:280,
-        bottom:28, left:12,
+        position:'fixed', zIndex:900, width:284,
+        bottom: pos.bottom, top: pos.top, left: pos.left,
         background:'rgba(13,18,48,.97)',
         border:'2px solid rgba(255,215,0,.3)', borderRadius:14,
         overflow:'hidden', boxShadow:'0 12px 40px rgba(0,0,0,.8)',
+        maxHeight: '80vh', overflowY: 'auto',
       }}>
         {s.img && <img src={s.img} alt={s.name} style={{ width:'100%', height:130, objectFit:'cover', display:'block' }} onError={e => e.target.style.display='none'} />}
         <div style={{ padding:'14px 16px' }}>
@@ -2172,9 +2304,11 @@ function MatchInfoPopup({ match, onClose }) {
               {match.away} <Flag team={match.away} />
             </span>
           </div>
-          <div style={{ fontSize:12, color:'rgba(255,255,255,.65)', lineHeight:1.9 }}>
+          <div style={{ fontSize:12, color:'rgba(255,255,255,.65)', lineHeight:2 }}>
             <div>📅 {fmtD(match.date)} · {match.time} CEST</div>
             {s.name && <div>🏟️ {s.name}</div>}
+            {s.capacity && <div style={{paddingLeft:20}}>👥 {s.capacity.toLocaleString('no')} tilskuerplasser</div>}
+            {s.clubs && <div style={{paddingLeft:20}}>🏠 {s.clubs}</div>}
             {s.city && <div>📍 {s.city}, {s.country}</div>}
             {match.group && <div>🔵 Gruppe {match.group}</div>}
           </div>
@@ -2305,7 +2439,7 @@ function TipsForm({ me, phase, viewUser }) {
     step(0);
   };
 
-  const pulseStyle = (id) => pulseId === id ? {
+  const pulseStyle = (id, isFilled = false) => (!isFilled && pulseId === id) ? {
     animation: 'fieldPulse 0.6s ease-out forwards',
     borderColor: 'rgba(255,215,0,.8)',
   } : {};
@@ -2433,7 +2567,7 @@ function TipsForm({ me, phase, viewUser }) {
                 <span style={{ ...C.ptsBadge, fontSize: isMobile ? 9 : 10, padding: isMobile ? '2px 4px' : '2px 6px', flexShrink: 0 }}>{pts}p</span>
                 {specOk ? (
                   key === 'topscorer' ? (
-                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0, borderRadius: 8, ...pulseStyle(`spec_${key}`) }}>
+                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0, borderRadius: 8, ...pulseStyle(`spec_${key}`, !!spec[key]) }}>
                     <PlayerAutocomplete
                       value={spec[key] || ''}
                       onChange={val => setSp(key, val)}
@@ -2442,7 +2576,7 @@ function TipsForm({ me, phase, viewUser }) {
                     />
                     </div>
                   ) : (
-                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0, borderRadius: 8, ...pulseStyle(`spec_${key}`) }}>
+                    <div style={{ width: isMobile ? 95 : 170, flexShrink: 0, borderRadius: 8, ...pulseStyle(`spec_${key}`, !!spec[key]) }}>
                       <TeamSelect
                         value={spec[key] || ''}
                         onChange={val => setSp(key, val)}
@@ -2604,15 +2738,37 @@ function TipsForm({ me, phase, viewUser }) {
                       }}>🤖 {ex?.firstName || 'Bot'}</span>
                     );
                   })()}
-                  {/* Date/info box */}
-                  <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
-                    style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
-                    onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.12)'}
-                    onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
-                    <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
-                    {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Inter',sans-serif"}}>{m.time}</span>}
-                    <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Inter',sans-serif"}}>Gruppe {m.group}</span>
-                  </div>
+                  {/* Date/info box – hover to show match info */}
+                  {(() => {
+                    const isFirstMatch = m.id === 'A1';
+                    const infoBoxRef = isFirstMatch ? { current: null } : null;
+                    const setRef = isFirstMatch ? (el => { if (infoBoxRef) infoBoxRef.current = el; }) : undefined;
+                    return (
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        {isFirstMatch && (
+                          <span style={{ fontSize: 9, color: '#FFD700', whiteSpace: 'nowrap', fontFamily: "'Kanit',sans-serif", fontWeight: 600, opacity: 0.85 }}>
+                            kampinfo her →
+                          </span>
+                        )}
+                        <div
+                          ref={setRef}
+                          onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
+                          onMouseEnter={e => { e.currentTarget.style.background='rgba(255,215,0,.15)'; setMatchPopup(m); }}
+                          onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,.05)'; }}
+                          style={{
+                            display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                            minWidth:48, background:'rgba(255,255,255,.05)',
+                            borderRadius:6, padding:'3px 5px', flexShrink:0, cursor:'pointer', transition:'background .15s',
+                            border: isFirstMatch ? '1px solid #FFD700' : '1px solid transparent',
+                            boxShadow: isFirstMatch ? '0 0 8px rgba(255,215,0,.35)' : 'none',
+                          }}>
+                          <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>
+                          {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Inter',sans-serif"}}>{m.time}</span>}
+                          <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Inter',sans-serif"}}>Gruppe {m.group}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {/* Home team – flex:1 so it pushes score box to center */}
                   <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-end',minWidth:0}}>
                     <span className="hide-portrait" style={{fontSize:12,color:'#e8edf8',textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.home}</span>
@@ -2751,11 +2907,12 @@ function TipsForm({ me, phase, viewUser }) {
                         }}>🤖 {ex?.firstName || 'Bot'}</span>
                       );
                     })()}
-                    {/* Info box */}
-                    <div onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
-                      style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s'}}
-                      onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.12)'}
-                      onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}>
+                    {/* Info box – hover to show match info */}
+                    <div
+                      onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
+                      onMouseEnter={e => { e.currentTarget.style.background='rgba(255,215,0,.15)'; setMatchPopup(m); }}
+                      onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,.05)'; }}
+                      style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:48,background:'rgba(255,255,255,.05)',borderRadius:6,padding:'3px 5px',flexShrink:0,cursor:'pointer',transition:'background .15s',border:'1px solid transparent'}}>
                       <span style={{fontSize:9,color:'rgba(255,255,255,.5)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>Kamp {m.matchNum}</span>
                       {m.date && <span style={{fontSize:9,color:'rgba(255,255,255,.7)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>{fmtDate(m.date)}</span>}
                       {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Inter',sans-serif"}}>{m.time}</span>}
@@ -4225,7 +4382,12 @@ const PHASE_MATCHES = {
   bronze_lock: KNOCKOUT_MATCHES.filter(m => m.phase === 'bronze' || m.phase === 'final').map(m => m.id),
 };
 
-// Kjøres når fase låser – fyller ut manglende tips for alle brukere med tilfeldig ekspert
+// Kjøres når fase låser – fyller ut manglende tips med sticky ekspert-tildeling.
+// Regler:
+//  • Brukeren beholder sin tildelte ekspert (u.assignedExpert) på tvers av faser.
+//  • Ved første tildeling velges eksperten round-robin basert på totalt antall brukere
+//    som allerede har fått tildelt eksperten (minst-brukte-ekspert prinsipp).
+//  • Innen en gruppe eksperter er utbrukt (alle tildelt ≥ N brukere), starter man på nytt.
 async function autoFillMissingTips(lockPhase) {
   const matchIds = PHASE_MATCHES[lockPhase];
   if (!matchIds || matchIds.length === 0) return;
@@ -4233,54 +4395,98 @@ async function autoFillMissingTips(lockPhase) {
   const users = await getAllUsers();
   const realUsers = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
 
+  // Build assignment counts to find least-used expert for new assignments
+  const assignCounts = {};
+  PANEL_EXPERTS.forEach(e => { assignCounts[e.id] = 0; });
+  realUsers.forEach(u => {
+    if (u.assignedExpert && assignCounts[u.assignedExpert] !== undefined) {
+      assignCounts[u.assignedExpert]++;
+    }
+  });
+
   for (const u of realUsers) {
     // Sjekk om brukeren mangler noen av kampene i denne fasen
     const missing = matchIds.filter(id => {
       const t = u.tips?.[id];
       return t?.home === undefined || t?.away === undefined;
     });
-    if (missing.length === 0) continue;
 
-    // Velg tilfeldig ekspert
-    const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+    // Also check group orders and spec tips for group_lock
+    const missingGroups = lockPhase === 'group_lock'
+      ? Object.keys(GROUPS).filter(g => (u.groupOrders?.[g] || []).filter(Boolean).length < 4)
+      : [];
+    const missingSpec = lockPhase === 'group_lock'
+      ? SPEC_FIELDS.filter(f => !u.specialTips?.[f.key])
+      : [];
+
+    if (missing.length === 0 && missingGroups.length === 0 && missingSpec.length === 0) continue;
+
+    // Determine expert: sticky (same as before) or assign new (least-used)
+    let expertId = u.assignedExpert;
+    if (!expertId || !PANEL_EXPERTS.find(e => e.id === expertId)) {
+      // Find least-used expert
+      const minCount = Math.min(...Object.values(assignCounts));
+      const candidates = PANEL_EXPERTS.filter(e => assignCounts[e.id] === minCount);
+      const picked = candidates[Math.floor(Math.random() * candidates.length)];
+      expertId = picked.id;
+      assignCounts[expertId]++;
+    }
+
+    const expert = PANEL_EXPERTS.find(e => e.id === expertId);
+    if (!expert) continue;
     const botUser = await getUser('panel_' + expert.id);
-    if (!botUser?.tips) continue;
+    if (!botUser) continue;
 
-    // Kopier bare de manglende kampene fra boten
+    // Copy missing match tips from bot
     const newTips = { ...(u.tips || {}) };
     const filledBy = { ...(u.botFilledMatches || {}) };
     missing.forEach(id => {
-      const botTip = botUser.tips[id];
+      const botTip = botUser.tips?.[id];
       if (botTip?.home !== undefined && botTip?.away !== undefined) {
         newTips[id] = { home: botTip.home, away: botTip.away };
         filledBy[id] = expert.id;
       }
     });
 
-    // Gruppe-ordre: fyll også hvis gruppe_lock og mangler
-    let newGrpO = u.groupOrders || {};
-    if (lockPhase === 'group_lock' && botUser.groupOrders) {
-      const missingGroups = Object.keys(botUser.groupOrders).filter(g => {
-        const o = u.groupOrders?.[g] || [];
-        return o.filter(Boolean).length < 4;
+    // Fill group orders from bot
+    let newGrpO = { ...(u.groupOrders || {}) };
+    if (missingGroups.length > 0 && botUser.groupOrders) {
+      missingGroups.forEach(g => {
+        if (botUser.groupOrders[g]) {
+          newGrpO[g] = botUser.groupOrders[g];
+          filledBy[`grp_${g}`] = expert.id;
+        }
       });
-      if (missingGroups.length > 0) {
-        newGrpO = { ...newGrpO };
-        missingGroups.forEach(g => {
-          if (!newGrpO[g] || newGrpO[g].filter(Boolean).length < 4) {
-            newGrpO[g] = botUser.groupOrders[g];
-            filledBy[`grp_${g}`] = expert.id;
+    }
+
+    // Fill spec tips from bot – except topscorer (random player from ALL_TEAMS instead)
+    let newSpec = { ...(u.specialTips || {}) };
+    if (missingSpec.length > 0) {
+      missingSpec.forEach(f => {
+        if (f.key === 'topscorer') {
+          // Random player from squads
+          const allSquadTeams = Object.values(GROUPS).flat();
+          const randomTeam = allSquadTeams[Math.floor(Math.random() * allSquadTeams.length)];
+          newSpec[f.key] = randomTeam; // fallback: random team as topscorer country placeholder
+          // Ideally would pick from squads, but spec stores team for country-based and name for topscorer
+          // Use bot's topscorer if available
+          if (botUser.specialTips?.[f.key]) newSpec[f.key] = botUser.specialTips[f.key];
+        } else {
+          if (botUser.specialTips?.[f.key]) {
+            newSpec[f.key] = botUser.specialTips[f.key];
+            filledBy[`spec_${f.key}`] = expert.id;
           }
-        });
-      }
+        }
+      });
     }
 
     await updateUser(u.id, {
       tips: newTips,
       groupOrders: newGrpO,
+      specialTips: newSpec,
       botFilledMatches: filledBy,
-      // Sett botSource kun hvis brukeren ikke hadde noen egne tips i det hele tatt
-      ...(!u.botSource && Object.keys(newTips).length === missing.length ? { botSource: expert.id } : {}),
+      assignedExpert: expertId,
+      botSource: u.botSource || expertId,
     });
   }
 }
@@ -4397,9 +4603,12 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
     const update = () => {
       const diff = VM_START - Date.now();
       if (diff <= 0) { setCountdownLabel(''); return; }
-      const hours = diff / 3600000;
-      if (hours <= 100) setCountdownLabel(`${Math.ceil(hours)} timer til VM starter!`);
-      else setCountdownLabel(`${Math.ceil(diff / 86400000)} dager til VM starter!`);
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      if (days >= 1) setCountdownLabel(`${days} dag${days !== 1 ? 'er' : ''} til VM starter!`);
+      else if (hours >= 1) setCountdownLabel(`${hours} time${hours !== 1 ? 'r' : ''} og ${mins} min til kickoff!`);
+      else setCountdownLabel(`${mins} minutt${mins !== 1 ? 'er' : ''} til VM starter! ⚽`);
     };
     update();
     const iv = setInterval(update, 60000);
@@ -4617,15 +4826,10 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
   });
-  const [tab, setTab] = useState(() => {
-    try {
-      return localStorage.getItem('vm_tab') || 'dashboard';
-    } catch { return 'dashboard'; }
-  });
+  const [tab, setTab] = useState('dashboard');
 
   // Browser back/forward navigation
   const setTabWithHistory = useCallback((newTab) => {
-    try { localStorage.setItem('vm_tab', newTab); } catch {}
     window.history.pushState({ tab: newTab }, '', '');
     setTab(newTab);
   }, []);
@@ -4633,13 +4837,11 @@ export default function App() {
   useEffect(() => {
     const onPop = (e) => {
       const t = e.state?.tab || 'dashboard';
-      try { localStorage.setItem('vm_tab', t); } catch {}
       setTab(t);
     };
     window.addEventListener('popstate', onPop);
     // Set initial history entry
-    const initialTab = (() => { try { return localStorage.getItem('vm_tab') || 'dashboard'; } catch { return 'dashboard'; } })();
-    window.history.replaceState({ tab: initialTab }, '', '');
+    window.history.replaceState({ tab: 'dashboard' }, '', '');
     return () => window.removeEventListener('popstate', onPop);
   }, []);
   const [phase, setPhaseState] = useState('pre');
@@ -4678,8 +4880,8 @@ export default function App() {
     setTab('dashboard');
   };
   const handleLogout = () => {
-    try { localStorage.removeItem('vm_user'); localStorage.removeItem('vm_tab'); } catch {}
-    setUser(null); setTab('dashboard');
+    try { localStorage.removeItem('vm_user'); } catch {}
+    setUser(null);
   };
 
   useEffect(() => {
@@ -4733,7 +4935,7 @@ export default function App() {
         VM-tipping 2026 · <a href="https://heiarosenb.org" style={{ color:'rgba(255,255,255,.25)', textDecoration:'none' }}>HeiaRosenb.org</a>
         {' '}© 2026 Vetle Baden Skatvoldsmyr · Ønsker du å bruke koden så spør :)
       </div>
-      {tab !== 'tips' && <StatusBar phase={phase} isAdmin={user.isAdmin} />}
+      <DeadlineBar user={user} isAdmin={user.isAdmin} />
       <YouTubePlayer />
       {showMsgPopup && <AdminMessagePopup message={adminMessage} onClose={() => setShowMsgPopup(false)} />}
     </div>
