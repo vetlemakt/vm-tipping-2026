@@ -4618,10 +4618,21 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   }, []);
 
   // Lytt på live-hendelser fra Cloud Function via Firestore
+  const prevEventRef = useRef(null);
   useEffect(() => {
     const unsub = subscribeLiveEvent(ev => {
-      if (ev?.type) setLiveEvent(ev);
-      else setLiveEvent(null);
+      if (ev?.type) {
+        // Fire confetti on NEW goal events (not on re-renders of same event)
+        const evKey = ev.type + (ev.text || '');
+        if (ev.type === 'goal' && evKey !== prevEventRef.current) {
+          prevEventRef.current = evKey;
+          // Small delay so the banner appears first, then confetti celebrates
+          setTimeout(() => fireGoalConfetti(3), 400);
+        }
+        setLiveEvent(ev);
+      } else {
+        setLiveEvent(null);
+      }
     });
     return unsub;
   }, []);
@@ -4824,44 +4835,47 @@ async function fetchFinishedMatch() {
 // ══════════════════════════════════════════════════════════════════════
 //  PODIUM POPUP – vises på /podium eller etter VM er ferdig
 // ══════════════════════════════════════════════════════════════════════
-function useConfetti(active) {
-  useEffect(() => {
-    if (!active) return;
-    const canvas = document.getElementById('vm-confetti-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+// Fires a confetti burst on both canvas layers (back=behind popup, front=above popup)
+function fireConfettiBurst(backCanvas, frontCanvas) {
+  const COLORS = ['#FFD700','#FFD700','#FFD700','#f59e0b','#fbbf24','#01174C','#ffffff','#4ade80'];
+  const W = backCanvas.width, H = backCanvas.height;
 
-    // VM logo colors: gold, dark blue, white, green accents
-    const COLORS = ['#FFD700','#FFD700','#FFD700','#01174C','#ffffff','#4ade80','#fbbf24','#f59e0b'];
+  // Random horizontal spread centre for this burst (25–75% of width)
+  const cx = W * (0.25 + Math.random() * 0.5);
 
-    const particles = Array.from({ length: 160 }, () => ({
-      x: Math.random() * canvas.width,
-      y: canvas.height + Math.random() * 200,           // start below bottom (burst from behind popup)
-      vx: (Math.random() - 0.5) * 6,
-      vy: -(Math.random() * 14 + 6),                    // shoot upward
-      gravity: 0.22,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      w: Math.random() * 9 + 5,
-      h: Math.random() * 5 + 3,
-      angle: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 0.2,
-      opacity: 1,
-      zIndex: Math.random() > 0.5 ? 'front' : 'back',  // half in front, half behind popup
-    }));
+  const makeParticle = (layer) => ({
+    x: cx + (Math.random() - 0.5) * W * 0.55,
+    y: H + Math.random() * 120,
+    vx: (Math.random() - 0.5) * (layer === 'back' ? 7 : 5),
+    vy: -(Math.random() * (layer === 'back' ? 15 : 11) + 5),
+    gravity: layer === 'back' ? 0.23 : 0.19,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    w: Math.random() * 9 + 5,
+    h: Math.random() * 5 + 3,
+    angle: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.22,
+    opacity: 1,
+    fade: 0.003 + Math.random() * 0.003,
+  });
 
-    let raf;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let allDone = true;
-      particles.forEach(p => {
-        p.vy += p.gravity;
-        p.x  += p.vx;
-        p.y  += p.vy;
+  const back  = Array.from({ length: 110 }, () => makeParticle('back'));
+  const front = Array.from({ length: 60  }, () => makeParticle('front'));
+
+  const ctxB = backCanvas.getContext('2d');
+  const ctxF = frontCanvas.getContext('2d');
+
+  let raf;
+  const draw = () => {
+    ctxB.clearRect(0, 0, W, H);
+    ctxF.clearRect(0, 0, W, H);
+    let anyAlive = false;
+
+    [{ ctx: ctxB, parts: back }, { ctx: ctxF, parts: front }].forEach(({ ctx, parts }) => {
+      parts.forEach(p => {
+        p.vy += p.gravity; p.x += p.vx; p.y += p.vy;
         p.angle += p.spin;
-        p.opacity = Math.max(0, p.opacity - 0.004);
-        if (p.y < canvas.height + 50) allDone = false;
+        p.opacity = Math.max(0, p.opacity - p.fade);
+        if (p.opacity > 0) anyAlive = true;
         ctx.save();
         ctx.globalAlpha = p.opacity;
         ctx.translate(p.x, p.y);
@@ -4870,13 +4884,62 @@ function useConfetti(active) {
         ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
         ctx.restore();
       });
-      if (!allDone) raf = requestAnimationFrame(draw);
-    };
-    draw();
+    });
 
-    const onResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    window.addEventListener('resize', onResize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
+    if (anyAlive) raf = requestAnimationFrame(draw);
+    else { ctxB.clearRect(0, 0, W, H); ctxF.clearRect(0, 0, W, H); }
+  };
+  draw();
+  return () => cancelAnimationFrame(raf);
+}
+
+// Fire N confetti bursts on the permanent goal canvases (used on goals)
+function fireGoalConfetti(bursts = 3) {
+  const back  = document.getElementById('vm-goal-confetti-back');
+  const front = document.getElementById('vm-goal-confetti-front');
+  if (!back || !front) return;
+
+  back.width  = front.width  = window.innerWidth;
+  back.height = front.height = window.innerHeight;
+
+  // Randomised delays for 3 bursts spread across ~4 s
+  const gaps = [0, 1200 + Math.random() * 600, 2800 + Math.random() * 800];
+  gaps.slice(0, bursts).forEach(delay => {
+    setTimeout(() => fireConfettiBurst(back, front), delay);
+  });
+}
+
+function useConfetti(active) {
+  useEffect(() => {
+    if (!active) return;
+
+    const back  = document.getElementById('vm-confetti-canvas');
+    const front = document.getElementById('vm-confetti-front');
+    if (!back || !front) return;
+
+    const resize = () => {
+      back.width  = front.width  = window.innerWidth;
+      back.height = front.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    // 10 bursts over 20 s with randomised delays (not evenly spaced)
+    // Gaps: roughly 0–3 s each, summing to ~20 s total
+    const gaps = [0, 1400, 2600, 3200, 4800, 6100, 7500, 9300, 11200, 14800];
+    const cancels = [];
+    const timeouts = gaps.map((delay, i) => setTimeout(() => {
+      const cancel = fireConfettiBurst(back, front);
+      cancels.push(cancel);
+    }, delay));
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      timeouts.forEach(clearTimeout);
+      cancels.forEach(fn => fn && fn());
+      back.getContext('2d').clearRect(0, 0, back.width, back.height);
+      front.getContext('2d').clearRect(0, 0, front.width, front.height);
+    };
   }, [active]);
 }
 
@@ -4934,8 +4997,7 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
           position: 'relative',
           width: '100%', maxWidth: IMG_W,
           borderRadius: 16,
-          boxShadow: '0 0 60px rgba(255,215,0,.4), 0 24px 80px rgba(0,0,0,.8)',
-          border: '2px solid rgba(255,215,0,.5)',
+          boxShadow: '0 8px 40px rgba(0,0,0,.8)',
           overflow: 'hidden',
           zIndex: 2000,
         }}>
@@ -4950,33 +5012,33 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
             }}
           />
 
-          {/* Name overlays – positioned as % of image, font scaled to rendered size */}
+          {/* Name labels – centred on the original box midpoint, black pill with white border */}
           {BOXES.map(({ name, x1, y1, x2, y2 }, i) => {
-            const boxH_px = (y2 - y1) * scale; // rendered height of the box in px
-            // Font fills ~75% of box height, clamped to look good
-            const fontSize = Math.max(6, Math.min(boxH_px * 0.75, 13));
+            // Centre of the name box in image-space
+            const cx = (x1 + x2) / 2;
+            const cy = (y1 + y2) / 2;
+            const boxH_px = (y2 - y1) * scale;
+            const fontSize = Math.max(7, Math.min(boxH_px * 0.78, 13));
             return (
               <div key={i} style={{
                 position: 'absolute',
-                left:   `${(x1 / IMG_W) * 100}%`,
-                top:    `${(y1 / IMG_H) * 100}%`,
-                width:  `${((x2 - x1) / IMG_W) * 100}%`,
-                height: `${((y2 - y1) / IMG_H) * 100}%`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                overflow: 'hidden',
+                left: `${(cx / IMG_W) * 100}%`,
+                top:  `${(cy / IMG_H) * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0,0,0,0.82)',
+                border: '1.5px solid #ffffff',
+                borderRadius: 4,
+                padding: '2px 7px',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
               }}>
                 <span style={{
                   color: '#ffffff',
                   fontFamily: "'Kanit', sans-serif",
                   fontWeight: 700,
                   fontSize,
-                  textAlign: 'center',
                   lineHeight: 1,
-                  textShadow: '0 1px 3px rgba(0,0,0,.8)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '100%',
+                  display: 'block',
                 }}>
                   {name}
                 </span>
@@ -5015,48 +5077,7 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
 }
 
 // Runs front-layer confetti on the second canvas
-function FrontConfetti() {
-  useEffect(() => {
-    const canvas = document.getElementById('vm-confetti-front');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const COLORS = ['#FFD700','#FFD700','#f59e0b','#ffffff','#4ade80'];
-    const particles = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: canvas.height + Math.random() * 100,
-      vx: (Math.random() - 0.5) * 4,
-      vy: -(Math.random() * 10 + 4),
-      gravity: 0.18,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      w: Math.random() * 8 + 4,
-      h: Math.random() * 4 + 2,
-      angle: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 0.15,
-      opacity: 1,
-    }));
-    let raf;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let allDone = true;
-      particles.forEach(p => {
-        p.vy += p.gravity; p.x += p.vx; p.y += p.vy;
-        p.angle += p.spin; p.opacity = Math.max(0, p.opacity - 0.005);
-        if (p.y < canvas.height + 50) allDone = false;
-        ctx.save(); ctx.globalAlpha = p.opacity;
-        ctx.translate(p.x, p.y); ctx.rotate(p.angle);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-        ctx.restore();
-      });
-      if (!allDone) raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return null;
-}
+
 
 // ══════════════════════════════════════════════════════════════════════
 export default function App() {
@@ -5195,9 +5216,11 @@ export default function App() {
         {' '}© 2026 Vetle Baden Skatvoldsmyr · Ønsker du å bruke koden så spør :)
       </div>
       <DeadlineBar user={user} isAdmin={user.isAdmin} />
+      {/* Permanent goal-confetti canvases – always in DOM so goal bursts work on any page */}
+      <canvas id="vm-goal-confetti-back"  style={{ position:'fixed', inset:0, zIndex:9998, pointerEvents:'none', width:'100%', height:'100%' }} />
+      <canvas id="vm-goal-confetti-front" style={{ position:'fixed', inset:0, zIndex:9999, pointerEvents:'none', width:'100%', height:'100%' }} />
       {podiumMode && !podiumDismissed && (
         <>
-          <FrontConfetti />
           <PodiumPopup
             gold={podiumPlayers.gold}
             silver={podiumPlayers.silver}
