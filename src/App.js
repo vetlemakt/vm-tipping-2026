@@ -1364,7 +1364,9 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
 
   const handleSelect = (val) => {
     onChange(val);
-    setOpen(false);
+    // Delay closing so Android ghost-click is absorbed by the backdrop
+    // before the portal unmounts and exposes elements behind it
+    setTimeout(() => setOpen(false), 50);
   };
 
   const flagUrl = (team) => {
@@ -1388,7 +1390,12 @@ function TeamSelect({ value, onChange, teams, dimmed = [], compact = false }) {
 
   const dropdown = open ? createPortal(
     <>
-    <div onClick={() => setOpen(false)} onTouchEnd={() => setOpen(false)} style={{ position:'fixed', inset:0, zIndex:99998, cursor:'pointer' }} />
+    <div
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(false); }}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(false); }}
+      style={{ position:'fixed', inset:0, zIndex:99998, cursor:'pointer' }}
+    />
     <div ref={portalRef} style={{
       position: 'fixed',
       top: coords.openUp ? undefined : coords.top,
