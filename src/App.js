@@ -5193,7 +5193,9 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
   });
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState(() => {
+    try { return localStorage.getItem('vm_tab') || 'dashboard'; } catch { return 'dashboard'; }
+  });
   const podiumMode = window.location.pathname === '/podium';
   const [podiumDismissed, setPodiumDismissed] = useState(false);
   const [podiumPlayers, setPodiumPlayers] = useState({ gold: '', silver: '', bronze: '' });
@@ -5216,6 +5218,7 @@ export default function App() {
 
   // Browser back/forward navigation
   const setTabWithHistory = useCallback((newTab) => {
+    try { localStorage.setItem('vm_tab', newTab); } catch {}
     window.history.pushState({ tab: newTab }, '', '');
     setTab(newTab);
   }, []);
@@ -5223,11 +5226,13 @@ export default function App() {
   useEffect(() => {
     const onPop = (e) => {
       const t = e.state?.tab || 'dashboard';
+      try { localStorage.setItem('vm_tab', t); } catch {}
       setTab(t);
     };
     window.addEventListener('popstate', onPop);
-    // Set initial history entry
-    window.history.replaceState({ tab: 'dashboard' }, '', '');
+    // Set initial history entry with the restored tab
+    const initialTab = (() => { try { return localStorage.getItem('vm_tab') || 'dashboard'; } catch { return 'dashboard'; } })();
+    window.history.replaceState({ tab: initialTab }, '', '');
     return () => window.removeEventListener('popstate', onPop);
   }, []);
   const [phase, setPhaseState] = useState('pre');
@@ -5266,8 +5271,9 @@ export default function App() {
     setTab('dashboard');
   };
   const handleLogout = () => {
-    try { localStorage.removeItem('vm_user'); } catch {}
+    try { localStorage.removeItem('vm_user'); localStorage.removeItem('vm_tab'); } catch {}
     setUser(null);
+    setTab('dashboard');
   };
 
   useEffect(() => {
