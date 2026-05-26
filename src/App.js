@@ -301,7 +301,7 @@ function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessa
                 );
               })}
               <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap:6, paddingBottom:8 }}>
-                <span style={{ fontSize:14, color:'#FFD700', fontFamily:"'Inter',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>{user.displayName}</span>
+                <span style={{ fontSize:14, color:'#FFD700', fontFamily:"'Kanit',sans-serif", fontWeight:700, letterSpacing:0.5, textAlign:'center' }}>{user.displayName}</span>
                 <button style={C.btnLogout} onClick={onLogout}>Logg ut</button>
               </div>
             </div>
@@ -312,25 +312,50 @@ function Banner({ user, tab, setTab, phase, onLogout, adminMessage, onAdminMessa
       {/* Info/countdown overlay – floats over banner, centered */}
       <VMCountdownBanner adminMessage={adminMessage} onAdminMessageClick={onAdminMessageClick} isMobile={isMobile} bannerH={bannerH} />
 
-      {/* Mobile dropdown */}
+      {/* Mobile dropdown – backdrop + right-aligned panel */}
       {isMobile && menuOpen && (
-        <div style={{ position:'absolute', top: bannerH, right:0, left:0, background:'#01174C', zIndex:100, borderBottom:'2px solid rgba(255,215,0,.3)', boxShadow:'0 8px 24px rgba(0,0,0,.5)' }}>
-          {nav.map(n => {
-            const color = NAV_COLORS[n.id] || '#FFD700';
-            const isOn = tab === n.id;
-            return (
-              <button key={n.id} onClick={() => { setTab(n.id); setMenuOpen(false); }}
-                style={{ display:'flex', alignItems:'center', gap:12, width:'100%', background: isOn?`${color}18`:'transparent', border:'none', borderLeft: isOn?`4px solid ${color}`:'4px solid transparent', color: isOn?color:'rgba(255,255,255,.8)', padding:'14px 20px', cursor:'pointer', fontFamily:"'Inter',sans-serif", fontSize:16, fontWeight:600, textAlign:'left' }}>
-                {n.img ? <img src={n.img} alt={n.label} style={{width:22,height:22,objectFit:'contain'}}/> : <span style={{fontSize:18}}>{n.icon}</span>}
-                {n.label}
-              </button>
-            );
-          })}
-          <div style={{ borderTop:'1px solid rgba(255,255,255,.1)', padding:'12px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <span style={{ color:'rgba(255,255,255,.6)', fontSize:14 }}>{user.displayName}</span>
-            <button style={C.btnLogout} onClick={() => { onLogout(); setMenuOpen(false); }}>Logg ut</button>
+        <>
+          {/* Backdrop – tap outside to close */}
+          <div
+            onClick={() => setMenuOpen(false)}
+            style={{ position:'fixed', inset:0, zIndex:99 }}
+          />
+          {/* Menu panel – anchored to right, width = auto/content */}
+          <div style={{
+            position:'absolute', top: bannerH, right:0,
+            minWidth:200, width:'auto',
+            background:'#01174C',
+            zIndex:100,
+            borderLeft:'2px solid rgba(255,215,0,.25)',
+            borderBottom:'2px solid rgba(255,215,0,.25)',
+            borderBottomLeftRadius:12,
+            boxShadow:'-8px 8px 24px rgba(0,0,0,.6)',
+          }}>
+            {nav.map(n => {
+              const color = NAV_COLORS[n.id] || '#FFD700';
+              const isOn = tab === n.id;
+              return (
+                <button key={n.id} onClick={() => { setTab(n.id); setMenuOpen(false); }}
+                  style={{
+                    display:'flex', alignItems:'center', gap:12,
+                    width:'100%', background: isOn?`${color}18`:'transparent',
+                    border:'none', borderLeft: isOn?`4px solid ${color}`:'4px solid transparent',
+                    color: isOn?color:'rgba(255,255,255,.85)',
+                    padding:'13px 20px', cursor:'pointer',
+                    fontFamily:"'Kanit', sans-serif", fontSize:16, fontWeight:600,
+                    textAlign:'left', whiteSpace:'nowrap',
+                  }}>
+                  {n.img ? <img src={n.img} alt={n.label} style={{width:22,height:22,objectFit:'contain'}}/> : <span style={{fontSize:18}}>{n.icon}</span>}
+                  {n.label}
+                </button>
+              );
+            })}
+            <div style={{ borderTop:'1px solid rgba(255,255,255,.1)', padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+              <span style={{ color:'rgba(255,255,255,.6)', fontSize:14, fontFamily:"'Kanit',sans-serif", whiteSpace:'nowrap' }}>{user.displayName}</span>
+              <button style={{...C.btnLogout, fontFamily:"'Kanit',sans-serif"}} onClick={() => { onLogout(); setMenuOpen(false); }}>Logg ut</button>
+            </div>
           </div>
-        </div>
+        </>
       )}
       {/* Status stripe */}
     </div>
@@ -4592,10 +4617,15 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
   });
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState(() => {
+    try {
+      return localStorage.getItem('vm_tab') || 'dashboard';
+    } catch { return 'dashboard'; }
+  });
 
   // Browser back/forward navigation
   const setTabWithHistory = useCallback((newTab) => {
+    try { localStorage.setItem('vm_tab', newTab); } catch {}
     window.history.pushState({ tab: newTab }, '', '');
     setTab(newTab);
   }, []);
@@ -4603,11 +4633,13 @@ export default function App() {
   useEffect(() => {
     const onPop = (e) => {
       const t = e.state?.tab || 'dashboard';
+      try { localStorage.setItem('vm_tab', t); } catch {}
       setTab(t);
     };
     window.addEventListener('popstate', onPop);
     // Set initial history entry
-    window.history.replaceState({ tab: 'dashboard' }, '', '');
+    const initialTab = (() => { try { return localStorage.getItem('vm_tab') || 'dashboard'; } catch { return 'dashboard'; } })();
+    window.history.replaceState({ tab: initialTab }, '', '');
     return () => window.removeEventListener('popstate', onPop);
   }, []);
   const [phase, setPhaseState] = useState('pre');
@@ -4646,8 +4678,8 @@ export default function App() {
     setTab('dashboard');
   };
   const handleLogout = () => {
-    try { localStorage.removeItem('vm_user'); } catch {}
-    setUser(null);
+    try { localStorage.removeItem('vm_user'); localStorage.removeItem('vm_tab'); } catch {}
+    setUser(null); setTab('dashboard');
   };
 
   useEffect(() => {

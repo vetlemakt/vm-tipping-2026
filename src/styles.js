@@ -101,7 +101,7 @@ export const C = {
     padding: '5px 14px',
     cursor: 'pointer',
     fontSize: 12,
-    fontFamily: 'inherit',
+    fontFamily: "'Kanit',sans-serif",
     letterSpacing: .5,
   },
 
@@ -311,7 +311,7 @@ export const C = {
     lineHeight: 1.5,
     color: '#e8edf8',
   },
-  chatUser: { fontSize: 10, color: '#FFD700', fontFamily: "'Fira Code',monospace", whiteSpace: 'nowrap' },
+  chatUser: { fontSize: 10, color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 600, whiteSpace: 'nowrap' },
   chatTime: { fontSize: 9, color: 'rgba(255,255,255,.4)', fontFamily: "'Fira Code',monospace", whiteSpace: 'nowrap' },
   chatInputRow: {
     display: 'flex',
@@ -544,6 +544,7 @@ export const C = {
   infoBox: {
     background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)',
     borderRadius: 12, padding: 20, marginTop: 8,
+    fontFamily: "'Kanit',sans-serif",
   },
 
   // ── Score boxes ────────────────────────────────────────────
