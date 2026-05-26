@@ -280,6 +280,70 @@ const DEADLINES = [
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
+// Renders deadline text: on narrow screens scrolls longText 3× then shows shortText.
+// On wide screens (text fits) just shows longText statically.
+function DeadlineBarText({ longText, shortText, textColor }) {
+  const containerRef = useRef(null);
+  const textRef = useRef(null);
+  const [mode, setMode] = useState('static'); // 'static' | 'scroll' | 'short'
+  const [scrollCount, setScrollCount] = useState(0);
+
+  useEffect(() => {
+    const check = () => {
+      const container = containerRef.current;
+      const text = textRef.current;
+      if (!container || !text) return;
+      const overflows = text.scrollWidth > container.clientWidth;
+      if (overflows && mode === 'static') setMode('scroll');
+      else if (!overflows && mode === 'static') setMode('static');
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [longText]); // eslint-disable-line
+
+  // After each scroll animation ends, count it; after 3× switch to shortText
+  const handleAnimEnd = () => {
+    const next = scrollCount + 1;
+    if (next >= 3) { setMode('short'); }
+    else { setScrollCount(next); }
+  };
+
+  const scrollDuration = Math.max(8, Math.round(longText.length * 0.085));
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ flex: 1, overflow: 'hidden', height: '100%', display: 'flex', alignItems: 'center', minWidth: 0 }}
+    >
+      {mode === 'static' && (
+        <span ref={textRef} style={{ padding: '0 32px', whiteSpace: 'nowrap', textAlign: 'center', width: '100%' }}>
+          {longText}
+        </span>
+      )}
+      {mode === 'scroll' && (
+        <span
+          key={scrollCount}
+          onAnimationEnd={handleAnimEnd}
+          style={{
+            display: 'inline-block',
+            whiteSpace: 'nowrap',
+            paddingLeft: '100%',
+            animation: `tickerScroll ${scrollDuration}s linear forwards`,
+          }}
+        >
+          {longText}
+        </span>
+      )}
+      {mode === 'short' && (
+        <span style={{ padding: '0 32px', whiteSpace: 'nowrap', textAlign: 'center', width: '100%' }}>
+          {shortText}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function DeadlineBar({ user, isAdmin }) {
   const [now, setNow] = useState(() => Date.now());
   const [freshUser, setFreshUser] = useState(null);
@@ -325,25 +389,34 @@ function DeadlineBar({ user, isAdmin }) {
   const diffDays = Math.floor(diffMs / 86400000);
   const diffHours = Math.floor((diffMs % 86400000) / 3600000);
   const diffMins = Math.floor((diffMs % 3600000) / 60000);
+  // Total hours remaining (not capped at 24) for the "X timer Y minutter" form
+  const totalHours = Math.floor(diffMs / 3600000);
 
-  let timeStr;
   const isGroup = activeDeadline.key === 'group';
   const underOneDayMs = 86400000;
+
+  // Long text shown on wide screens / when there's room
+  let longText;
   if (diffMs >= underOneDayMs) {
-    // More than 24 hours left: show days
-    timeStr = isGroup
-      ? `${diffDays} dag${diffDays !== 1 ? 'er' : ''} til VM starter! ${diffHours} timer, ${diffMins} minutter til deadline for ${activeDeadline.label}!`
+    longText = isGroup
+      ? `${diffDays} dag${diffDays !== 1 ? 'er' : ''} til VM starter! ${totalHours} timer, ${diffMins} minutter til deadline for ${activeDeadline.label}!`
       : `${diffDays} dag${diffDays !== 1 ? 'er' : ''} igjen til deadline for tips i ${activeDeadline.label}!`;
   } else if (diffHours >= 1) {
-    // Under 24 hours: switch to hours + minutes for all phases
-    timeStr = isGroup
-      ? `${diffHours} time${diffHours !== 1 ? 'r' : ''}, ${diffMins} minutter til deadline for innlevering av gruppespillskamper, spesialtips og gruppeplassering! LYKKE TIL!`
-      : `${diffHours} time${diffHours !== 1 ? 'r' : ''} og ${diffMins} minutter til deadline for tips i ${activeDeadline.label}!`;
+    longText = isGroup
+      ? `${totalHours} time${totalHours !== 1 ? 'r' : ''}, ${diffMins} minutter til deadline for innlevering av gruppespillskamper, spesialtips og gruppeplassering! LYKKE TIL!`
+      : `${totalHours} time${totalHours !== 1 ? 'r' : ''} og ${diffMins} minutter til deadline for tips i ${activeDeadline.label}!`;
   } else {
-    timeStr = isGroup
+    longText = isGroup
       ? `${diffMins} minutt${diffMins !== 1 ? 'er' : ''} til deadline for innlevering av gruppespillskamper, spesialtips og gruppeplassering! LYKKE TIL! ⚠️`
       : `${diffMins} minutt${diffMins !== 1 ? 'er' : ''} til deadline for tips i ${activeDeadline.label}! ⚠️`;
   }
+
+  // Short fallback text for narrow screens after scrolling
+  const shortText = diffMs >= underOneDayMs
+    ? `${diffDays} dag${diffDays !== 1 ? 'er' : ''} igjen til VM starter!`
+    : diffHours >= 1
+      ? `${totalHours} t ${diffMins} min til deadline!`
+      : `${diffMins} min til deadline! ⚠️`;
 
   const dismiss = () => {
     const next = { ...dismissed, [activeDeadline.key]: true };
@@ -352,25 +425,31 @@ function DeadlineBar({ user, isAdmin }) {
   };
 
   const urgent = diffMs < 3600000; // less than 1 hour
+  const barColor = urgent ? 'rgba(120,30,10,.95)' : 'rgba(0,80,30,.92)';
+  const textColor = urgent ? '#ffccaa' : '#a0ffb8';
+  const borderColor = urgent ? 'rgba(255,120,80,.25)' : 'rgba(100,255,150,.15)';
 
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 400,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: urgent ? 'rgba(120,30,10,.95)' : 'rgba(0,80,30,.92)',
+      background: barColor,
       backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-      color: urgent ? '#ffccaa' : '#a0ffb8',
+      color: textColor,
       height: 32, fontSize: 12, fontWeight: 600, letterSpacing: 0.5,
-      borderTop: `1px solid ${urgent ? 'rgba(255,120,80,.25)' : 'rgba(100,255,150,.15)'}`,
+      borderTop: `1px solid ${borderColor}`,
       fontFamily: "'Kanit', sans-serif",
       animation: urgent ? 'pulse 2s ease-in-out infinite' : 'none',
+      overflow: 'hidden',
+      display: 'flex', alignItems: 'center',
     }}>
-      <span style={{ padding: '0 32px', textAlign: 'center' }}>⏳ {timeStr}</span>
+      {/* Text container: on narrow screens, scroll longText 3× then show shortText */}
+      <DeadlineBarText longText={longText} shortText={shortText} textColor={textColor} />
       <button onClick={dismiss} style={{
         position: 'absolute', right: 12,
         background: 'rgba(255,255,255,.15)', border: 'none',
         color: 'rgba(255,255,255,.6)', borderRadius: '50%',
         width: 18, height: 18, cursor: 'pointer', fontSize: 11,
+        flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>×</button>
     </div>
@@ -3515,11 +3594,37 @@ function InfoPage() {
           <div>🟨 Riktig lag med flest kort: <strong style={{color:'#FFD700'}}>10 poeng</strong>{nyRegel}</div>
         </div>
 
-        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.8, color:'rgba(255,255,255,.8)', fontSize:14 }}>
-          <div>• Tips leveres <strong style={{color:'#FFD700'}}>før</strong> gruppespillet starter</div>
-          <div>• Sluttspill-tips kan endres mellom hver runde</div>
-          <div>• Vinduet stenges 2 timer før kampstart i hver ny runde</div>
-          <div>• Spesialtips (VM-vinner, toppscorer osv.) kan <strong style={{color:'#f87171'}}>ikke</strong> endres etter at gruppespillet starter</div>
+        <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>⏰ Deadlines og innlevering</h3>
+        <div style={{ background:'rgba(0,0,0,.2)', borderRadius:10, padding:14, marginBottom:16, lineHeight:1.9, color:'rgba(255,255,255,.8)', fontSize:14 }}>
+          <div style={{marginBottom:10}}>Tippekonkurransen har automatiske deadlines basert på kampoppsettet. En grønn linje nederst på skjermen teller ned mot neste deadline.</div>
+
+          <div style={{borderLeft:'3px solid #FFD700', paddingLeft:12, marginBottom:10}}>
+            <div style={{color:'#FFD700', fontWeight:700, marginBottom:2}}>📋 Gruppespillet – deadline: 11. juni kl. 21:00</div>
+            <div>Alle gruppespillkamper, gruppeplasseringer og spesialtips (VM-vinner, toppscorer osv.) må være levert <strong style={{color:'#FFD700'}}>10 minutter</strong> før første kamp sparkes i gang. Etter dette låses disse for alltid – de kan aldri endres.</div>
+          </div>
+
+          <div style={{borderLeft:'3px solid #60a5fa', paddingLeft:12, marginBottom:10}}>
+            <div style={{color:'#60a5fa', fontWeight:700, marginBottom:2}}>🏟️ Sluttspillsrundene – løpende deadlines</div>
+            <div>Deadline for hver sluttspillsrunde er <strong style={{color:'#FFD700'}}>10 minutter</strong> før første kamp i den runden:</div>
+            <div style={{marginTop:6, fontSize:13, color:'rgba(255,255,255,.65)'}}>
+              <div>• 16-delsfinaler: 28. juni kl. 20:50</div>
+              <div>• 8-delsfinaler: 4. juli kl. 16:50</div>
+              <div>• Kvartfinaler: 9. juli kl. 19:50</div>
+              <div>• Semifinaler: 14. juli kl. 18:50</div>
+              <div>• Finaler (inkl. bronsefinale): 18. juli kl. 20:50</div>
+            </div>
+            <div style={{marginTop:6}}>Sluttspillstips for kommende runder kan fritt endres helt frem til sin deadline, men allerede spilte runder låses permanent.</div>
+          </div>
+
+          <div style={{borderLeft:'3px solid #f87171', paddingLeft:12, marginBottom:10}}>
+            <div style={{color:'#f87171', fontWeight:700, marginBottom:2}}>🤖 Automatisk utfylling</div>
+            <div>Har du ikke levert tips til en fase innen deadline, fyller en tilfeldig valgt ekspert fra <strong style={{color:'#FFD700'}}>Ekspertpanelet</strong> inn de manglende tipsene for deg. Den samme eksperten brukes konsekvent for deg gjennom hele turneringen.</div>
+          </div>
+
+          <div style={{borderLeft:'3px solid #4ade80', paddingLeft:12}}>
+            <div style={{color:'#4ade80', fontWeight:700, marginBottom:2}}>⏳ Nedtellingsvarsler</div>
+            <div>Den grønne streken vises fra nå av for gruppespillet, og fra 3 dager før for øvrige runder. Når du har levert alle tips for en fase forsvinner varselet for den fasen.</div>
+          </div>
         </div>
 
         <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🃏 Daglig Quiz {nyRegel}</h3>
