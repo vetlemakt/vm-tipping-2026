@@ -2521,10 +2521,10 @@ function TipsForm({ me, phase, viewUser }) {
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
                 >
                   <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 800, color: filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Kanit',sans-serif", marginBottom: 3, lineHeight: 1 }}>{g}</div>
-                  {teams.map((team, i) => {
+                  {(order.length === 4 ? order : [...order.filter(Boolean), ...teams.filter(t => !order.includes(t))]).map((team, i) => {
                     const code = COUNTRY_CODES[team];
                     const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
-                    const placed = order.indexOf(team) !== -1;
+                    const placed = order.includes(team);
                     return (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 2 : 3, marginBottom: 2, justifyContent: 'center' }}>
                         {code
