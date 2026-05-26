@@ -2366,14 +2366,17 @@ function MatchInfoPopup({ match, onClose, anchorRef }) {
   return createPortal(
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
-      <div onClick={e => e.stopPropagation()} style={{
-        position:'fixed', zIndex:900, width:284,
-        bottom: pos.bottom, top: pos.top, left: pos.left,
-        background:'rgba(13,18,48,.97)',
-        border:'2px solid rgba(255,215,0,.3)', borderRadius:14,
-        overflow:'hidden', boxShadow:'0 12px 40px rgba(0,0,0,.8)',
-        maxHeight: '80vh', overflowY: 'auto',
-      }}>
+      <div
+        onClick={e => e.stopPropagation()}
+        onMouseLeave={onClose}
+        style={{
+          position:'fixed', zIndex:900, width:284,
+          bottom: pos.bottom, top: pos.top, left: pos.left,
+          background:'rgba(13,18,48,.97)',
+          border:'2px solid rgba(255,215,0,.3)', borderRadius:14,
+          overflow:'hidden', boxShadow:'0 12px 40px rgba(0,0,0,.8)',
+          maxHeight: '80vh', overflowY: 'auto',
+        }}>
         {s.img && <img src={s.img} alt={s.name} style={{ width:'100%', height:130, objectFit:'cover', display:'block' }} onError={e => e.target.style.display='none'} />}
         <div style={{ padding:'14px 16px' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10, gap:8 }}>
@@ -2826,11 +2829,6 @@ function TipsForm({ me, phase, viewUser }) {
                     const setRef = isFirstMatch ? (el => { if (infoBoxRef) infoBoxRef.current = el; }) : undefined;
                     return (
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                        {isFirstMatch && (
-                          <span style={{ fontSize: 9, color: '#FFD700', whiteSpace: 'nowrap', fontFamily: "'Kanit',sans-serif", fontWeight: 600, opacity: 0.85 }}>
-                            kampinfo her →
-                          </span>
-                        )}
                         <div
                           ref={setRef}
                           onClick={e => { e.stopPropagation(); setMatchPopup(m); }}
@@ -2847,6 +2845,11 @@ function TipsForm({ me, phase, viewUser }) {
                           {m.time && <span style={{fontSize:8,color:'rgba(255,255,255,.4)',fontFamily:"'Inter',sans-serif"}}>{m.time}</span>}
                           <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Inter',sans-serif"}}>Gruppe {m.group}</span>
                         </div>
+                        {isFirstMatch && (
+                          <span style={{ fontSize: 9, color: '#FFD700', whiteSpace: 'nowrap', fontFamily: "'Kanit',sans-serif", fontWeight: 600, opacity: 0.85 }}>
+                            ← kampinfo
+                          </span>
+                        )}
                       </div>
                     );
                   })()}
@@ -3600,7 +3603,7 @@ function InfoPage() {
 
           <div style={{borderLeft:'3px solid #FFD700', paddingLeft:12, marginBottom:10}}>
             <div style={{color:'#FFD700', fontWeight:700, marginBottom:2}}>📋 Gruppespillet – deadline: 11. juni kl. 21:00</div>
-            <div>Alle gruppespillkamper, gruppeplasseringer og spesialtips (VM-vinner, toppscorer osv.) må være levert <strong style={{color:'#FFD700'}}>10 minutter</strong> før første kamp sparkes i gang. Etter dette låses disse for alltid – de kan aldri endres.</div>
+            <div>Alle gruppespillkamper, gruppeplasseringer og spesialtips (VM-vinner, toppscorer osv.) må være levert <strong style={{color:'#FFD700'}}>10 minutter</strong> før første kamp sparkes i gang. Etter dette låses disse for alltid!</div>
           </div>
 
           <div style={{borderLeft:'3px solid #60a5fa', paddingLeft:12, marginBottom:10}}>
@@ -3613,18 +3616,14 @@ function InfoPage() {
               <div>• Semifinaler: 14. juli kl. 18:50</div>
               <div>• Finaler (inkl. bronsefinale): 18. juli kl. 20:50</div>
             </div>
-            <div style={{marginTop:6}}>Sluttspillstips for kommende runder kan fritt endres helt frem til sin deadline, men allerede spilte runder låses permanent.</div>
+            <div style={{marginTop:6}}>Sluttspillstips for kommende runder kan fritt endres helt frem til sin deadline, men allerede spilte og pågående runder låses permanent.</div>
           </div>
 
           <div style={{borderLeft:'3px solid #f87171', paddingLeft:12, marginBottom:10}}>
             <div style={{color:'#f87171', fontWeight:700, marginBottom:2}}>🤖 Automatisk utfylling</div>
-            <div>Har du ikke levert tips til en fase innen deadline, fyller en tilfeldig valgt ekspert fra <strong style={{color:'#FFD700'}}>Ekspertpanelet</strong> inn de manglende tipsene for deg. Den samme eksperten brukes konsekvent for deg gjennom hele turneringen.</div>
+            <div>Har du ikke levert tips til en fase innen deadline, fyller en tilfeldig valgt "ekspert" fra <strong style={{color:'#FFD700'}}>Ekspertpanelet</strong> inn de manglende tipsene for deg. Den samme eksperten blir da din hjelper videre også, skulle du gå på samme tabben flere ganger 😛</div>
           </div>
 
-          <div style={{borderLeft:'3px solid #4ade80', paddingLeft:12}}>
-            <div style={{color:'#4ade80', fontWeight:700, marginBottom:2}}>⏳ Nedtellingsvarsler</div>
-            <div>Den grønne streken vises fra nå av for gruppespillet, og fra 3 dager før for øvrige runder. Når du har levert alle tips for en fase forsvinner varselet for den fasen.</div>
-          </div>
         </div>
 
         <h3 style={{ color:'#fff', fontSize:15, marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🃏 Daglig Quiz {nyRegel}</h3>
