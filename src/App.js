@@ -4992,10 +4992,12 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
         padding: '16px',
       }}>
 
-        {/* Popup card */}
+        {/* Popup card – constrained by both width AND available height so image never clips */}
+        {/* IMG ratio 730:500 = 1.46:1. Reserve ~100px for button + padding below image. */}
         <div style={{
           position: 'relative',
-          width: '100%', maxWidth: IMG_W,
+          width: '100%',
+          maxWidth: `min(${IMG_W}px, calc((100vh - 120px) * ${IMG_W / IMG_H}))`,
           borderRadius: 16,
           boxShadow: '0 8px 40px rgba(0,0,0,.8)',
           overflow: 'hidden',
