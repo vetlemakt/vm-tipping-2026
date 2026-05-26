@@ -382,7 +382,9 @@ function renderChatText(text) {
 function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
-  const nameColor = mine ? 'rgba(255,215,0,.7)' : botColor || 'rgba(255,255,255,.45)';
+  const isAdminMsg = m.user === 'Admin';
+  const ADMIN_GREEN = '#4ade80';
+  const nameColor = isAdminMsg ? ADMIN_GREEN : mine ? 'rgba(255,215,0,.7)' : botColor || 'rgba(255,255,255,.45)';
   const fmt = ts => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -397,7 +399,7 @@ function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
     }}>
       {/* Navn + tid over bobla */}
       <div style={{ ...C.chatMeta, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-        <span style={{ ...C.chatUser, color: nameColor }}>{m.user}</span>
+        <span style={{ ...C.chatUser, color: nameColor, ...(isAdminMsg ? { textTransform: 'uppercase', fontWeight: 800 } : {}) }}>{m.user}</span>
         <span style={C.chatTime}>{fmt(m.ts)}</span>
         {mine && onDelete && (
           <button onClick={() => onDelete(m.id)} style={{
@@ -409,9 +411,10 @@ function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
       {/* Boble */}
       <span style={{
         ...C.chatBubble,
-        background: mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)',
-        border: `1px solid ${mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`,
-        ...(botColor ? { borderLeft: `3px solid ${botColor}` } : {}),
+        background: isAdminMsg ? 'rgba(74,222,128,.07)' : mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)',
+        border: `1px solid ${isAdminMsg ? 'rgba(74,222,128,.35)' : mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`,
+        ...(isAdminMsg ? { borderLeft: `3px solid ${ADMIN_GREEN}`, color: ADMIN_GREEN, textTransform: 'uppercase', fontWeight: 700 } : {}),
+        ...(botColor && !isAdminMsg ? { borderLeft: `3px solid ${botColor}` } : {}),
         display: 'block',
       }}>
         {m.image
