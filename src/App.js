@@ -4884,8 +4884,6 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
   useConfetti(true);
 
   // Image native size: 730×500
-  // We display the image fitting within viewport width (max 730px)
-  // Scale factor used to map pixel coords → display coords
   const IMG_W = 730, IMG_H = 500;
 
   // Name box pixel coords (in image space):
@@ -4897,6 +4895,21 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
     { name: gold,   x1:334, y1:315, x2:403, y2:333 },
     { name: bronze, x1:513, y1:370, x2:567, y2:387 },
   ];
+
+  // Measure the rendered image width so we can scale font exactly
+  const imgRef = useRef(null);
+  const [imgRenderW, setImgRenderW] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      if (imgRef.current) setImgRenderW(imgRef.current.getBoundingClientRect().width);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  // Scale factor: rendered px per image px
+  const scale = imgRenderW > 0 ? imgRenderW / IMG_W : 1;
 
   return createPortal(
     <>
@@ -4928,39 +4941,48 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
         }}>
           {/* The podium image – fills container width */}
           <img
+            ref={imgRef}
             src="/podium.png"
             alt="Seierspall"
             style={{ width: '100%', display: 'block' }}
+            onLoad={() => {
+              if (imgRef.current) setImgRenderW(imgRef.current.getBoundingClientRect().width);
+            }}
           />
 
-          {/* Name overlays – positioned as % of image */}
-          {BOXES.map(({ name, x1, y1, x2, y2 }, i) => (
-            <div key={i} style={{
-              position: 'absolute',
-              left:   `${(x1 / IMG_W) * 100}%`,
-              top:    `${(y1 / IMG_H) * 100}%`,
-              width:  `${((x2 - x1) / IMG_W) * 100}%`,
-              height: `${((y2 - y1) / IMG_H) * 100}%`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden',
-            }}>
-              <span style={{
-                color: '#ffffff',
-                fontFamily: "'Kanit', sans-serif",
-                fontWeight: 700,
-                fontSize: 'clamp(5px, 1.5vw, 11px)',
-                textAlign: 'center',
-                lineHeight: 1,
-                textShadow: '0 1px 3px rgba(0,0,0,.8)',
-                whiteSpace: 'nowrap',
+          {/* Name overlays – positioned as % of image, font scaled to rendered size */}
+          {BOXES.map(({ name, x1, y1, x2, y2 }, i) => {
+            const boxH_px = (y2 - y1) * scale; // rendered height of the box in px
+            // Font fills ~75% of box height, clamped to look good
+            const fontSize = Math.max(6, Math.min(boxH_px * 0.75, 13));
+            return (
+              <div key={i} style={{
+                position: 'absolute',
+                left:   `${(x1 / IMG_W) * 100}%`,
+                top:    `${(y1 / IMG_H) * 100}%`,
+                width:  `${((x2 - x1) / IMG_W) * 100}%`,
+                height: `${((y2 - y1) / IMG_H) * 100}%`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: '100%',
               }}>
-                {name}
-              </span>
-            </div>
-          ))}
+                <span style={{
+                  color: '#ffffff',
+                  fontFamily: "'Kanit', sans-serif",
+                  fontWeight: 700,
+                  fontSize,
+                  textAlign: 'center',
+                  lineHeight: 1,
+                  textShadow: '0 1px 3px rgba(0,0,0,.8)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                }}>
+                  {name}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         {/* Close button */}
