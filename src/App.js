@@ -311,7 +311,8 @@ function DeadlineBar({ user, isAdmin }) {
   const activeDeadline = DEADLINES.find(dl => {
     const dlMs = dl.deadline.getTime();
     if (dlMs <= now) return false; // already passed
-    if (dlMs - now > THREE_DAYS_MS) return false; // too far away
+    // Group deadline always shows; others only within 3 days
+    if (dl.key !== 'group' && dlMs - now > THREE_DAYS_MS) return false;
     if (dismissed[dl.key]) return false; // user dismissed
     if (dl.checkDone(checkUser)) return false; // already done
     return true;
