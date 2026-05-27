@@ -4129,8 +4129,9 @@ function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
                 onMouseLeave={hideImg}
                 style={{
                   position: 'fixed',
-                  top: Math.max(8, imgRef.current.getBoundingClientRect().top - 20),
-                  left: imgRef.current.getBoundingClientRect().right + 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  left: imgRef.current.getBoundingClientRect().left,
                   zIndex: 9000,
                   width: 440,
                   maxWidth: 'calc(100vw - 24px)',
