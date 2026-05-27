@@ -4066,8 +4066,13 @@ async function chatWithExpert(expert, message, history, competitionContext = '')
 function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [zoomed, setZoomed] = useState(false);
+  const [imgPopup, setImgPopup] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const imgRef = useRef(null);
+  const hideTimer = useRef(null);
+
+  const showImg = () => { clearTimeout(hideTimer.current); setImgPopup(true); };
+  const hideImg = () => { hideTimer.current = setTimeout(() => setImgPopup(false), 120); };
   const choosers = Object.entries(panelChoices).filter(([, v]) => v === expert.id).map(([k]) => userNames[k] || k);
   const myChoice = panelChoices[me.username] === expert.id;
 
@@ -4106,18 +4111,45 @@ function ExpertCard({ expert, me, panelChoices, userNames={}, onShowTips }) {
 
   return (
     <>
-      {zoomed && (
-        <div onClick={() => setZoomed(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.85)', zIndex:800, display:'flex', alignItems:'center', justifyContent:'center', cursor:'zoom-out' }}>
-          <img src={expert.img} alt={expert.name} style={{ maxWidth:'90vw', maxHeight:'90vh', borderRadius:12, objectFit:'cover' }}
-            onError={e => { e.target.style.display='none'; }} />
-        </div>
-      )}
       <div style={{ ...C.card, border: myChoice ? `2px solid ${expert.color}` : '1px solid rgba(255,255,255,.08)' }}>
         <div style={{ padding: '16px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-          {/* Square image */}
-          <div onClick={() => setZoomed(true)} style={{ width:90, flexShrink:0, borderRadius:8, overflow:'hidden', cursor:'zoom-in', border:`2px solid ${expert.color}44` }}>
-            <img src={expert.img} alt={expert.name} style={{ width:'100%', height:'auto', display:'block' }}
-              onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML = '<span style="font-size:36px">' + expert.emoji + '</span>'; }} />
+          {/* Square image – hover to show large popup */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div
+              ref={imgRef}
+              onMouseEnter={showImg}
+              onMouseLeave={hideImg}
+              style={{ width:90, borderRadius:8, overflow:'hidden', cursor:'pointer', border:`2px solid ${expert.color}44` }}>
+              <img src={expert.img} alt={expert.name} style={{ width:'100%', height:'auto', display:'block' }}
+                onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML = '<span style="font-size:36px">' + expert.emoji + '</span>'; }} />
+            </div>
+            {imgPopup && imgRef.current && createPortal(
+              <div
+                onMouseEnter={showImg}
+                onMouseLeave={hideImg}
+                style={{
+                  position: 'fixed',
+                  top: Math.max(8, imgRef.current.getBoundingClientRect().top - 20),
+                  left: imgRef.current.getBoundingClientRect().right + 10,
+                  zIndex: 9000,
+                  width: 220,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  border: `2px solid ${expert.color}`,
+                  boxShadow: `0 8px 32px rgba(0,0,0,.7), 0 0 20px ${expert.color}44`,
+                  background: '#0d1230',
+                  pointerEvents: 'auto',
+                }}>
+                <img src={expert.img} alt={expert.name}
+                  style={{ width:'100%', height:'auto', display:'block' }}
+                  onError={e => e.target.style.display='none'} />
+                <div style={{ padding:'10px 12px', borderTop:`1px solid ${expert.color}33` }}>
+                  <div style={{ color: expert.color, fontWeight:700, fontSize:13, fontFamily:"'Kanit',sans-serif" }}>{expert.name}</div>
+                  <div style={{ color:'rgba(255,255,255,.5)', fontSize:11, marginTop:2 }}>{expert.age} år · {expert.from}</div>
+                </div>
+              </div>,
+              document.body
+            )}
           </div>
           {/* Info */}
           <div style={{ flex:1, minWidth:0 }}>
