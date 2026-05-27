@@ -3801,7 +3801,7 @@ const PANEL_EXPERTS = [
     age: 47,
     from: 'Henningsvær',
     emoji: '🎣',
-    img: '/kim-levi.jpg',
+    img: '/kim-levi.jpg?v=2',
     color: '#2a7aaa',
     tagline: 'Fisker, Pokemon-samler, fotballekspert siden 1998',
     bio: 'Fisker fra Henningsvær i Lofoten. Bor fremdeles hjemme hos mora si, noe han ikke synes er noe problem overhodet. Er stygg i kjeften når han er på sjøen, men egentlig snill som en labb. Eneste fotballminne er en Tromsø IL-kamp i 1998, men husker ikke hvem de spilte mot eller hva resultatet ble – bare at han frøs. Samler på Pokémon-kort og har en Charizard 1. utgave som han mener er verdt minst 40.000 kr. Har nylig begynt å se på VM-Tipping som en mulighet til å "tjene litt kroner på bortimot ingenting". Tipper på magefølelse og Pokémon-logikk.',
