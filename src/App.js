@@ -12,7 +12,7 @@ import {
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
-import { searchPlayers } from './squads';
+import { searchPlayers, ALL_PLAYERS } from './squads';
 import {
   INVITE_CODE, ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
@@ -2645,8 +2645,21 @@ function TipsForm({ me, phase, viewUser }) {
             const tipVal = spec[key];
             const correct = correctVal && tipVal && tipVal === correctVal;
             const specPts = correct ? pts : null;
+            const specBotId = botFilled[`spec_${key}`];
+            const specBotEx = specBotId ? PANEL_EXPERTS.find(e => e.id === specBotId) : null;
             return (
-              <div key={key} style={{ ...C.specRow, gap: isMobile ? 5 : 9 }}>
+              <div key={key} style={{ ...C.specRow, gap: isMobile ? 5 : 9,
+                ...(specBotEx ? { borderLeft: `3px solid ${specBotEx.color || '#FFD700'}`, paddingLeft: 6 } : {}),
+              }}>
+                {specBotEx && (
+                  <span title={`Tipset av ${specBotEx.name}`} style={{
+                    fontSize: 8, color: specBotEx.color || '#FFD700',
+                    background: `${specBotEx.color || '#FFD700'}18`,
+                    border: `1px solid ${specBotEx.color || '#FFD700'}44`,
+                    borderRadius: 4, padding: '1px 4px', flexShrink: 0, whiteSpace: 'nowrap',
+                    fontFamily: "'Fira Code',monospace", alignSelf: 'center',
+                  }}>🤖 {specBotEx.firstName || specBotEx.name.split(' ')[0]}</span>
+                )}
                 <span style={{ ...C.specLabel, fontSize: isMobile ? 11 : 12 }}>{label}{tooltip && <InfoTooltip text={tooltip} />}</span>
                 <span style={{ ...C.ptsBadge, fontSize: isMobile ? 9 : 10, padding: isMobile ? '2px 4px' : '2px 6px', flexShrink: 0 }}>{pts}p</span>
                 {specOk ? (
@@ -2751,13 +2764,15 @@ function TipsForm({ me, phase, viewUser }) {
               const order = grpO[g] || [];
               const filled = order.filter(Boolean).length === 4;
               const groupDone = GROUP_MATCHES.filter(m => m.group === g).every(m => results[m.id]?.home !== undefined);
+              const grpBotId = botFilled[`grp_${g}`];
+              const grpBotEx = grpBotId ? PANEL_EXPERTS.find(e => e.id === grpBotId) : null;
               return (
                 <button
                   key={g}
                   onClick={e => { e.stopPropagation(); setGrpPopup(g); }}
                   style={{
                     background: 'rgba(255,255,255,.05)',
-                    border: groupDone ? '1px solid rgba(255,215,0,.6)' : '1px solid rgba(255,255,255,.1)',
+                    border: grpBotEx ? `1.5px solid ${grpBotEx.color || '#FFD700'}` : groupDone ? '1px solid rgba(255,215,0,.6)' : '1px solid rgba(255,255,255,.1)',
                     borderRadius: 8, padding: '5px 3px',
                     cursor: 'pointer', textAlign: 'center',
                     transition: 'all .15s', minWidth: 0,
@@ -2766,7 +2781,9 @@ function TipsForm({ me, phase, viewUser }) {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,215,0,.1)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
                 >
-                  <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 800, color: filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Inter',sans-serif", marginBottom: 3, lineHeight: 1 }}>{g}</div>
+                  <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 800, color: grpBotEx ? (grpBotEx.color || '#FFD700') : filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Inter',sans-serif", marginBottom: 3, lineHeight: 1 }}>
+                    {g}{grpBotEx && <span style={{ fontSize: 7, marginLeft: 2 }}>🤖</span>}
+                  </div>
                   {(order.length === 4 ? order : [...order.filter(Boolean), ...teams.filter(t => !order.includes(t))]).map((team, i) => {
                     const code = COUNTRY_CODES[team];
                     const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
@@ -4604,13 +4621,10 @@ async function autoFillMissingTips(lockPhase) {
     if (missingSpec.length > 0) {
       missingSpec.forEach(f => {
         if (f.key === 'topscorer') {
-          // Random player from squads
-          const allSquadTeams = Object.values(GROUPS).flat();
-          const randomTeam = allSquadTeams[Math.floor(Math.random() * allSquadTeams.length)];
-          newSpec[f.key] = randomTeam; // fallback: random team as topscorer country placeholder
-          // Ideally would pick from squads, but spec stores team for country-based and name for topscorer
-          // Use bot's topscorer if available
-          if (botUser.specialTips?.[f.key]) newSpec[f.key] = botUser.specialTips[f.key];
+          // Pick a random player from ALL_PLAYERS (same pool as the PlayerAutocomplete dropdown)
+          const randomPlayer = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
+          newSpec[f.key] = randomPlayer.name;
+          filledBy[`spec_${f.key}`] = expert.id;
         } else {
           if (botUser.specialTips?.[f.key]) {
             newSpec[f.key] = botUser.specialTips[f.key];
@@ -4764,8 +4778,10 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
         const evKey = ev.type + (ev.text || '');
         if (ev.type === 'goal' && evKey !== prevEventRef.current) {
           prevEventRef.current = evKey;
-          // Small delay so the banner appears first, then confetti celebrates
+          // Konfetti kun ved mål, ikke ved kort
           setTimeout(() => fireGoalConfetti(3), 400);
+        } else if (ev.type === 'card') {
+          prevEventRef.current = evKey; // oppdater nøkkelen men ingen konfetti
         }
         setLiveEvent(ev);
       } else {

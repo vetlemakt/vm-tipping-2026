@@ -1,98 +1,373 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onRequest } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 initializeApp();
 const db = getFirestore();
 
-const API_KEY = process.env.FOOTBALL_API_KEY;
-const WC_LEAGUE = 1;      // API-Football: FIFA World Cup
-const WC_SEASON = 2026;
+const API_KEY        = process.env.FOOTBALL_API_KEY;
+const ANTHROPIC_KEY  = process.env.ANTHROPIC_KEY;
+const WC_LEAGUE      = 1;
+const WC_SEASON      = 2026;
+const POLL_INTERVAL_MS  = 15000;
+const FUNCTION_DURATION = 50000;
 
-// Norske lagnavn → API-Football engelsk navn
+// ── Lagnavn-mapping ──────────────────────────────────────────────────
 const TEAM_NAME_MAP = {
-  'Mexico':           'Mexico',
-  'Sør-Afrika':       'South Africa',
-  'Sør-Korea':        'South Korea',
-  'Tsjekkia':         'Czech Republic',
-  'Canada':           'Canada',
-  'Bosnia-Herz':      'Bosnia and Herzegovina',
-  'Qatar':            'Qatar',
-  'Sveits':           'Switzerland',
-  'Brasil':           'Brazil',
-  'Marokko':          'Morocco',
-  'Haiti':            'Haiti',
-  'Skottland':        'Scotland',
-  'USA':              'USA',
-  'Paraguay':         'Paraguay',
-  'Australia':        'Australia',
-  'Tyrkia':           'Turkey',
-  'Tyskland':         'Germany',
-  'Curacao':          'Curacao',
-  'Elfenbenskysten':  'Ivory Coast',
-  'Ecuador':          'Ecuador',
-  'Nederland':        'Netherlands',
-  'Japan':            'Japan',
-  'Sverige':          'Sweden',
-  'Tunisia':          'Tunisia',
-  'Belgia':           'Belgium',
-  'Egypt':            'Egypt',
-  'Iran':             'Iran',
-  'New Zealand':      'New Zealand',
-  'Spania':           'Spain',
-  'Kapp Verde':       'Cape Verde',
-  'Saudi-Arabia':     'Saudi Arabia',
-  'Uruguay':          'Uruguay',
-  'Frankrike':        'France',
-  'Senegal':          'Senegal',
-  'Irak':             'Iraq',
-  'Norge':            'Norway',
-  'Argentina':        'Argentina',
-  'Algerie':          'Algeria',
-  'Østerrike':        'Austria',
-  'Jordan':           'Jordan',
-  'Portugal':         'Portugal',
-  'Kongo DR':         'DR Congo',
-  'Usbekistan':       'Uzbekistan',
-  'Colombia':         'Colombia',
-  'England':          'England',
-  'Kroatia':          'Croatia',
-  'Ghana':            'Ghana',
-  'Panama':           'Panama',
+  'Mexico':'Mexico','Sør-Afrika':'South Africa','Sør-Korea':'South Korea',
+  'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina',
+  'Qatar':'Qatar','Sveits':'Switzerland','Brasil':'Brazil','Marokko':'Morocco',
+  'Haiti':'Haiti','Skottland':'Scotland','USA':'USA','Paraguay':'Paraguay',
+  'Australia':'Australia','Tyrkia':'Turkey','Tyskland':'Germany','Curacao':'Curacao',
+  'Elfenbenskysten':'Ivory Coast','Ecuador':'Ecuador','Nederland':'Netherlands',
+  'Japan':'Japan','Sverige':'Sweden','Tunisia':'Tunisia','Belgia':'Belgium',
+  'Egypt':'Egypt','Iran':'Iran','New Zealand':'New Zealand','Spania':'Spain',
+  'Kapp Verde':'Cape Verde','Saudi-Arabia':'Saudi Arabia','Uruguay':'Uruguay',
+  'Frankrike':'France','Senegal':'Senegal','Irak':'Iraq','Norge':'Norway',
+  'Argentina':'Argentina','Algerie':'Algeria','Østerrike':'Austria','Jordan':'Jordan',
+  'Portugal':'Portugal','Kongo DR':'DR Congo','Usbekistan':'Uzbekistan',
+  'Colombia':'Colombia','England':'England','Kroatia':'Croatia','Ghana':'Ghana',
+  'Panama':'Panama',
 };
-
-// Snudd opp-ned: engelsk → norsk
 const API_TO_NOR = Object.fromEntries(
   Object.entries(TEAM_NAME_MAP).map(([nor, eng]) => [eng, nor])
 );
 
-// Disse statuskodene betyr at kampen pågår
-const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
-// ── TEST: hent spesifikk fixture for testing ─────────────────────────
-async function getTestFixture() {
-  const data = await apiFetch('fixtures?id=1512366');
-  return data.response || [];
-}
-// Disse betyr at kampen er ferdig
-const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN']);
+const LIVE_STATUSES     = new Set(['1H','HT','2H','ET','BT','P','LIVE']);
+const FINISHED_STATUSES = new Set(['FT','AET','PEN']);
 
-// ── Hjelpefunksjon: hent fra API-Football ────────────────────────────
+// ── Ekspertpanel-personas ────────────────────────────────────────────
+const PANEL_EXPERTS = [
+  {
+    id: 'ragnhild', name: 'Ragnhild Kristiansen',
+    personality: `Du er Ragnhild Kristiansen, 60 år, fra Mandal. Tidligere rødstrømpe, nå aktiv i menigheten og husflidsforeningen. Du har ingen peiling på fotball og tipper basert på estetikk og om landet virker skikkelig. Du snakker varmt og litt moraliserende. Svar alltid på norsk. Maks 3 setninger. Bruk emojis, særlig 😊🙏🤗.`,
+  },
+  {
+    id: 'hendrik', name: 'Hendrik van der Berg',
+    personality: `Du er Hendrik van der Berg, 58 år, nederlandsk innvandrer i Drammen med kraftig agorafobi. Hører på DJ Bobo, tror på astrologi, blander inn nederlandske ord. Du tipper basert på astrologi. Svar på norsk med litt nederlandsk innflytelse. Maks 3 setninger.`,
+  },
+  {
+    id: 'kimlevi', name: 'Kim-Levi Ditlefsen',
+    personality: `Du er Kim-Levi Ditlefsen, 47 år, fisker fra Henningsvær. Bor hjemme hos mora. Stygg i kjeften men egentlig grei. Null peiling på fotball. Opptatt av Pokémon og fisking. Svar på norsk med lofotdialekt-farget språk. Maks 3 setninger.`,
+  },
+  {
+    id: 'bengt', name: 'Bengt Sandvik',
+    isBengt: true,
+    personality: `Du er Bengt Sandvik, 52 år fra Trondheim. Du liker wrestling og kortspill. Du kan fotball fra 80-tallet utenat men vet ingenting om fotball etter 1992. Du er blid og entusiastisk.
+
+VIKTIG: Du skriver ALLTID på bokmål med litt dysleksi: hopper over bokstaver, bruker "å" der det skal være "og" og motsatt, ca. 3-5 feil per svar.
+
+TEGNSETTING – absolutt og ufravikelig:
+- KUN komma gjennom hele meldingen, aldri punktum, spørsmålstegn eller tankestrek
+- Meldingen avsluttes ALLTID med akkurat ett utropstegn
+- Eksempel: "ja det var en bra kamp, spesielt Maradona, han var jo suveren på 80-tallet også!"
+
+VIKTIG FOR MÅL-KOMMENTARER: Du starter ALLTID med en Arne Scheie-referanse:
+"Ja, Arne...", "Det må sies, Arne...", "Så ser vi det, Scheie, at...", "Herlig, Arne..." osv.
+Maks 3-4 komma-adskilte ledd.`,
+  },
+  {
+    id: 'odd', name: 'Odd Snerten',
+    personality: `Du er Odd Snerten, 63 år, bonde fra Oppdal. Aldri sør for Lillehammer frivillig. Spiser leverpostei til alle måltider. Starter gjerne med "nei, nei, nei". Tipper basert på landbrukspolitikk og snø om vinteren. Overbevist om at Brasil jukser og at en engelskmann ved navn Reffrey dømmer hver kamp.
+
+VIKTIG – snakker ALLTID i autentisk trønderdialekt: "e" for "jeg", "itj" for "ikke", "hainn" for "han", "ho" for "hun", "dømm" for "dem/de", "ivæg" for "avgårde", "ferresten", "aillfall".
+Maks 3-4 setninger.`,
+  },
+];
+
+// ── Scoring-hjelpere (speiler scoring.js) ────────────────────────────
+function matchOutcome(h, a) {
+  if (h === null || a === null || h === undefined || a === undefined) return null;
+  return h > a ? 'H' : h < a ? 'A' : 'D';
+}
+
+function calcMatchPts(tip, act) {
+  if (!tip || act?.home === undefined || act?.away === undefined) return 0;
+  let p = 0;
+  if (matchOutcome(tip.home, tip.away) === matchOutcome(act.home, act.away)) p += 2;
+  if (parseInt(tip.home) === parseInt(act.home)) p += 1;
+  if (parseInt(tip.away) === parseInt(act.away)) p += 1;
+  if (p === 4 && (parseInt(act.home) + parseInt(act.away)) >= 5) p = 5;
+  return p;
+}
+
+function calcTotalScore(user, results) {
+  let total = 0;
+  Object.entries(results).forEach(([matchId, act]) => {
+    if (!act || act.home === undefined || act.away === undefined) return;
+    const tip = user.tips?.[matchId];
+    if (tip) total += calcMatchPts(tip, act);
+  });
+  // Group orders
+  Object.keys(user.groupOrders || {}).forEach(g => {
+    const act = results[`grp_${g}`];
+    const tip = user.groupOrders[g];
+    if (act && tip) {
+      tip.forEach((team, i) => {
+        if (team && team === act[i]) total += 5;
+      });
+    }
+  });
+  // Special tips
+  const SPEC = [
+    { key: 'winner', pts: 30 }, { key: 'runnerup', pts: 20 },
+    { key: 'third', pts: 10 }, { key: 'topscorer', pts: 20 }, { key: 'yellowCards', pts: 10 },
+  ];
+  SPEC.forEach(({ key, pts }) => {
+    const sp = user.specialTips?.[key];
+    if (sp && results[key] && sp === results[key]) total += pts;
+  });
+  return total;
+}
+
+// ── Analyse: hvilke triggere gjelder for dette målet? ────────────────
+function analyzeGoalTriggers(matchId, liveResult, allUsers, currentResults, prevResults, expert) {
+  const reasons = [];
+  const playedCount = Object.keys(currentResults).filter(k =>
+    currentResults[k]?.isFinished
+  ).length;
+
+  // Simuler sluttresultat (nåværende live = hypotetisk slutt)
+  const hypoResults = { ...currentResults, [matchId]: { ...liveResult, isFinished: true } };
+
+  // Reelle spillere (ikke bots, ikke admin)
+  const realUsers = allUsers.filter(u =>
+    u.id !== 'admin' && !u.id.startsWith('panel_')
+  );
+
+  // Scorer med forrige resultater
+  const prevScores = realUsers.map(u => ({
+    ...u, total: calcTotalScore(u, prevResults || currentResults)
+  })).sort((a, b) => b.total - a.total);
+
+  // Scorer med hypotetisk sluttresultat
+  const hypoScores = realUsers.map(u => ({
+    ...u, total: calcTotalScore(u, hypoResults)
+  })).sort((a, b) => b.total - a.total);
+
+  // Forrige rangering
+  const prevRank = {};
+  prevScores.forEach((u, i) => { prevRank[u.id] = i + 1; });
+
+  // ── Trigger 1: boten selv har riktig live-resultat ────────────────
+  const botUser = allUsers.find(u => u.id === `panel_${expert.id}`);
+  if (botUser) {
+    const botTip = botUser.tips?.[matchId];
+    if (botTip) {
+      const livePts = calcMatchPts(botTip, liveResult);
+      if (livePts >= 2) {
+        reasons.push({ type: 'bot_correct', pts: livePts });
+      }
+    }
+  }
+
+  // ── Trigger 2: interessante tabelleffekter (etter 5 gruppekamper) ─
+  if (playedCount >= 5) {
+    hypoScores.forEach((u, i) => {
+      const newRank  = i + 1;
+      const oldRank  = prevRank[u.id] || newRank;
+      const prevPts  = prevScores.find(p => p.id === u.id)?.total || 0;
+      const hypoPts  = u.total;
+      const gained   = hypoPts - prevPts;
+
+      if (gained === 0) return; // Ingen endring for denne spilleren
+
+      // Leder tabellen nå (og gjorde ikke det før)
+      if (newRank === 1 && oldRank > 1) {
+        reasons.push({ type: 'new_leader', player: u.displayName, newRank, oldRank });
+      }
+      // Rykker frem mer enn 3 plasser
+      if (oldRank - newRank > 3) {
+        reasons.push({ type: 'big_jump', player: u.displayName, newRank, oldRank, jump: oldRank - newRank });
+      }
+      // Superbonus (5 poeng på én kamp)
+      if (gained === 5) {
+        reasons.push({ type: 'superbonus', player: u.displayName });
+      }
+      // To fulltreffere på rad (har fulltreff nå + forrige kamp)
+      if (gained === 4 || gained === 5) {
+        // Sjekk om forrige spilte kamp også ga fulltreff
+        const finishedMatches = Object.entries(currentResults)
+          .filter(([, v]) => v?.isFinished)
+          .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+        if (finishedMatches.length >= 1) {
+          const [prevMatchId, prevAct] = finishedMatches[0];
+          const prevTip = u.tips?.[prevMatchId];
+          const prevPts = calcMatchPts(prevTip, prevAct);
+          if (prevPts === 4 || prevPts === 5) {
+            reasons.push({ type: 'double_fulltreff', player: u.displayName });
+          }
+        }
+      }
+      // Ligger an til to fulltreffere på rad (har allerede én, og nå riktig)
+      if ((gained === 4 || gained === 5)) {
+        const finishedMatches = Object.entries(currentResults)
+          .filter(([, v]) => v?.isFinished)
+          .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0));
+        if (finishedMatches.length >= 1) {
+          const [prevMatchId, prevAct] = finishedMatches[0];
+          const prevTip = u.tips?.[prevMatchId];
+          const prevPts = calcMatchPts(prevTip, prevAct);
+          if (prevPts === 4 || prevPts === 5) {
+            reasons.push({ type: 'on_track_double', player: u.displayName });
+          }
+        }
+      }
+    });
+  }
+
+  // ── Trigger 3: Lite poengfangst – endelig poeng, eller fortsatt uflaks ─
+  const avgPts = realUsers.reduce((s, u) => s + calcTotalScore(u, currentResults), 0) / (realUsers.length || 1);
+  const lowThreshold = avgPts; // under gjennomsnittet = lite poengfangst
+
+  // Spillere med lite poeng og som nå endelig får poeng
+  const luckyLow = realUsers.filter(u => {
+    const curPts  = calcTotalScore(u, currentResults);
+    const hypoPts = calcTotalScore(u, hypoResults);
+    return curPts < lowThreshold && hypoPts > curPts;
+  });
+
+  // Spillere med lite poeng som fremdeles ikke treffer
+  const unluckyLow = realUsers.filter(u => {
+    const curPts  = calcTotalScore(u, currentResults);
+    const hypoPts = calcTotalScore(u, hypoResults);
+    const tip     = u.tips?.[matchId];
+    if (!tip) return false;
+    return curPts < lowThreshold && hypoPts === curPts;
+  });
+
+  if (luckyLow.length > 0) {
+    const pick = luckyLow[Math.floor(Math.random() * Math.min(luckyLow.length, 2))];
+    reasons.push({ type: 'finally_points', player: pick.displayName });
+  }
+  if (unluckyLow.length > 0) {
+    const pick = unluckyLow[Math.floor(Math.random() * Math.min(unluckyLow.length, 2))];
+    reasons.push({ type: 'still_unlucky', player: pick.displayName });
+  }
+
+  return reasons;
+}
+
+// ── Kall Claude API og generer bot-kommentar ──────────────────────────
+async function generateBotComment(expert, matchContext, reasons) {
+  if (!ANTHROPIC_KEY) return null;
+
+  const reasonDescs = reasons.map(r => {
+    switch (r.type) {
+      case 'bot_correct':       return `Du selv har tippa riktig resultat i denne kampen (${r.pts} poeng)`;
+      case 'new_leader':        return `${r.player} overtar tabellledelsen (fra ${r.oldRank}. til 1. plass)`;
+      case 'big_jump':          return `${r.player} rykker frem ${r.jump} plasser (fra ${r.oldRank}. til ${r.newRank}. plass)`;
+      case 'superbonus':        return `${r.player} ligger an til superbonus (5 poeng)`;
+      case 'double_fulltreff':  return `${r.player} har nå to fulltreffere på rad`;
+      case 'on_track_double':   return `${r.player} lå an til to fulltreffere på rad`;
+      case 'finally_points':    return `${r.player} har hatt lite uttelling men ligger nå endelig an til å få poeng`;
+      case 'still_unlucky':     return `${r.player} har hatt lite uttelling og treffer heller ikke nå`;
+      default:                  return r.type;
+    }
+  }).join('\n- ');
+
+  const systemPrompt = expert.personality;
+
+  const userPrompt = `Det har nettopp blitt scoret mål i kampen ${matchContext.homeTeam} ${matchContext.homeGoals}–${matchContext.awayGoals} ${matchContext.awayTeam} (minutt ${matchContext.minute}). Målscorer: ${matchContext.playerName || 'ukjent'}${matchContext.suffix || ''}.
+
+Grunner til at du kommenterer:
+- ${reasonDescs}
+
+Skriv en kort kommentar (maks 3-4 setninger) om dette målet og/eller hva det betyr for konkurransen. Hold deg i karakter. Ikke lag markdown eller lister.`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 200,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Anthropic API ${res.status}`);
+  const data = await res.json();
+  return data.content?.[0]?.text?.trim() || null;
+}
+
+// ── Post bot-melding i chat ───────────────────────────────────────────
+async function postBotChat(expert, text) {
+  await db.collection('chat').add({
+    user: expert.name,
+    text,
+    image: '',
+    ts: FieldValue.serverTimestamp(),
+    isBot: true,
+    botId: expert.id,
+  });
+  console.log(`Bot-kommentar postet av ${expert.name}`);
+}
+
+// ── Sjekk og trigger bot-kommentarer ved nytt mål ────────────────────
+async function handleGoalEvent(matchId, liveEvent, prevGoalKey) {
+  // 20% sjanse for å si ingenting
+  if (Math.random() < 0.2) {
+    console.log('Bot hopper over kommentar (20% sjanse)');
+    return;
+  }
+
+  // Hent alle brukere og resultater
+  const [usersSnap, resultsSnap, prevResultsSnap] = await Promise.all([
+    db.collection('users').get(),
+    db.collection('config').doc('results').get(),
+    db.collection('config').doc('prevResults').get(),
+  ]);
+
+  const allUsers       = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const currentResults = resultsSnap.exists ? resultsSnap.data() : {};
+  const prevResults    = prevResultsSnap.exists ? prevResultsSnap.data() : currentResults;
+
+  // Velg tilfeldig ekspert
+  const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+
+  // Analyser triggere
+  const reasons = analyzeGoalTriggers(
+    matchId, liveEvent, allUsers, currentResults, prevResults, expert
+  );
+
+  // Ingen grunner + det er ikke Bengt → ikke kommenter
+  if (reasons.length === 0 && !expert.isBengt) {
+    console.log(`Ingen triggere for ${expert.name}, hopper over`);
+    return;
+  }
+
+  // Generer og post kommentar
+  const matchContext = {
+    homeTeam:   liveEvent.homeNor,
+    awayTeam:   liveEvent.awayNor,
+    homeGoals:  liveEvent.homeGoals,
+    awayGoals:  liveEvent.awayGoals,
+    minute:     liveEvent.minute,
+    playerName: liveEvent.playerName,
+    suffix:     liveEvent.suffix,
+  };
+
+  const comment = await generateBotComment(expert, matchContext, reasons);
+  if (comment) await postBotChat(expert, comment);
+}
+
+// ── API-Football helpers ──────────────────────────────────────────────
 async function apiFetch(path) {
   const url = `https://v3.football.api-sports.io/${path}`;
-  const res = await fetch(url, {
-    headers: { 'x-apisports-key': API_KEY },
-  });
+  const res = await fetch(url, { headers: { 'x-apisports-key': API_KEY } });
   if (!res.ok) throw new Error(`API-Football ${res.status}: ${url}`);
   return res.json();
 }
 
-// ── Finn norsk lagnavn fra API-navn ───────────────────────────────────
-function toNor(apiName) {
-  return API_TO_NOR[apiName] || apiName;
-}
+function toNor(apiName) { return API_TO_NOR[apiName] || apiName; }
 
-// ── Sjekk om det pågår eller snart starter en kamp ───────────────────
 async function getActiveFixtures() {
   const data = await apiFetch(
     `fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&status=1H-HT-2H-ET-BT-P-LIVE`
@@ -100,7 +375,6 @@ async function getActiveFixtures() {
   return data.response || [];
 }
 
-// ── Hent ferdigspilte kamper (siste 24 timer) ─────────────────────────
 async function getRecentlyFinished() {
   const data = await apiFetch(
     `fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&status=FT-AET-PEN&last=10`
@@ -108,73 +382,43 @@ async function getRecentlyFinished() {
   return data.response || [];
 }
 
-// ── Bygg results-objekt fra én fixture ───────────────────────────────
 function buildMatchResult(fixture) {
   const home = fixture.goals?.home;
   const away = fixture.goals?.away;
   if (home === null || home === undefined) return null;
-
-  const status = fixture.fixture?.status?.short;
-  const isLive = LIVE_STATUSES.has(status);
+  const status     = fixture.fixture?.status?.short;
+  const isLive     = LIVE_STATUSES.has(status);
   const isFinished = FINISHED_STATUSES.has(status);
-  const elapsed = fixture.fixture?.status?.elapsed || null;
-
-  // Straffespark-info
-  const penHome = fixture.score?.penalty?.home ?? null;
-  const penAway = fixture.score?.penalty?.away ?? null;
-
-  return {
-    home,
-    away,
-    status,           // 'FT', '2H', 'HT' osv.
-    elapsed,          // minutt (under kamp)
-    isLive,
-    isFinished,
-    penHome,          // null hvis ikke straffer
-    penAway,
-    updatedAt: Date.now(),
-  };
+  const elapsed    = fixture.fixture?.status?.elapsed || null;
+  const penHome    = fixture.score?.penalty?.home ?? null;
+  const penAway    = fixture.score?.penalty?.away ?? null;
+  return { home, away, status, elapsed, isLive, isFinished, penHome, penAway, updatedAt: Date.now() };
 }
 
-// ── Bygg live-event (siste hendelse) ─────────────────────────────────
 function buildLiveEvent(fixture) {
   const events = fixture.events || [];
   if (!events.length) return null;
-
   const homeTeamApi = fixture.teams?.home?.name;
   const awayTeamApi = fixture.teams?.away?.name;
   const homeNor = toNor(homeTeamApi);
   const awayNor = toNor(awayTeamApi);
   const hg = fixture.goals?.home ?? 0;
   const ag = fixture.goals?.away ?? 0;
-
-  // Finn siste mål eller kort (hopp over bytter)
-  const relevant = [...events].reverse().find(
-    e => e.type === 'Goal' || e.type === 'Card'
-  );
+  const relevant = [...events].reverse().find(e => e.type === 'Goal' || e.type === 'Card');
   if (!relevant) return null;
-
   const evTeamApi = relevant.team?.name;
-  const isHome = evTeamApi === homeTeamApi;
-  const min = relevant.time?.elapsed;
-
+  const isHome    = evTeamApi === homeTeamApi;
+  const min       = relevant.time?.elapsed;
   if (relevant.type === 'Goal') {
-    const sm =
-      relevant.detail === 'Own Goal' ? ' (s.m.)' :
-      relevant.detail === 'Penalty'  ? ' (str.)' : '';
+    const sm = relevant.detail === 'Own Goal' ? ' (s.m.)' : relevant.detail === 'Penalty' ? ' (str.)' : '';
     return {
-      type: 'goal',
-      homeNor, awayNor,
-      homeGoals: hg, awayGoals: ag,
-      homeScored: isHome,
-      playerName: relevant.player?.name || '?',
-      minute: min,
-      suffix: sm,
-      ts: Date.now(),
+      type: 'goal', homeNor, awayNor, homeGoals: hg, awayGoals: ag,
+      homeScored: isHome, playerName: relevant.player?.name || '?',
+      minute: min, suffix: sm, ts: Date.now(),
     };
   }
-
   if (relevant.type === 'Card') {
+    // Gult kort: ingen confetti-trigger, bare tekst
     const icon = relevant.detail?.includes('Yellow') ? '🟨' : '🟥';
     return {
       type: 'card',
@@ -182,185 +426,140 @@ function buildLiveEvent(fixture) {
       ts: Date.now(),
     };
   }
-
   return null;
 }
 
-// ── Finn kamp-ID i vår constants.js basert på lagnavn ────────────────
-// Vi lagrer en lookup-cache i Firestore for å unngå å laste constants her
 async function getFixtureLookup() {
   const snap = await db.collection('config').doc('fixtureLookup').get();
   return snap.exists ? snap.data() : {};
 }
 
-// ── Hovedjobb: poll og skriv til Firestore ───────────────────────────
+// ── Hovedjobb ────────────────────────────────────────────────────────
 async function pollAndUpdate() {
-  if (!API_KEY) {
-    console.warn('FOOTBALL_API_KEY ikke satt – hopper over polling');
-    return;
-  }
+  if (!API_KEY) { console.warn('FOOTBALL_API_KEY ikke satt'); return; }
 
-  // 1. Sjekk om det er live kamper
-  const testFixtures = await getTestFixture();
-  const liveFixtures = testFixtures.length ? testFixtures : await getActiveFixtures();
-
-  // 2. Hent nylig ferdigspilte kamper uansett
+  const liveFixtures     = await getActiveFixtures();
   const finishedFixtures = await getRecentlyFinished();
 
-  const lookup = await getFixtureLookup();
-  const batch = db.batch();
-  const resultsRef = db.collection('config').doc('results');
-  const liveRef = db.collection('config').doc('liveEvent');
+  const lookup         = await getFixtureLookup();
+  const resultsRef     = db.collection('config').doc('results');
+  const liveRef        = db.collection('config').doc('liveEvent');
+  const prevGoalsRef   = db.collection('config').doc('prevGoals');
 
-  // 3. Oppdater resultater for ferdigspilte kamper
   const currentResults = (await resultsRef.get()).data() || {};
+  const prevGoals      = (await prevGoalsRef.get()).data() || {};
+
   const updatedResults = { ...currentResults };
-  let resultsChanged = false;
+  let   resultsChanged = false;
+  const batch          = db.batch();
 
+  // Oppdater ferdigspilte kamper
   for (const fixture of finishedFixtures) {
-    const homeApi = fixture.teams?.home?.name;
-    const awayApi = fixture.teams?.away?.name;
-    const homeNor = toNor(homeApi);
-    const awayNor = toNor(awayApi);
-
-    // Finn vår interne match-ID fra lookup-tabellen
-    const matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${homeApi}_${awayApi}`];
-    if (!matchId) {
-      console.log(`Ingen match-ID funnet for: ${homeNor} vs ${awayNor}`);
-      continue;
-    }
-
+    const homeNor = toNor(fixture.teams?.home?.name);
+    const awayNor = toNor(fixture.teams?.away?.name);
+    const matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
+    if (!matchId) continue;
     const result = buildMatchResult(fixture);
     if (!result) continue;
-
-    // Bare oppdater hvis resultatet har endret seg
     const existing = currentResults[matchId];
     if (!existing || existing.home !== result.home || existing.away !== result.away) {
       updatedResults[matchId] = result;
       resultsChanged = true;
-      console.log(`Oppdatert: ${matchId} → ${result.home}-${result.away}`);
     }
   }
 
-  if (resultsChanged) {
-    batch.set(resultsRef, updatedResults, { merge: true });
-  }
+  // Live-kamper: oppdater score + sjekk nye mål
+  const newPrevGoals = { ...prevGoals };
 
-  // 4. Oppdater live-resultater og hendelser
   if (liveFixtures.length > 0) {
-    // Oppdater live-score for pågående kamper også
     for (const fixture of liveFixtures) {
-      const homeApi = fixture.teams?.home?.name;
-      const awayApi = fixture.teams?.away?.name;
-      const homeNor = toNor(homeApi);
-      const awayNor = toNor(awayApi);
-      const matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${homeApi}_${awayApi}`];
+      const homeNor = toNor(fixture.teams?.home?.name);
+      const awayNor = toNor(fixture.teams?.away?.name);
+      const matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
 
       if (matchId) {
         const result = buildMatchResult(fixture);
-        if (result) {
-          updatedResults[matchId] = result;
-          resultsChanged = true;
+        if (result) { updatedResults[matchId] = result; resultsChanged = true; }
+      }
+
+      // Sjekk om det er scoret et nytt mål siden forrige poll
+      const currentGoalKey = `${homeNor}_${awayNor}_${fixture.goals?.home}_${fixture.goals?.away}`;
+      const prevGoalKey    = prevGoals[`${homeNor}_${awayNor}`];
+
+      if (prevGoalKey && prevGoalKey !== currentGoalKey) {
+        // Nytt mål! Bygg live-event og trigger bot-kommentar (kun ved mål, ikke kort)
+        const liveEvent = buildLiveEvent(fixture);
+        if (liveEvent?.type === 'goal' && matchId) {
+          // Ikke await – la bot-kommentaren kjøre asynkront
+          handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
+            console.error('handleGoalEvent feil:', e.message)
+          );
         }
       }
+
+      newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
     }
 
-    // Siste live-hendelse (fra den første aktive kampen)
     const liveEvent = buildLiveEvent(liveFixtures[0]);
     batch.set(liveRef, liveEvent || { type: null, ts: Date.now() });
   } else {
-    // Ingen aktive kamper – nullstill live-event
     batch.set(liveRef, { type: null, ts: Date.now() });
   }
 
+  if (resultsChanged) batch.set(resultsRef, updatedResults, { merge: true });
+  batch.set(prevGoalsRef, newPrevGoals);
+
   await batch.commit();
-  console.log(`Poll ferdig. Live kamper: ${liveFixtures.length}, Ferdig: ${finishedFixtures.length}`);
+  console.log(`Poll ferdig. Live: ${liveFixtures.length}, Ferdig: ${finishedFixtures.length}`);
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  SCHEDULED FUNCTION – kjører hvert minutt
-//  Firebase Blaze-plan kreves for Cloud Functions
-// ══════════════════════════════════════════════════════════════════════
+// ── Scheduled function med intern loop ───────────────────────────────
 exports.pollFootball = onSchedule(
   {
     schedule: 'every 1 minutes',
     timeZone: 'Europe/Oslo',
-    secrets: ['FOOTBALL_API_KEY'],
+    timeoutSeconds: 60,
+    memory: '256MiB',
+    secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'],
   },
   async () => {
-    try {
-      await pollAndUpdate();
-    } catch (err) {
-      console.error('pollFootball feilet:', err);
+    const start = Date.now();
+    let calls = 0;
+    while (true) {
+      try { await pollAndUpdate(); calls++; }
+      catch (err) { console.error(`Poll #${calls + 1} feilet:`, err.message); }
+      const elapsed = Date.now() - start;
+      if (elapsed + POLL_INTERVAL_MS >= FUNCTION_DURATION) break;
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
     }
+    console.log(`pollFootball: ${calls} kall på ${Math.round((Date.now()-start)/1000)}s`);
   }
 );
 
-// ══════════════════════════════════════════════════════════════════════
-//  HTTP-TRIGGER – manuell poll (for testing)
-//  Kall: curl https://<region>-<project>.cloudfunctions.net/manualPoll
-// ══════════════════════════════════════════════════════════════════════
+// ── Manuell HTTP-trigger ──────────────────────────────────────────────
 exports.manualPoll = onRequest(
-  { secrets: ['FOOTBALL_API_KEY'] },
+  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'] },
   async (req, res) => {
-    try {
-      await pollAndUpdate();
-      res.json({ ok: true, ts: Date.now() });
-    } catch (err) {
-      console.error('manualPoll feilet:', err);
-      res.status(500).json({ ok: false, error: err.message });
-    }
+    try { await pollAndUpdate(); res.json({ ok: true, ts: Date.now() }); }
+    catch (err) { console.error('manualPoll feilet:', err); res.status(500).json({ ok: false, error: err.message }); }
   }
 );
 
-// ══════════════════════════════════════════════════════════════════════
-//  HTTP-TRIGGER – sett opp fixture-lookup
-//  Kjøres én gang for å bygge opp lookup-tabellen
-//  Kall: POST med body { matches: [{id, home, away}, ...] }
-// ══════════════════════════════════════════════════════════════════════
+// ── Bygg fixture-lookup ───────────────────────────────────────────────
 exports.buildFixtureLookup = onRequest(async (req, res) => {
-  if (req.method !== 'POST') {
-    res.status(405).send('Method not allowed');
-    return;
-  }
-
+  if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
   const { matches } = req.body;
   if (!matches || !Array.isArray(matches)) {
     res.status(400).json({ error: 'Body må inneholde matches: [{id, home, away}]' });
     return;
   }
-
-  // Bygg lookup: "NorskHjem_NorskBorte" → matchId
   const lookup = {};
   for (const m of matches) {
     const homeApi = TEAM_NAME_MAP[m.home] || m.home;
     const awayApi = TEAM_NAME_MAP[m.away] || m.away;
-    lookup[`${m.home}_${m.away}`] = m.id;        // norsk → id
-    lookup[`${homeApi}_${awayApi}`] = m.id;       // engelsk → id
+    lookup[`${m.home}_${m.away}`]   = m.id;
+    lookup[`${homeApi}_${awayApi}`] = m.id;
   }
-
   await db.collection('config').doc('fixtureLookup').set(lookup);
   res.json({ ok: true, entries: Object.keys(lookup).length });
-  // ══════════════════════════════════════════════════════════════════════
-//  SCHEDULED FUNCTION – bytter quiz-kort kl. 06:00 hver dag
-// ══════════════════════════════════════════════════════════════════════
-exports.rotateQuizPlayer = onSchedule(
-  {
-    schedule: '0 4 * * *', // 04:00 UTC = 06:00 CEST
-    timeZone: 'UTC',
-    secrets: ['FOOTBALL_API_KEY'],
-  },
-  async () => {
-    const now = new Date();
-    const base = new Date('2026-01-01T06:00:00+02:00');
-    let dayIndex = Math.floor((now - base) / (1000 * 60 * 60 * 24));
-    const TOTAL_PLAYERS = 105;
-    const idx = ((dayIndex % TOTAL_PLAYERS) + TOTAL_PLAYERS) % TOTAL_PLAYERS;
-    await db.collection('config').doc('quizPlayer').set({
-      idx,
-      updatedAt: Date.now(),
-    });
-    console.log(`Quiz-kort rotert til indeks ${idx}`);
-  }
-);
 });
