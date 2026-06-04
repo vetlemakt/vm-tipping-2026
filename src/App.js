@@ -2331,7 +2331,7 @@ function PollWidget({ me, isMobile }) {
   if (creating) return (
     <div style={containerStyle}>
       <input value={question} onChange={e=>setQuestion(e.target.value)}
-        placeholder="Spørsmål..." maxLength={80} autoFocus
+        placeholder="Spørsmål..." maxLength={58} autoFocus
         style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,215,0,.35)',
           borderRadius:5,color:'#fff',padding:'3px 7px',fontSize:10,
           fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
@@ -2377,18 +2377,19 @@ function PollWidget({ me, isMobile }) {
 
   // ── Active poll ──
   return (
-    <div style={containerStyle}>
-      {/* Question + new-button */}
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:3}}>
-        <div style={{fontSize:10,color:'#e8edf8',fontFamily:"'Kanit',sans-serif",
-          fontWeight:700,lineHeight:1.25,flex:1}}>{poll.question}</div>
-        {canCreate && (
-          <button onClick={()=>setCreating(true)}
-            style={{background:'none',border:'none',color:'rgba(255,215,0,.45)',
-              fontSize:9,cursor:'pointer',padding:0,flexShrink:0,marginTop:1,
-              fontFamily:"'Kanit',sans-serif"}}>+ny</button>
-        )}
-      </div>
+    <div style={{...containerStyle,position:'relative'}}>
+      {/* +ny floats in top-right corner, outside text flow */}
+      {canCreate && (
+        <button onClick={()=>setCreating(true)}
+          style={{position:'absolute',top:4,right:6,background:'none',border:'none',
+            color:'rgba(255,215,0,.4)',fontSize:8,cursor:'pointer',padding:0,
+            fontFamily:"'Inter',sans-serif",lineHeight:1}}>+ny</button>
+      )}
+      {/* Question – max 2 lines, Inter font */}
+      <div style={{fontSize:10,color:'#e8edf8',fontFamily:"'Inter',sans-serif",
+        fontWeight:500,lineHeight:1.3,
+        display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',
+        overflow:'hidden',paddingRight:canCreate?16:0}}>{poll.question}</div>
 
       {/* Vote buttons or result bars */}
       <div style={{display:'flex',flexDirection:'column',gap:3}}>
