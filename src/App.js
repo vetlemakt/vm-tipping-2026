@@ -797,7 +797,10 @@ function BotSummaryTrigger({ matchId, match, results, users, summaries }) {
       setLoading(false);
     }
   };
+  // Knappen er skjult – sammendrag genereres automatisk av Cloud Function
+  // Vis kun for admin-debugging
   if (!process.env.REACT_APP_ANTHROPIC_KEY) return null;
+  if (!window.location.search.includes('showSummaryBtn')) return null;
   return (
     <button style={C.botSummaryBtn} onClick={handleGenerate} disabled={loading}>
       {loading ? '⟳ Genererer…' : '🤖 Generer ekspertkommentar'}
@@ -2004,9 +2007,33 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           return r?.home !== undefined ? s + (r.home||0) + (r.away||0) : s;
         }, 0);
         const myPts = users.find(u => u.id === me.username)?.total || 0;
+
+        // ── Formtabell: siste N kamper (N = min(finishedCount, 5)) ──────
+        const formN = Math.min(finishedCount, 5);
+        const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
+        const recentMatches = allMatches
+          .filter(m => results[m.id]?.home !== undefined)
+          .sort((a, b) => (results[b.id]?.updatedAt || 0) - (results[a.id]?.updatedAt || 0))
+          .slice(0, formN);
+
+        const realUsers = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+        const formScores = realUsers.map(u => {
+          let pts = 0, ft = 0;
+          recentMatches.forEach(m => {
+            const tip = u.tips?.[m.id];
+            const act = results[m.id];
+            if (!tip || !act) return;
+            const p = calcMatchPts(tip, act);
+            pts += p;
+            if (p >= 4) ft++;
+          });
+          return { id: u.id, name: u.displayName, pts, ft };
+        }).sort((a, b) => b.pts - a.pts || b.ft - a.ft);
+
+        const top3Form = formScores.slice(0, 3);
+
         const stats = [
           { num: myRank ? `#${myRank}` : '–', label: isMobile ? 'Plass' : 'Din plassering' },
-          { num: myPts, label: isMobile ? 'Poeng' : 'Dine poeng' },
           ...(!isMobile ? [
             { num: users.length, label: 'Deltakere' },
             { num: finishedCount, label: 'Spilte kamper' },
@@ -2026,6 +2053,48 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 10, letterSpacing: isMobile ? 1 : 2 }}>{label}</div>
               </div>
             ))}
+            {/* Formtabell – erstatter "Dine poeng" */}
+            <div style={{
+              ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
+              minWidth: isMobile ? 110 : 160,
+              padding: isMobile ? '6px 8px' : '10px 14px',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              gap: 3,
+            }}>
+              <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 9, letterSpacing: isMobile ? 1 : 2, marginBottom: 3 }}>
+                {formN === 0 ? 'FORM' : `FORM – SISTE ${formN} KAMP${formN !== 1 ? 'ER' : ''}`}
+              </div>
+              {formN === 0 ? (
+                <div style={{ color: 'rgba(255,255,255,.35)', fontSize: 11 }}>Ingen kamper ennå</div>
+              ) : top3Form.map((u, i) => {
+                const isMe = u.id === me.username;
+                const medal = ['🥇','🥈','🥉'][i];
+                return (
+                  <div key={u.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: isMe ? 'rgba(255,215,0,.08)' : 'transparent',
+                    borderRadius: 4, padding: '1px 3px',
+                  }}>
+                    <span style={{ fontSize: 10 }}>{medal}</span>
+                    <span style={{
+                      flex: 1, fontSize: isMobile ? 9 : 10,
+                      color: isMe ? '#FFD700' : 'rgba(255,255,255,.8)',
+                      fontWeight: isMe ? 700 : 500,
+                      fontFamily: "'Kanit',sans-serif",
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{u.name}</span>
+                    <span style={{ fontSize: isMobile ? 9 : 10, color: '#FFD700', fontWeight: 700, fontFamily: "'Fira Code',monospace" }}>
+                      {u.pts}p
+                    </span>
+                    {u.ft > 0 && (
+                      <span style={{ fontSize: 8, color: 'rgba(255,215,0,.6)', marginLeft: 2 }}>
+                        {u.ft}✓
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
             <div style={isMobile ? { flexShrink: 0 } : {}}>
               <QuizWidget username={me.username} />
             </div>
