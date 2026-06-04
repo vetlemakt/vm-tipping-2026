@@ -1893,6 +1893,7 @@ Kommenter dette i chatten – kort og engasjert, maks 3 setninger. Skriv som deg
 //  POLL DIAGRAM TYPES
 // ══════════════════════════════════════════════════════════════════════
 
+// eslint-disable-next-line no-unused-vars
 const DIAGRAM_TYPES = [
   'trump_tower','bar_rwb','horizontal_neymar','limousine','drillo','arne_scheie','percent','pie'
 ];
@@ -2244,6 +2245,7 @@ function PieDiagram({ options, votes }) {
 }
 
 // ── Diagram dispatcher ────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
 function PollDiagram({ type, options, votes }) {
   const props = { options, votes };
   switch(type) {
