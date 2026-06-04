@@ -2318,6 +2318,7 @@ function PollWidget({ me, isMobile }) {
   };
 
   const totalVotes = poll ? (poll.votes||[]).reduce((s,v)=>s+v,0) : 0;
+  // eslint-disable-next-line no-unused-vars
   const maxVotes   = poll ? Math.max(...(poll.votes||[1]),1) : 1;
   const BAR_COLORS = ['#4fc3f7','#81c784','#ffb74d','#e57373'];
 
