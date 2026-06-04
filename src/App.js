@@ -2259,7 +2259,8 @@ function PollDiagram({ type, options, votes }) {
   }
 }
 
-// ── Poll admins ───────────────────────────────────────────────────────
+
+// ── Poll admins ──────────────────────────────────────────────────────
 const POLL_ADMINS = new Set(['tarjei','vetle','admin','lars','hansandreas',
   'Tarjei','Vetle','Admin','Lars','HansAndreas','lars gaustad','hans andreas','Lars Gaustad','Hans Andreas']);
 
@@ -2282,9 +2283,7 @@ function PollWidget({ me, isMobile }) {
           const v = JSON.parse(localStorage.getItem('vm_poll_votes')||'{}');
           setVoted(!!v[data.id]);
         } catch { setVoted(false); }
-      } else {
-        setPoll(null);
-      }
+      } else { setPoll(null); }
     });
     return unsub;
   }, []);
@@ -2296,8 +2295,7 @@ function PollWidget({ me, isMobile }) {
     await updateDoc(doc(db,'config','activePoll'), { votes: newVotes });
     try {
       const v = JSON.parse(localStorage.getItem('vm_poll_votes')||'{}');
-      v[poll.id] = optIdx;
-      localStorage.setItem('vm_poll_votes', JSON.stringify(v));
+      v[poll.id] = optIdx; localStorage.setItem('vm_poll_votes', JSON.stringify(v));
     } catch {}
     setVoted(true);
   };
@@ -2306,14 +2304,11 @@ function PollWidget({ me, isMobile }) {
     if (!question.trim() || opts.filter(o=>o.trim()).length < 2) return;
     setSaving(true);
     const validOpts = opts.filter(o=>o.trim());
-    // Pick random diagram type
-    const diagType = DIAGRAM_TYPES[Math.floor(Math.random()*DIAGRAM_TYPES.length)];
     await setDoc(doc(db,'config','activePoll'), {
       id: Date.now().toString(),
       question: question.trim(),
       options: validOpts,
       votes: validOpts.map(()=>0),
-      diagType,
       createdBy: me.displayName,
       createdAt: Date.now(),
     });
@@ -2321,70 +2316,114 @@ function PollWidget({ me, isMobile }) {
   };
 
   const totalVotes = poll ? (poll.votes||[]).reduce((s,v)=>s+v,0) : 0;
+  const maxVotes   = poll ? Math.max(...(poll.votes||[1]),1) : 1;
+  const BAR_COLORS = ['#4fc3f7','#81c784','#ffb74d','#e57373'];
 
+  const containerStyle = {
+    padding:'7px 9px', display:'flex', flexDirection:'column', gap:4,
+    minWidth: isMobile ? 120 : 148, maxWidth: 200, height:'100%', boxSizing:'border-box',
+  };
+
+  // ── Create form ──
   if (creating) return (
-    <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6,minWidth:160}}>
-      <div style={{fontSize:10,color:'#FFD700',fontWeight:700,letterSpacing:1,fontFamily:"'Kanit',sans-serif",textTransform:'uppercase'}}>Ny poll</div>
-      <input value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Spørsmål..." maxLength={80}
-        style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,215,0,.3)',borderRadius:6,color:'#fff',padding:'4px 8px',fontSize:11,fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
+    <div style={containerStyle}>
+      <input value={question} onChange={e=>setQuestion(e.target.value)}
+        placeholder="Spørsmål..." maxLength={80} autoFocus
+        style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,215,0,.35)',
+          borderRadius:5,color:'#fff',padding:'3px 7px',fontSize:10,
+          fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
       {opts.map((o,i)=>(
         <input key={i} value={o} onChange={e=>{const n=[...opts];n[i]=e.target.value;setOpts(n);}}
-          placeholder={`Alternativ ${i+1}`} maxLength={30}
-          style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.15)',borderRadius:6,color:'#fff',padding:'3px 8px',fontSize:11,fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
+          placeholder={`Alt. ${i+1}`} maxLength={28}
+          style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',
+            borderRadius:5,color:'#fff',padding:'3px 7px',fontSize:10,
+            fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
       ))}
       {opts.length < 3 && (
         <button onClick={()=>setOpts([...opts,''])}
-          style={{background:'none',border:'1px dashed rgba(255,255,255,.2)',color:'rgba(255,255,255,.5)',borderRadius:6,fontSize:10,padding:'2px 6px',cursor:'pointer',fontFamily:"'Kanit',sans-serif"}}>+ Legg til alternativ</button>
+          style={{background:'none',border:'1px dashed rgba(255,255,255,.18)',
+            color:'rgba(255,255,255,.45)',borderRadius:5,fontSize:9,padding:'2px 4px',
+            cursor:'pointer',fontFamily:"'Kanit',sans-serif"}}>+ alt</button>
       )}
-      <div style={{display:'flex',gap:6}}>
+      <div style={{display:'flex',gap:5,marginTop:2}}>
         <button onClick={createPoll} disabled={saving}
-          style={{flex:1,background:'rgba(255,215,0,.2)',border:'1px solid rgba(255,215,0,.4)',color:'#FFD700',borderRadius:6,fontSize:11,padding:'4px',cursor:'pointer',fontFamily:"'Kanit',sans-serif",fontWeight:700}}>
+          style={{flex:1,background:'rgba(255,215,0,.18)',border:'1px solid rgba(255,215,0,.4)',
+            color:'#FFD700',borderRadius:5,fontSize:10,padding:'3px',cursor:'pointer',
+            fontFamily:"'Kanit',sans-serif",fontWeight:700}}>
           {saving?'⟳':'Publiser'}
         </button>
         <button onClick={()=>setCreating(false)}
-          style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.6)',borderRadius:6,fontSize:11,padding:'4px 8px',cursor:'pointer'}}>Avbryt</button>
+          style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',
+            color:'rgba(255,255,255,.55)',borderRadius:5,fontSize:10,padding:'3px 6px',cursor:'pointer'}}>✕</button>
       </div>
     </div>
   );
 
+  // ── No poll ──
   if (!poll) return (
-    <div style={{padding:'10px 12px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,minHeight:80,minWidth:130}}>
-      <div style={{fontSize:10,color:'rgba(255,255,255,.3)',textAlign:'center'}}>Ingen aktiv poll</div>
+    <div style={{...containerStyle,alignItems:'center',justifyContent:'center'}}>
+      <div style={{fontSize:9,color:'rgba(255,255,255,.25)',textAlign:'center'}}>Ingen aktiv poll</div>
       {canCreate && (
         <button onClick={()=>setCreating(true)}
-          style={{background:'rgba(255,215,0,.15)',border:'1px solid rgba(255,215,0,.3)',color:'#FFD700',borderRadius:8,fontSize:11,padding:'4px 10px',cursor:'pointer',fontFamily:"'Kanit',sans-serif",fontWeight:700}}>
-          Ny poll
-        </button>
+          style={{marginTop:4,background:'rgba(255,215,0,.12)',border:'1px solid rgba(255,215,0,.28)',
+            color:'#FFD700',borderRadius:6,fontSize:10,padding:'3px 8px',cursor:'pointer',
+            fontFamily:"'Kanit',sans-serif",fontWeight:700}}>Ny poll</button>
       )}
     </div>
   );
 
+  // ── Active poll ──
   return (
-    <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6,minWidth:isMobile?130:160,maxWidth:240}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:4}}>
-        <div style={{fontSize:9,color:'#FFD700',fontWeight:700,letterSpacing:1,fontFamily:"'Kanit',sans-serif",textTransform:'uppercase'}}>POLL</div>
+    <div style={containerStyle}>
+      {/* Question + new-button */}
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:3}}>
+        <div style={{fontSize:10,color:'#e8edf8',fontFamily:"'Kanit',sans-serif",
+          fontWeight:700,lineHeight:1.25,flex:1}}>{poll.question}</div>
         {canCreate && (
           <button onClick={()=>setCreating(true)}
-            style={{background:'none',border:'none',color:'rgba(255,215,0,.5)',fontSize:9,cursor:'pointer',padding:0,fontFamily:"'Kanit',sans-serif"}}>+ ny</button>
+            style={{background:'none',border:'none',color:'rgba(255,215,0,.45)',
+              fontSize:9,cursor:'pointer',padding:0,flexShrink:0,marginTop:1,
+              fontFamily:"'Kanit',sans-serif"}}>+ny</button>
         )}
       </div>
-      <div style={{fontSize:11,color:'#e8edf8',fontFamily:"'Kanit',sans-serif",fontWeight:600,lineHeight:1.3}}>{poll.question}</div>
+
+      {/* Vote buttons or result bars */}
       {!voted ? (
-        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+        <div style={{display:'flex',flexDirection:'column',gap:3}}>
           {poll.options.map((opt,i)=>(
             <button key={i} onClick={()=>vote(i)}
-              style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',color:'#e8edf8',borderRadius:8,padding:'5px 10px',fontSize:11,cursor:'pointer',fontFamily:"'Kanit',sans-serif",fontWeight:600,textAlign:'left',transition:'background .15s'}}
-              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.15)'}
+              style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.14)',
+                color:'#e8edf8',borderRadius:6,padding:'4px 8px',fontSize:10,cursor:'pointer',
+                fontFamily:"'Kanit',sans-serif",fontWeight:600,textAlign:'left',
+                transition:'background .12s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.14)'}
               onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.07)'}>
               {opt}
             </button>
           ))}
         </div>
       ) : (
-        <PollDiagram type={poll.diagType||'percent'} options={poll.options} votes={poll.votes||[]}/>
-      )}
-      {voted&&totalVotes>0&&(
-        <div style={{fontSize:9,color:'rgba(255,255,255,.35)',textAlign:'center'}}>{totalVotes} stemme{totalVotes!==1?'r':''}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          {poll.options.map((opt,i)=>{
+            const v = (poll.votes||[])[i]||0;
+            const p = totalVotes>0?Math.round((v/totalVotes)*100):0;
+            const barW = maxVotes>0?Math.round((v/maxVotes)*100):0;
+            const color = BAR_COLORS[i%BAR_COLORS.length];
+            return (
+              <div key={i}>
+                <div style={{fontSize:9,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif",
+                    overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>{opt}</div>
+                <div style={{background:'rgba(255,255,255,.08)',borderRadius:10,height:13,overflow:'hidden'}}>
+                  <div style={{width:`${Math.max(barW,8)}%`,height:'100%',background:color,
+                    borderRadius:10,transition:'width .35s',display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:4}}>
+                    {p>10&&<span style={{fontSize:8,fontWeight:700,color:'rgba(0,0,0,.7)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+        </div>
       )}
     </div>
   );
