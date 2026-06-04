@@ -2582,21 +2582,14 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             gridTemplateColumns: isMobile ? undefined : 'repeat(5, 1fr) auto',
             overflow: 'hidden',
           }}>
-            {stats.map(({ num, label }) => (
+            {/* Din plassering – alltid først */}
+            {stats.slice(0,1).map(({ num, label }) => (
               <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
                 <div style={{ ...C.statNum, fontSize: isMobile ? 22 : 32 }}>{num}</div>
                 <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 10, letterSpacing: isMobile ? 1 : 2 }}>{label}</div>
               </div>
             ))}
-            {/* Poll-widget – erstatter Deltakere */}
-            <div style={{
-              ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
-              minWidth: isMobile ? 130 : 160, padding: 0,
-              overflow: 'visible', alignItems: 'stretch', justifyContent: 'stretch',
-            }}>
-              <PollWidget me={me} isMobile={isMobile} />
-            </div>
-            {/* Formtabell – erstatter "Dine poeng" */}
+            {/* Formtabell – andre fra venstre */}
             <div style={{
               ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
               minWidth: isMobile ? 110 : 160,
@@ -2604,8 +2597,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               display: 'flex', flexDirection: 'column', justifyContent: 'center',
               gap: 3,
             }}>
-              <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 9, letterSpacing: isMobile ? 1 : 2, marginBottom: 3 }}>
-                {formN === 0 ? 'FORM' : `FORM – SISTE ${formN} KAMP${formN !== 1 ? 'ER' : ''}`}
+              <div style={{ fontSize: isMobile ? 8 : 9, letterSpacing: isMobile ? 1 : 2, marginBottom: 3,
+                color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700,
+                textTransform: 'uppercase' }}>
+                {formN === 0 ? 'Formtabell' : `Formtabell – siste ${formN} kamp${formN !== 1 ? 'er' : ''}`}
               </div>
               {formN === 0 ? (
                 <div style={{ color: 'rgba(255,255,255,.35)', fontSize: 11 }}>Ingen kamper ennå</div>
@@ -2637,6 +2632,21 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   </div>
                 );
               })}
+            </div>
+            {/* Resten av stats (Spilte kamper, Antall mål) */}
+            {stats.slice(1).map(({ num, label }) => (
+              <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
+                <div style={{ ...C.statNum, fontSize: isMobile ? 22 : 32 }}>{num}</div>
+                <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 10, letterSpacing: isMobile ? 1 : 2 }}>{label}</div>
+              </div>
+            ))}
+            {/* Poll-widget */}
+            <div style={{
+              ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
+              minWidth: isMobile ? 130 : 160, padding: 0,
+              overflow: 'visible', alignItems: 'stretch', justifyContent: 'stretch',
+            }}>
+              <PollWidget me={me} isMobile={isMobile} />
             </div>
             <div style={isMobile ? { flexShrink: 0 } : {}}>
               <QuizWidget username={me.username} />
