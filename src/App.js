@@ -9,7 +9,7 @@ import {
   updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer,
   db,
 } from './firebase';
-import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
 import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
 import { searchPlayers, ALL_PLAYERS } from './squads';
@@ -1887,6 +1887,509 @@ Kommenter dette i chatten – kort og engasjert, maks 3 setninger. Skriv som deg
   }, [users, results]); // eslint-disable-line
 }
 
+
+
+// ══════════════════════════════════════════════════════════════════════
+//  POLL DIAGRAM TYPES
+// ══════════════════════════════════════════════════════════════════════
+
+const DIAGRAM_TYPES = [
+  'trump_tower','bar_rwb','horizontal_neymar','limousine','drillo','arne_scheie','percent','pie'
+];
+
+// ── Shared: percent label helper ──────────────────────────────────────
+function pct(v, total) { return total > 0 ? Math.round((v / total) * 100) : 0; }
+
+// ── 1. Trump Tower ────────────────────────────────────────────────────
+function TrumpTower({ heightPct, isWinner, label, votes, total }) {
+  const minH = 22, maxH = 130;
+  const h = minH + Math.round((heightPct / 100) * (maxH - minH));
+  const midH = Math.max(4, h - 22);
+  const gold = '#D4AF37'; const silver = '#A8A9AD';
+  const c = isWinner ? gold : silver;
+  const dark = isWinner ? '#8B6914' : '#777';
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:52 }}>
+      <div style={{ fontSize:10, fontWeight:700, color: isWinner?gold:'rgba(255,255,255,.7)', fontFamily:"'Fira Code',monospace" }}>
+        {votes} ({pct(votes,total)}%)
+      </div>
+      <svg width="46" height={h+2} viewBox={`0 0 46 ${h+2}`} style={{display:'block',overflow:'visible'}}>
+        <rect x="20" y="0" width="6" height="8" fill={c}/>
+        <rect x="10" y="8" width="26" height="8" fill={c} rx="1"/>
+        <rect x="6" y="16" width="34" height="6" fill={dark}/>
+        {[10,17,24,31,38].map(x=><rect key={x} x={x} y={17} width="4" height="4" fill="rgba(255,255,180,.3)" rx="0.5"/>)}
+        <rect x="4" y="22" width="38" height={midH} fill={c}/>
+        {Array.from({length:Math.floor(midH/9)}).map((_,row)=>
+          [8,16,24,32].map(x=><rect key={`${row}-${x}`} x={x} y={24+row*9} width="5" height="5" fill="rgba(255,255,180,.22)" rx="0.5"/>)
+        )}
+        {Array.from({length:Math.floor(midH/9)}).map((_,row)=>
+          <line key={row} x1="4" y1={22+row*9} x2="42" y2={22+row*9} stroke={dark} strokeWidth="0.4" opacity="0.5"/>
+        )}
+        <rect x="2" y={22+midH} width="42" height="4" fill={dark}/>
+        <rect x="0" y={22+midH+4} width="46" height="2" fill={dark} rx="1"/>
+      </svg>
+      <div style={{fontSize:10,color:isWinner?gold:'rgba(255,255,255,.75)',fontWeight:isWinner?700:500,textAlign:'center',maxWidth:54,lineHeight:1.2,fontFamily:"'Kanit',sans-serif",wordBreak:'break-word'}}>{label}</div>
+    </div>
+  );
+}
+
+function TrumpDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const maxV = Math.max(...votes,1);
+  return (
+    <div style={{display:'flex',alignItems:'flex-end',justifyContent:'center',gap:12,paddingTop:4}}>
+      {options.map((opt,i)=>(
+        <TrumpTower key={i} heightPct={maxV>0?Math.round((votes[i]/maxV)*100):0}
+          isWinner={votes[i]===maxV&&total>0} label={opt} votes={votes[i]} total={total}/>
+      ))}
+    </div>
+  );
+}
+
+// ── 2. Red/White/Blue bar chart ───────────────────────────────────────
+function RWBDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const colors = ['#B22234','#FFFFFF','#3C3B6E'];
+  const textColors = ['#fff','#222','#fff'];
+  const maxV = Math.max(...votes,1);
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:5}}>
+      {options.map((opt,i)=>{
+        const w = maxV>0?Math.round((votes[i]/maxV)*100):0;
+        return (
+          <div key={i}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+              <span style={{fontSize:10,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif"}}>{opt}</span>
+              <span style={{fontSize:10,color:'rgba(255,255,255,.6)',fontFamily:"'Fira Code',monospace"}}>{votes[i]} ({pct(votes[i],total)}%)</span>
+            </div>
+            <div style={{background:'rgba(255,255,255,.1)',borderRadius:4,height:22,overflow:'hidden'}}>
+              <div style={{width:`${Math.max(w,4)}%`,height:'100%',background:colors[i%3],display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:4,transition:'width .4s',borderRadius:4}}>
+                {w>15&&<span style={{fontSize:10,fontWeight:700,color:textColors[i%3]}}>{w}%</span>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 3. Neymar rolling (horizontal) ───────────────────────────────────
+function NeymarFigure({ x, flipped }) {
+  const s = flipped ? -1 : 1;
+  return (
+    <g transform={`translate(${x},0) scale(${s},1)`}>
+      {/* Body rolling */}
+      <ellipse cx="0" cy="18" rx="9" ry="6" fill="#FFD700" stroke="#B8860B" strokeWidth="0.8"/>
+      {/* Head */}
+      <circle cx="0" cy="8" r="7" fill="#F5CBA7" stroke="#D4A76A" strokeWidth="0.8"/>
+      {/* Hair */}
+      <ellipse cx="0" cy="4" rx="7" ry="3" fill="#2C1810"/>
+      {/* Arms */}
+      <line x1="-9" y1="16" x2="-16" y2="10" stroke="#F5CBA7" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="9" y1="16" x2="16" y2="22" stroke="#F5CBA7" strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Legs */}
+      <line x1="-4" y1="24" x2="-10" y2="32" stroke="#1a3a6b" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="4" y1="24" x2="10" y2="32" stroke="#1a3a6b" strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Shoes */}
+      <ellipse cx="-11" cy="33" rx="4" ry="2" fill="#222"/>
+      <ellipse cx="11" cy="33" rx="4" ry="2" fill="#222"/>
+      {/* Stars */}
+      <text x="14" y="5" fontSize="8" fill="#FFD700">★</text>
+      <text x="-22" y="5" fontSize="6" fill="#FFD700">★</text>
+    </g>
+  );
+}
+
+function NeymarDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const maxV = Math.max(...votes,1);
+  const trackW = 220;
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+      {options.map((opt,i)=>{
+        const roll = maxV>0?Math.round((votes[i]/maxV)*trackW):0;
+        return (
+          <div key={i}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+              <span style={{fontSize:10,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif"}}>{opt}</span>
+              <span style={{fontSize:10,color:'rgba(255,255,255,.6)',fontFamily:"'Fira Code',monospace"}}>{votes[i]} ({pct(votes[i],total)}%)</span>
+            </div>
+            <div style={{background:'rgba(255,255,255,.07)',borderRadius:4,height:38,position:'relative',overflow:'hidden'}}>
+              {/* grass */}
+              <div style={{position:'absolute',bottom:0,left:0,right:0,height:6,background:'#2d5a27',borderRadius:'0 0 4px 4px'}}/>
+              {/* neymar */}
+              <svg width={roll+40} height="38" style={{position:'absolute',left:0,top:0}}>
+                <NeymarFigure x={roll+18} flipped={false}/>
+              </svg>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 4. Limousine ──────────────────────────────────────────────────────
+function LimoDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const maxV = Math.max(...votes,1);
+  const maxLen = 200;
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {options.map((opt,i)=>{
+        const limoLen = 60 + Math.round((votes[i]/maxV)*(maxLen-60));
+        return (
+          <div key={i}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+              <span style={{fontSize:10,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif"}}>{opt}</span>
+              <span style={{fontSize:10,color:'rgba(255,255,255,.6)',fontFamily:"'Fira Code',monospace"}}>{votes[i]} ({pct(votes[i],total)}%)</span>
+            </div>
+            <svg width={limoLen+20} height="38" viewBox={`0 0 ${limoLen+20} 38`}>
+              {/* Body */}
+              <rect x="5" y="6" width={limoLen} height="20" fill="#f0f0f0" rx="4"/>
+              {/* Roof */}
+              <rect x="20" y="2" width={limoLen-50} height="8" fill="#e0e0e0" rx="3"/>
+              {/* Windows */}
+              {Array.from({length:Math.max(1,Math.floor((limoLen-50)/20))}).map((_,w)=>(
+                <rect key={w} x={25+w*20} y="4" width="14" height="5" fill="#87CEEB" rx="1" opacity="0.8"/>
+              ))}
+              {/* Front window */}
+              <rect x={limoLen-22} y="7" width="10" height="12" fill="#87CEEB" rx="2"/>
+              {/* Headlight */}
+              <rect x={limoLen} y="11" width="5" height="6" fill="#FFFF99" rx="1"/>
+              {/* Wheels */}
+              <circle cx="18" cy="26" r="7" fill="#333"/>
+              <circle cx="18" cy="26" r="4" fill="#888"/>
+              <circle cx={limoLen-10} cy="26" r="7" fill="#333"/>
+              <circle cx={limoLen-10} cy="26" r="4" fill="#888"/>
+              {limoLen>100&&<circle cx={Math.floor(limoLen/2)} cy="26" r="6" fill="#333"/>}
+              {limoLen>100&&<circle cx={Math.floor(limoLen/2)} cy="26" r="3.5" fill="#888"/>}
+            </svg>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 5. Drillo (vertical figure, tall or short) ───────────────────────
+function DrilloDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const maxV = Math.max(...votes,1);
+  return (
+    <div style={{display:'flex',alignItems:'flex-end',justifyContent:'center',gap:16,paddingTop:4}}>
+      {options.map((opt,i)=>{
+        const targetH = 40 + Math.round((votes[i]/maxV)*100);
+        const headR = 12;
+        const bodyH = Math.max(10, targetH - headR*2 - 20);
+        const totalH = headR*2 + bodyH + 24;
+        const isWin = votes[i]===maxV&&total>0;
+        const skin = '#F5CBA7';
+        const suit = isWin ? '#FFD700' : '#1a3a6b';
+        const x = 24;
+        return (
+          <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+            <div style={{fontSize:10,color:isWin?'#FFD700':'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace",fontWeight:700}}>
+              {votes[i]} ({pct(votes[i],total)}%)
+            </div>
+            <svg width="48" height={totalH+4}>
+              {/* Head */}
+              <circle cx={x} cy={headR+2} r={headR} fill={skin} stroke="#D4A76A" strokeWidth="0.8"/>
+              {/* Hair */}
+              <ellipse cx={x} cy={headR-4} rx={headR} ry={headR*0.4} fill="#555"/>
+              {/* Eyes */}
+              <circle cx={x-4} cy={headR+1} r="1.5" fill="#333"/>
+              <circle cx={x+4} cy={headR+1} r="1.5" fill="#333"/>
+              {/* Mouth - serious Drillo expression */}
+              <line x1={x-3} y1={headR+6} x2={x+3} y2={headR+6} stroke="#666" strokeWidth="1" strokeLinecap="round"/>
+              {/* Body */}
+              <rect x={x-8} y={headR*2+2} width="16" height={bodyH} fill={suit} rx="2"/>
+              {/* Arms */}
+              <line x1={x-8} y1={headR*2+8} x2={x-18} y2={headR*2+8+bodyH*0.4} stroke={skin} strokeWidth="3" strokeLinecap="round"/>
+              <line x1={x+8} y1={headR*2+8} x2={x+18} y2={headR*2+8+bodyH*0.4} stroke={skin} strokeWidth="3" strokeLinecap="round"/>
+              {/* Legs */}
+              <line x1={x-4} y1={headR*2+2+bodyH} x2={x-6} y2={headR*2+2+bodyH+18} stroke="#222" strokeWidth="3" strokeLinecap="round"/>
+              <line x1={x+4} y1={headR*2+2+bodyH} x2={x+6} y2={headR*2+2+bodyH+18} stroke="#222" strokeWidth="3" strokeLinecap="round"/>
+              {/* Shoes */}
+              <ellipse cx={x-7} cy={headR*2+4+bodyH+18} rx="5" ry="2.5" fill="#222"/>
+              <ellipse cx={x+7} cy={headR*2+4+bodyH+18} rx="5" ry="2.5" fill="#222"/>
+            </svg>
+            <div style={{fontSize:9,color:isWin?'#FFD700':'rgba(255,255,255,.7)',textAlign:'center',maxWidth:52,lineHeight:1.2,fontFamily:"'Kanit',sans-serif",wordBreak:'break-word'}}>{opt}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 6. Arne Scheie face (big or small) ───────────────────────────────
+function ArneScheieDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const maxV = Math.max(...votes,1);
+  return (
+    <div style={{display:'flex',alignItems:'flex-end',justifyContent:'center',gap:12,paddingTop:4}}>
+      {options.map((opt,i)=>{
+        const r = 18 + Math.round((votes[i]/maxV)*38);
+        const isWin = votes[i]===maxV&&total>0;
+        const cx = r+4, cy = r+4;
+        const skin = '#F5CBA7';
+        return (
+          <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+            <div style={{fontSize:10,fontWeight:700,color:isWin?'#FFD700':'rgba(255,255,255,.7)',fontFamily:"'Fira Code',monospace"}}>
+              {votes[i]} ({pct(votes[i],total)}%)
+            </div>
+            <svg width={(r+4)*2} height={(r+4)*2+10}>
+              {/* Face */}
+              <circle cx={cx} cy={cy} r={r} fill={skin} stroke="#D4A76A" strokeWidth="1"/>
+              {/* Hair sides – Arne style thinning on top */}
+              <ellipse cx={cx-r*0.6} cy={cy-r*0.7} rx={r*0.3} ry={r*0.25} fill="#888"/>
+              <ellipse cx={cx+r*0.6} cy={cy-r*0.7} rx={r*0.3} ry={r*0.25} fill="#888"/>
+              {/* Eyebrows – bushy Arne */}
+              <path d={`M${cx-r*0.5} ${cy-r*0.3} Q${cx-r*0.25} ${cy-r*0.4} ${cx-r*0.05} ${cy-r*0.3}`} fill="none" stroke="#555" strokeWidth={Math.max(1.5,r*0.07)} strokeLinecap="round"/>
+              <path d={`M${cx+r*0.05} ${cy-r*0.3} Q${cx+r*0.25} ${cy-r*0.4} ${cx+r*0.5} ${cy-r*0.3}`} fill="none" stroke="#555" strokeWidth={Math.max(1.5,r*0.07)} strokeLinecap="round"/>
+              {/* Eyes */}
+              <circle cx={cx-r*0.28} cy={cy-r*0.1} r={Math.max(2,r*0.1)} fill="#5C4033"/>
+              <circle cx={cx+r*0.28} cy={cy-r*0.1} r={Math.max(2,r*0.1)} fill="#5C4033"/>
+              {/* Nose */}
+              <ellipse cx={cx} cy={cy+r*0.15} rx={r*0.1} ry={r*0.12} fill="#E8A87C"/>
+              {/* Mouth – classic Scheie smile */}
+              <path d={`M${cx-r*0.28} ${cy+r*0.38} Q${cx} ${cy+r*0.52} ${cx+r*0.28} ${cy+r*0.38}`} fill="none" stroke="#A0522D" strokeWidth={Math.max(1,r*0.06)} strokeLinecap="round"/>
+              {/* Chin / jaw */}
+              <ellipse cx={cx} cy={cy+r*0.55} rx={r*0.35} ry={r*0.12} fill="#EAB898"/>
+              {/* Glasses – Arne had glasses */}
+              <rect x={cx-r*0.5} y={cy-r*0.2} width={r*0.38} height={r*0.28} fill="none" stroke="#555" strokeWidth={Math.max(1,r*0.05)} rx="2"/>
+              <rect x={cx+r*0.12} y={cy-r*0.2} width={r*0.38} height={r*0.28} fill="none" stroke="#555" strokeWidth={Math.max(1,r*0.05)} rx="2"/>
+              <line x1={cx-r*0.12} y1={cy-r*0.06} x2={cx+r*0.12} y2={cy-r*0.06} stroke="#555" strokeWidth={Math.max(0.8,r*0.04)}/>
+            </svg>
+            <div style={{fontSize:9,color:isWin?'#FFD700':'rgba(255,255,255,.7)',textAlign:'center',maxWidth:(r+4)*2,lineHeight:1.2,fontFamily:"'Kanit',sans-serif",wordBreak:'break-word'}}>{opt}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 7. Plain percent bars ─────────────────────────────────────────────
+function PercentDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const colors = ['#4fc3f7','#81c784','#ffb74d','#e57373'];
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:5}}>
+      {options.map((opt,i)=>{
+        const p = pct(votes[i],total);
+        return (
+          <div key={i}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+              <span style={{fontSize:10,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif"}}>{opt}</span>
+              <span style={{fontSize:10,color:colors[i%4],fontFamily:"'Fira Code',monospace",fontWeight:700}}>{p}%</span>
+            </div>
+            <div style={{background:'rgba(255,255,255,.08)',borderRadius:20,height:14,overflow:'hidden'}}>
+              <div style={{width:`${Math.max(p,2)}%`,height:'100%',background:colors[i%4],borderRadius:20,display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:5,transition:'width .4s'}}>
+                {p>18&&<span style={{fontSize:9,fontWeight:700,color:'#000'}}>{votes[i]}</span>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <div style={{fontSize:9,color:'rgba(255,255,255,.35)',textAlign:'center',marginTop:2}}>{total} stemmer totalt</div>
+    </div>
+  );
+}
+
+// ── 8. Pie chart ──────────────────────────────────────────────────────
+function PieDiagram({ options, votes }) {
+  const total = votes.reduce((s,v)=>s+v,0);
+  const colors = ['#B22234','#FFFFFF','#3C3B6E','#FFD700'];
+  const r = 50, cx = 65, cy = 58;
+  let startAngle = -Math.PI/2;
+  const slices = votes.map((v,i)=>{
+    const angle = total>0?(v/total)*2*Math.PI:0;
+    const endAngle = startAngle+angle;
+    const x1 = cx+r*Math.cos(startAngle), y1 = cy+r*Math.sin(startAngle);
+    const x2 = cx+r*Math.cos(endAngle),   y2 = cy+r*Math.sin(endAngle);
+    const large = angle>Math.PI?1:0;
+    const midA = startAngle+angle/2;
+    const slice = { path:`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`,
+      color:colors[i%4], midAngle:midA, pct:pct(v,total), label:options[i], votes:v };
+    startAngle = endAngle;
+    return slice;
+  });
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:10}}>
+      <svg width="130" height="116">
+        {slices.map((s,i)=>total>0&&s.pct>0?(
+          <path key={i} d={s.path} fill={s.color} stroke="#0d1230" strokeWidth="1.5"/>
+        ):null)}
+        {total===0&&<circle cx={cx} cy={cy} r={r} fill="rgba(255,255,255,.1)"/>}
+        {/* Pct labels on slices */}
+        {slices.map((s,i)=>s.pct>8?(
+          <text key={i} x={cx+r*0.65*Math.cos(s.midAngle)} y={cy+r*0.65*Math.sin(s.midAngle)+4}
+            textAnchor="middle" fontSize="9" fontWeight="700"
+            fill={s.color==='#FFFFFF'?'#222':'#fff'}>{s.pct}%</text>
+        ):null)}
+      </svg>
+      <div style={{display:'flex',flexDirection:'column',gap:4}}>
+        {options.map((opt,i)=>(
+          <div key={i} style={{display:'flex',alignItems:'center',gap:5}}>
+            <div style={{width:10,height:10,borderRadius:2,background:colors[i%4],flexShrink:0}}/>
+            <span style={{fontSize:9,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif"}}>{opt}</span>
+            <span style={{fontSize:9,color:'rgba(255,255,255,.5)',fontFamily:"'Fira Code',monospace",marginLeft:'auto',paddingLeft:4}}>{pct(votes[i],total)}%</span>
+          </div>
+        ))}
+        <div style={{fontSize:8,color:'rgba(255,255,255,.3)',marginTop:3}}>{total} stemmer</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Diagram dispatcher ────────────────────────────────────────────────
+function PollDiagram({ type, options, votes }) {
+  const props = { options, votes };
+  switch(type) {
+    case 'trump_tower':      return <TrumpDiagram {...props}/>;
+    case 'bar_rwb':          return <RWBDiagram {...props}/>;
+    case 'horizontal_neymar':return <NeymarDiagram {...props}/>;
+    case 'limousine':        return <LimoDiagram {...props}/>;
+    case 'drillo':           return <DrilloDiagram {...props}/>;
+    case 'arne_scheie':      return <ArneScheieDiagram {...props}/>;
+    case 'percent':          return <PercentDiagram {...props}/>;
+    case 'pie':              return <PieDiagram {...props}/>;
+    default:                 return <PercentDiagram {...props}/>;
+  }
+}
+
+// ── Poll admins ───────────────────────────────────────────────────────
+const POLL_ADMINS = new Set(['tarjei','vetle','admin','lars','hansandreas',
+  'Tarjei','Vetle','Admin','Lars','HansAndreas','lars gaustad','hans andreas','Lars Gaustad','Hans Andreas']);
+
+function PollWidget({ me, isMobile }) {
+  const [poll, setPoll] = useState(null);
+  const [voted, setVoted] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [opts, setOpts] = useState(['','']);
+  const [saving, setSaving] = useState(false);
+
+  const canCreate = POLL_ADMINS.has(me?.username) || POLL_ADMINS.has(me?.displayName);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db,'config','activePoll'), snap => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setPoll(data);
+        try {
+          const v = JSON.parse(localStorage.getItem('vm_poll_votes')||'{}');
+          setVoted(!!v[data.id]);
+        } catch { setVoted(false); }
+      } else {
+        setPoll(null);
+      }
+    });
+    return unsub;
+  }, []);
+
+  const vote = async (optIdx) => {
+    if (!poll || voted) return;
+    const newVotes = [...(poll.votes || poll.options.map(()=>0))];
+    newVotes[optIdx]++;
+    await updateDoc(doc(db,'config','activePoll'), { votes: newVotes });
+    try {
+      const v = JSON.parse(localStorage.getItem('vm_poll_votes')||'{}');
+      v[poll.id] = optIdx;
+      localStorage.setItem('vm_poll_votes', JSON.stringify(v));
+    } catch {}
+    setVoted(true);
+  };
+
+  const createPoll = async () => {
+    if (!question.trim() || opts.filter(o=>o.trim()).length < 2) return;
+    setSaving(true);
+    const validOpts = opts.filter(o=>o.trim());
+    // Pick random diagram type
+    const diagType = DIAGRAM_TYPES[Math.floor(Math.random()*DIAGRAM_TYPES.length)];
+    await setDoc(doc(db,'config','activePoll'), {
+      id: Date.now().toString(),
+      question: question.trim(),
+      options: validOpts,
+      votes: validOpts.map(()=>0),
+      diagType,
+      createdBy: me.displayName,
+      createdAt: Date.now(),
+    });
+    setQuestion(''); setOpts(['','']); setCreating(false); setSaving(false);
+  };
+
+  const totalVotes = poll ? (poll.votes||[]).reduce((s,v)=>s+v,0) : 0;
+
+  if (creating) return (
+    <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6,minWidth:160}}>
+      <div style={{fontSize:10,color:'#FFD700',fontWeight:700,letterSpacing:1,fontFamily:"'Kanit',sans-serif",textTransform:'uppercase'}}>Ny poll</div>
+      <input value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Spørsmål..." maxLength={80}
+        style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,215,0,.3)',borderRadius:6,color:'#fff',padding:'4px 8px',fontSize:11,fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
+      {opts.map((o,i)=>(
+        <input key={i} value={o} onChange={e=>{const n=[...opts];n[i]=e.target.value;setOpts(n);}}
+          placeholder={`Alternativ ${i+1}`} maxLength={30}
+          style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.15)',borderRadius:6,color:'#fff',padding:'3px 8px',fontSize:11,fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
+      ))}
+      {opts.length < 3 && (
+        <button onClick={()=>setOpts([...opts,''])}
+          style={{background:'none',border:'1px dashed rgba(255,255,255,.2)',color:'rgba(255,255,255,.5)',borderRadius:6,fontSize:10,padding:'2px 6px',cursor:'pointer',fontFamily:"'Kanit',sans-serif"}}>+ Legg til alternativ</button>
+      )}
+      <div style={{display:'flex',gap:6}}>
+        <button onClick={createPoll} disabled={saving}
+          style={{flex:1,background:'rgba(255,215,0,.2)',border:'1px solid rgba(255,215,0,.4)',color:'#FFD700',borderRadius:6,fontSize:11,padding:'4px',cursor:'pointer',fontFamily:"'Kanit',sans-serif",fontWeight:700}}>
+          {saving?'⟳':'Publiser'}
+        </button>
+        <button onClick={()=>setCreating(false)}
+          style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.6)',borderRadius:6,fontSize:11,padding:'4px 8px',cursor:'pointer'}}>Avbryt</button>
+      </div>
+    </div>
+  );
+
+  if (!poll) return (
+    <div style={{padding:'10px 12px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,minHeight:80,minWidth:130}}>
+      <div style={{fontSize:10,color:'rgba(255,255,255,.3)',textAlign:'center'}}>Ingen aktiv poll</div>
+      {canCreate && (
+        <button onClick={()=>setCreating(true)}
+          style={{background:'rgba(255,215,0,.15)',border:'1px solid rgba(255,215,0,.3)',color:'#FFD700',borderRadius:8,fontSize:11,padding:'4px 10px',cursor:'pointer',fontFamily:"'Kanit',sans-serif",fontWeight:700}}>
+          Ny poll
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6,minWidth:isMobile?130:160,maxWidth:240}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:4}}>
+        <div style={{fontSize:9,color:'#FFD700',fontWeight:700,letterSpacing:1,fontFamily:"'Kanit',sans-serif",textTransform:'uppercase'}}>POLL</div>
+        {canCreate && (
+          <button onClick={()=>setCreating(true)}
+            style={{background:'none',border:'none',color:'rgba(255,215,0,.5)',fontSize:9,cursor:'pointer',padding:0,fontFamily:"'Kanit',sans-serif"}}>+ ny</button>
+        )}
+      </div>
+      <div style={{fontSize:11,color:'#e8edf8',fontFamily:"'Kanit',sans-serif",fontWeight:600,lineHeight:1.3}}>{poll.question}</div>
+      {!voted ? (
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          {poll.options.map((opt,i)=>(
+            <button key={i} onClick={()=>vote(i)}
+              style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',color:'#e8edf8',borderRadius:8,padding:'5px 10px',fontSize:11,cursor:'pointer',fontFamily:"'Kanit',sans-serif",fontWeight:600,textAlign:'left',transition:'background .15s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,215,0,.15)'}
+              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.07)'}>
+              {opt}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <PollDiagram type={poll.diagType||'percent'} options={poll.options} votes={poll.votes||[]}/>
+      )}
+      {voted&&totalVotes>0&&(
+        <div style={{fontSize:9,color:'rgba(255,255,255,.35)',textAlign:'center'}}>{totalVotes} stemme{totalVotes!==1?'r':''}</div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard({ me, phase, onShowTips, setTab }) {
   const isMobile = useIsMobile();
   const [users, setUsers] = useState([]);
@@ -2006,7 +2509,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           const r = results[m.id];
           return r?.home !== undefined ? s + (r.home||0) + (r.away||0) : s;
         }, 0);
-        const myPts = users.find(u => u.id === me.username)?.total || 0;
+        // const myPts removed – replaced by form table
 
         // ── Formtabell: siste N kamper (N = min(finishedCount, 5)) ──────
         const formN = Math.min(finishedCount, 5);
@@ -2035,7 +2538,6 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         const stats = [
           { num: myRank ? `#${myRank}` : '–', label: isMobile ? 'Plass' : 'Din plassering' },
           ...(!isMobile ? [
-            { num: users.length, label: 'Deltakere' },
             { num: finishedCount, label: 'Spilte kamper' },
           ] : []),
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
@@ -2053,6 +2555,14 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 10, letterSpacing: isMobile ? 1 : 2 }}>{label}</div>
               </div>
             ))}
+            {/* Poll-widget – erstatter Deltakere */}
+            <div style={{
+              ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
+              minWidth: isMobile ? 130 : 160, padding: 0,
+              overflow: 'visible', alignItems: 'stretch', justifyContent: 'stretch',
+            }}>
+              <PollWidget me={me} isMobile={isMobile} />
+            </div>
             {/* Formtabell – erstatter "Dine poeng" */}
             <div style={{
               ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
