@@ -2390,9 +2390,21 @@ function PollWidget({ me, isMobile }) {
       </div>
 
       {/* Vote buttons or result bars */}
-      {!voted ? (
-        <div style={{display:'flex',flexDirection:'column',gap:3}}>
-          {poll.options.map((opt,i)=>(
+      <div style={{display:'flex',flexDirection:'column',gap:3}}>
+        {poll.options.map((opt,i)=>{
+          const v = (poll.votes||[])[i]||0;
+          const p = totalVotes>0?Math.round((v/totalVotes)*100):0;
+          const color = BAR_COLORS[i%BAR_COLORS.length];
+          const isMyVote = voted && (() => { try { return JSON.parse(localStorage.getItem('vm_poll_votes')||'{}')[poll.id]===i; } catch { return false; } })();
+          return voted ? (
+            <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0'}}>
+              <span style={{flex:1,fontSize:10,color:'rgba(255,255,255,.85)',fontFamily:"'Kanit',sans-serif",
+                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
+                fontWeight:isMyVote?700:400}}>{opt}</span>
+              <span style={{flexShrink:0,fontSize:10,fontWeight:700,color:color,
+                fontFamily:"'Fira Code',monospace",minWidth:30,textAlign:'right'}}>{p}%</span>
+            </div>
+          ) : (
             <button key={i} onClick={()=>vote(i)}
               style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.14)',
                 color:'#e8edf8',borderRadius:6,padding:'4px 8px',fontSize:10,cursor:'pointer',
@@ -2402,31 +2414,9 @@ function PollWidget({ me, isMobile }) {
               onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.07)'}>
               {opt}
             </button>
-          ))}
-        </div>
-      ) : (
-        <div style={{display:'flex',flexDirection:'column',gap:4}}>
-          {poll.options.map((opt,i)=>{
-            const v = (poll.votes||[])[i]||0;
-            const p = totalVotes>0?Math.round((v/totalVotes)*100):0;
-            const barW = maxVotes>0?Math.round((v/maxVotes)*100):0;
-            const color = BAR_COLORS[i%BAR_COLORS.length];
-            return (
-              <div key={i}>
-                <div style={{fontSize:9,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif",
-                    overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>{opt}</div>
-                <div style={{background:'rgba(255,255,255,.08)',borderRadius:10,height:13,overflow:'hidden'}}>
-                  <div style={{width:`${Math.max(barW,8)}%`,height:'100%',background:color,
-                    borderRadius:10,transition:'width .35s',display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:4}}>
-                    {p>10&&<span style={{fontSize:8,fontWeight:700,color:'rgba(0,0,0,.7)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
