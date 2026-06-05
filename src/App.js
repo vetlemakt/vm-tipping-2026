@@ -604,7 +604,7 @@ function renderChatText(text) {
 
 
 // ── Reusable chat message bubble (name+time above bubble) ───────────
-function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
+function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300 }) {
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
   const isAdminMsg = m.user === 'Admin';
@@ -626,7 +626,8 @@ function ChatBubble({ m, mine, onDelete, maxImgH = 300 }) {
       <div style={{ ...C.chatMeta, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
         <span style={{ ...C.chatUser, color: nameColor, ...(isAdminMsg ? { textTransform: 'uppercase', fontWeight: 800 } : {}) }}>{m.user}</span>
         <span style={C.chatTime}>{fmt(m.ts)}</span>
-        {mine && onDelete && (
+
+        {(mine || isAdmin) && onDelete && (
           <button onClick={() => onDelete(m.id)} style={{
             background:'none', border:'none', color:'rgba(255,100,100,.35)',
             cursor:'pointer', fontSize:10, padding:0, lineHeight:1,
@@ -2751,7 +2752,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => (
             <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName}
-              onDelete={deleteChatMessage} maxImgH={200} />
+              isAdmin={me.isAdmin} onDelete={deleteChatMessage} maxImgH={200} />
           ))}
         </div>
         <div style={C.chatInputRow}>
@@ -5131,7 +5132,7 @@ function ChatPage({ me }) {
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => (
           <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName}
-            onDelete={deleteChatMessage} />
+            isAdmin={me.isAdmin} onDelete={deleteChatMessage} />
         ))}
       </div>
       <div style={C.chatInputRow}>
