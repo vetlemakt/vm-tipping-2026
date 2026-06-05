@@ -2388,8 +2388,8 @@ function PollWidget({ me, isMobile }) {
       )}
       {/* Left: question */}
       <div style={{ flex:'0 0 38%', display:'flex', alignItems:'center' }}>
-        <div style={{ fontSize:11, color:'#e8edf8', fontFamily:"'Inter',sans-serif",
-          fontWeight:500, lineHeight:1.4, paddingRight: canCreate ? 12 : 0 }}>
+        <div style={{ fontSize:11, color:'#FFD700', fontFamily:"'Inter',sans-serif",
+          fontWeight:600, lineHeight:1.4, paddingRight: canCreate ? 12 : 0 }}>
           {poll.question}
         </div>
       </div>
