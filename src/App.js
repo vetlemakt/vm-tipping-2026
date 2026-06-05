@@ -85,6 +85,12 @@ const useIsMobile = () => {
   return mobile;
 };
 
+// Touch-enhet (mobil/nettbrett) uavhengig av orientering
+const useIsTouch = () => {
+  const [touch] = useState(() => navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches);
+  return touch;
+};
+
 
 
 async function getAdminMessage() {
@@ -2326,7 +2332,7 @@ function PollWidget({ me, isMobile }) {
 
   const containerStyle = {
     padding:'7px 9px', display:'flex', flexDirection:'column', gap:4,
-    minWidth: isMobile ? 120 : 180, width: '100%', height:'100%', boxSizing:'border-box',
+    minWidth: isMobile ? 180 : 180, width: '100%', height:'100%', boxSizing:'border-box',
   };
 
   // ── Create form ──
@@ -2487,7 +2493,7 @@ function StatsCarousel({ widgets }) {
   };
 
   return (
-    <div style={{ overflow: 'hidden', width: '100%', cursor: 'grab' }}
+    <div style={{ overflow: 'hidden', width: '100%', cursor: 'grab', marginBottom: 16 }}
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       <div ref={trackRef} style={{
         display: 'flex', gap: 8, alignItems: 'stretch',
@@ -2502,6 +2508,8 @@ function StatsCarousel({ widgets }) {
 
 function Dashboard({ me, phase, onShowTips, setTab }) {
   const isMobile = useIsMobile();
+  const isTouch = useIsTouch();
+  const useCarousel = isMobile || isTouch; // karusell på alle touch-enheter (stående og liggende)
   const [users, setUsers] = useState([]);
   const [results, setResultsState] = useState({});
   const [msgs, setMsgs] = useState([]);
@@ -2624,9 +2632,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
         // All widget items in order
-        const formWidget = (
-          <div key="form" style={{ ...C.statWidget, flex: 1, padding: '8px 12px',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
+        const formWidgetContent = (extraStyle = {}) => (
+          <div key="form" style={{ ...C.statWidget, padding: '8px 12px',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, ...extraStyle }}>
             <div style={{ fontSize: 9, letterSpacing: 1.5, marginBottom: 3,
               color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, textTransform: 'uppercase' }}>
               {formN === 0 ? 'Formtabell' : `Formtabell – siste ${formN} kamp${formN !== 1 ? 'er' : ''}`}
@@ -2649,9 +2657,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             })}
           </div>
         );
+        const formWidget = formWidgetContent({ flex: 1 });
+        const formWidgetCarousel = formWidgetContent({ width: 150, flexShrink: 0 });
 
         const pollWidget = (
-          <div key="poll" style={{ ...C.statWidget, minWidth: 190, maxWidth: 220, padding: 0,
+          <div key="poll" style={{ ...C.statWidget, minWidth: 220, width: 'max-content', maxWidth: 320, padding: 0,
             alignItems: 'stretch', justifyContent: 'stretch', flexShrink: 0 }}>
             <PollWidget me={me} isMobile={isMobile} />
           </div>
@@ -2663,6 +2673,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           { key: 'goals', num: totalGoals,    label: 'Mål' },
         ];
 
+        // Karusell-widgets: faste dimensjoner, like i stående og liggende
+        const carouselSimpleWidgets = simpleStats.map(({ key, num, label }) => (
+          <div key={key} style={{ ...C.statWidget, width: 100, flexShrink: 0, padding: '12px 8px' }}>
+            <div style={{ ...C.statNum, fontSize: 32 }}>{num}</div>
+            <div style={{ ...C.statLabel, fontSize: 10, letterSpacing: 1.5 }}>{label}</div>
+          </div>
+        ));
+
+        // Desktop-widgets: flex, skalerer med tilgjengelig bredde
         const simpleWidgets = simpleStats.map(({ key, num, label }) => (
           <div key={key} style={{ ...C.statWidget, flex: 1, padding: '8px 6px' }}>
             <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
@@ -2676,10 +2695,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           </div>
         );
 
-        const allWidgets = [simpleWidgets[0], formWidget, simpleWidgets[1], simpleWidgets[2], pollWidget, quizWidget];
+        const allWidgets = [carouselSimpleWidgets[0], formWidgetCarousel, carouselSimpleWidgets[1], carouselSimpleWidgets[2], pollWidget, quizWidget];
 
-        if (isMobile) {
-          // Carousel: scrolls left/right, auto-rotates, pauses on touch
+        if (useCarousel) {
+          // Karusell: scroller horisontalt, fungerer i både stående og liggende mobilformat
           return <StatsCarousel widgets={allWidgets} />;
         }
 
