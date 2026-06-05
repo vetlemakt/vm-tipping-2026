@@ -2331,7 +2331,7 @@ function PollWidget({ me, isMobile }) {
   if (creating) return (
     <div style={containerStyle}>
       <input value={question} onChange={e=>setQuestion(e.target.value)}
-        placeholder="Spørsmål..." maxLength={58} autoFocus
+        placeholder="Spørsmål..." maxLength={120} autoFocus
         style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,215,0,.35)',
           borderRadius:5,color:'#fff',padding:'3px 7px',fontSize:10,
           fontFamily:"'Kanit',sans-serif",outline:'none'}}/>
@@ -2375,31 +2375,35 @@ function PollWidget({ me, isMobile }) {
     </div>
   );
 
-  // ── Active poll ──
+  // ── Active poll – two-column layout ──
   return (
-    <div style={{...containerStyle,position:'relative'}}>
-      {/* +ny floats in top-right corner, outside text flow */}
+    <div style={{ padding:'8px 12px', display:'flex', gap:12, height:'100%',
+      boxSizing:'border-box', position:'relative', width:'100%' }}>
+      {/* +ny floats top-right */}
       {canCreate && (
         <button onClick={()=>setCreating(true)}
-          style={{position:'absolute',top:4,right:6,background:'none',border:'none',
+          style={{position:'absolute',top:4,right:8,background:'none',border:'none',
             color:'rgba(255,215,0,.4)',fontSize:8,cursor:'pointer',padding:0,
             fontFamily:"'Inter',sans-serif",lineHeight:1}}>+ny</button>
       )}
-      {/* Question – max 2 lines, Inter font */}
-      <div style={{fontSize:10,color:'#e8edf8',fontFamily:"'Inter',sans-serif",
-        fontWeight:500,lineHeight:1.3,
-        display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',
-        overflow:'hidden',paddingRight:canCreate?16:0}}>{poll.question}</div>
-
-      {/* Vote buttons or result bars */}
-      <div style={{display:'flex',flexDirection:'column',gap:3}}>
+      {/* Left: question */}
+      <div style={{ flex:'0 0 38%', display:'flex', alignItems:'center' }}>
+        <div style={{ fontSize:11, color:'#e8edf8', fontFamily:"'Inter',sans-serif",
+          fontWeight:500, lineHeight:1.4, paddingRight: canCreate ? 12 : 0 }}>
+          {poll.question}
+        </div>
+      </div>
+      {/* Divider */}
+      <div style={{ width:1, background:'rgba(255,255,255,.1)', alignSelf:'stretch', flexShrink:0 }}/>
+      {/* Right: options / bars */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', gap:4 }}>
         {poll.options.map((opt,i)=>{
           const v = (poll.votes||[])[i]||0;
           const p = totalVotes>0?Math.round((v/totalVotes)*100):0;
           const color = BAR_COLORS[i%BAR_COLORS.length];
           const isMyVote = voted && (() => { try { return JSON.parse(localStorage.getItem('vm_poll_votes')||'{}')[poll.id]===i; } catch { return false; } })();
           return voted ? (
-            <div key={i} style={{marginBottom:2}}>
+            <div key={i}>
               <div style={{fontSize:10,color:'rgba(255,255,255,.82)',fontFamily:"'Kanit',sans-serif",
                 overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2,
                 fontWeight:isMyVote?700:400}}>{opt}</div>
@@ -2427,6 +2431,7 @@ function PollWidget({ me, isMobile }) {
     </div>
   );
 }
+
 
 
 // ── Stats Carousel (mobile only) ─────────────────────────────────────
@@ -2687,7 +2692,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         ];
 
         const simpleWidgets = simpleStats.map(({ key, num, label }) => (
-          <div key={key} style={{ ...C.statWidget, minWidth: 68, maxWidth: 88, padding: '8px 6px',
+          <div key={key} style={{ ...C.statWidget, flex: 1, minWidth: 60, padding: '8px 6px',
             flexShrink: 0 }}>
             <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
             <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
