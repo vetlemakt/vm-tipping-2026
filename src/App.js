@@ -2326,7 +2326,7 @@ function PollWidget({ me, isMobile }) {
 
   const containerStyle = {
     padding:'7px 9px', display:'flex', flexDirection:'column', gap:4,
-    minWidth: isMobile ? 120 : 148, maxWidth: 200, height:'100%', boxSizing:'border-box',
+    minWidth: isMobile ? 120 : 180, width: '100%', height:'100%', boxSizing:'border-box',
   };
 
   // ── Create form ──
@@ -2625,8 +2625,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         ];
         // All widget items in order
         const formWidget = (
-          <div key="form" style={{ ...C.statWidget, minWidth: 155, padding: '8px 12px',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, flexShrink: 0 }}>
+          <div key="form" style={{ ...C.statWidget, flex: 1, padding: '8px 12px',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
             <div style={{ fontSize: 9, letterSpacing: 1.5, marginBottom: 3,
               color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, textTransform: 'uppercase' }}>
               {formN === 0 ? 'Formtabell' : `Formtabell – siste ${formN} kamp${formN !== 1 ? 'er' : ''}`}
@@ -2664,8 +2664,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         ];
 
         const simpleWidgets = simpleStats.map(({ key, num, label }) => (
-          <div key={key} style={{ ...C.statWidget, flex: 1, minWidth: 60, padding: '8px 6px',
-            flexShrink: 0 }}>
+          <div key={key} style={{ ...C.statWidget, flex: 1, padding: '8px 6px' }}>
             <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
             <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
           </div>
@@ -2684,16 +2683,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           return <StatsCarousel widgets={allWidgets} />;
         }
 
-        // Desktop: stretch full width, Poll takes remaining space
+        // Desktop: stat-bokser er kompakte, poll vokser med innhold, quiz setter høyde
         return (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%', marginBottom: 16 }}>
-            {/* Fixed-width widgets */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%', marginBottom: 16, overflow: 'hidden' }}>
             {simpleWidgets[0]}
             {formWidget}
             {simpleWidgets[1]}
             {simpleWidgets[2]}
-            {/* Poll stretches to fill remaining space */}
-            <div style={{ flex: 1, minWidth: 180, ...C.statWidget, padding: 0, alignItems: 'stretch', justifyContent: 'stretch' }}>
+            {/* Poll vokser med innholdet sitt, men aldri høyere enn quiz-kortet */}
+            <div style={{ flex: 2, minWidth: 180, ...C.statWidget, padding: 0, alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden' }}>
               <PollWidget me={me} isMobile={false} />
             </div>
             {quizWidget}
