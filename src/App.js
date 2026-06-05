@@ -1117,7 +1117,8 @@ En spiller i VM-tipping-konkurransen klarte ikke å gjenkjenne fotballspilleren 
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 120,
+        max_tokens: 80,
+        system: picked.personality,
         messages: [{ role: 'user', content: prompt }],
       }),
     })
@@ -2561,37 +2562,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     }
 
     if (senderIsBot) return;
-
-    // @funfact – random expert shares a VM fun fact
-    if (t.toLowerCase().includes('@funfact')) {
-      const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
-      setTimeout(async () => {
-        const prompt = `${expert.personality}\n\nKom med én interessant funfact om fotball-VM (FIFA World Cup). Finn noe genuint interessant, overraskende eller morsomt – historisk statistikk, rekorder, kuriøse hendelser, underdog-historier. Presenter det som deg selv med din personlighet og dialekt. Maks 3 setninger.`;
-        const reply = await chatWithExpert(expert, prompt, []);
-        await sendChatMessage(expert.name, `🎲 Funfact: ${reply}`, '');
-      }, 800);
-      return;
-    }
-
-    // @mentions
-    const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
-    const mentionedExperts = [];
-    mentionMatches.forEach(match => {
-      const mentioned = match[1].toLowerCase().replace('-','');
-      const expert = PANEL_EXPERTS.find(e =>
-        e.firstName.toLowerCase() === match[1].toLowerCase() ||
-        e.firstName.toLowerCase().replace('-','') === mentioned ||
-        e.id === mentioned
-      );
-      if (expert && !mentionedExperts.find(e => e.id === expert.id)) mentionedExperts.push(expert);
-    });
-    mentionedExperts.forEach((expert, i) => {
-      setTimeout(async () => {
-        const ctx = buildCompetitionContext(users, results);
-        const reply = await chatWithExpert(expert, t, [], ctx);
-        await sendChatMessage(expert.name, reply, '');
-      }, 1000 + i * 2000);
-    });
+    // @mention handling is done in ChatPage only
   };
 
   const saveSummary = async (matchId) => {
@@ -4684,7 +4655,7 @@ Svar KUN med JSON (ingen annen tekst, ingen forklaring):
 }
 
 // Store per-expert chat history in memory
-const expertChatHistory = {};
+// expertChatHistory removed – stateless calls only (cost reduction)
 
 const PANEL_GROUP_CONTEXT = `
 Du er en av fem deltakere i et VM-tippekompani som har holdt på siden 2018. De andre deltakerne er:
@@ -4723,11 +4694,6 @@ function buildCompetitionContext(users, results) {
 
 async function chatWithExpert(expert, message, history, competitionContext = '') {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-  // Maintain running conversation history per expert
-  if (!expertChatHistory[expert.id]) expertChatHistory[expert.id] = [];
-  expertChatHistory[expert.id].push({ role: 'user', content: message });
-  // Keep last 20 messages to avoid token limit
-  if (expertChatHistory[expert.id].length > 20) expertChatHistory[expert.id] = expertChatHistory[expert.id].slice(-20);
 
   const fallbacks = {
     ragnhild: ['Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.', 'Ja, jeg synes Italia har de fineste draktene. Og de er jo katolikker, det er noe.', 'Nei, fotball er ikke min greie egentlig, men jeg prøver så godt jeg kan!'],
@@ -4736,10 +4702,9 @@ async function chatWithExpert(expert, message, history, competitionContext = '')
     bengt: ['Hei hei! Maradona hadde jo gjort det bra her, tror jeg! Hva mener du?', 'Nei, dette minner meg om da Zico spilte i -82. Fantastisk tider! Hva spurte du om igjen?', 'Jeg scoret ti mål mot Rosenborg som keeper, så jeg vet litt om fotball, jeg!'],
     odd: [`Nei, nei, nei. Brasil jukse' aillfall, det veit æ. Æ ska' hent' leverposteien å tenk på det.`, `Nei, nei, nei. Kvar'n som hæll ha' snø om vinteren e' te' å stoil på. Det e' min filosofi, det.`, `Nei, nei, nei. Fotball e' ein bygreie, men æ følge' med æ, frå Oppdal. Reffrey dømme' aillfall urettferdig.`],
   };
-  // Try API first
+  // Try API first – stateless, single message only
   if (apiKey) {
     try {
-      const messages = expertChatHistory[expert.id] || [{ role: 'user', content: message }];
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -4750,18 +4715,14 @@ async function chatWithExpert(expert, message, history, competitionContext = '')
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
-          max_tokens: 300,
+          max_tokens: 150,
           system: expert.personality + '\n\n' + PANEL_GROUP_CONTEXT + competitionContext + CHAT_SYSTEM_SUFFIX,
-          messages,
+          messages: [{ role: 'user', content: message }],
         })
       });
       const data = await response.json();
-      console.log('API response:', JSON.stringify(data));
       const text = data.content?.[0]?.text;
-      if (text && text.length > 3) {
-        expertChatHistory[expert.id].push({ role: 'assistant', content: text });
-        return text;
-      }
+      if (text && text.length > 3) return text;
       if (data.error) return '(API-feil: ' + data.error.message + ')';
     } catch(e) {
       console.error('API error:', e);
