@@ -2639,6 +2639,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
         const top3Form = formScores.slice(0, 3);
 
+        // eslint-disable-next-line no-unused-vars
         const stats = [
           { num: myRank ? `#${myRank}` : '–', label: isMobile ? 'Plass' : 'Din plassering' },
           ...(!isMobile ? [
