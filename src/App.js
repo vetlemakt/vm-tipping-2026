@@ -2433,21 +2433,20 @@ function PollWidget({ me, isMobile }) {
 function StatsCarousel({ widgets }) {
   const trackRef = useRef(null);
   const [offset, setOffset] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [stopped, setStopped] = useState(false); // permanent once touched
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef(null);
   const startOffset = useRef(0);
   const animRef = useRef(null);
-  const SPEED = 0.5; // px per frame
+  const SPEED = 0.25; // px per frame – 50% slower than before
 
-  // Total track width (estimated, will adjust once mounted)
   const [trackW, setTrackW] = useState(0);
   useEffect(() => {
     if (trackRef.current) setTrackW(trackRef.current.scrollWidth / 2);
   }, [widgets]);
 
   useEffect(() => {
-    if (paused || trackW === 0) return;
+    if (stopped || trackW === 0) return;
     const step = () => {
       setOffset(o => {
         const next = o + SPEED;
@@ -2457,11 +2456,12 @@ function StatsCarousel({ widgets }) {
     };
     animRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(animRef.current);
-  }, [paused, trackW]);
+  }, [stopped, trackW]);
 
-  // Touch handlers
   const onTouchStart = (e) => {
-    setPaused(true);
+    // Stop rotation permanently for this page visit
+    cancelAnimationFrame(animRef.current);
+    setStopped(true);
     setIsDragging(true);
     dragStart.current = e.touches[0].clientX;
     startOffset.current = offset;
@@ -2476,7 +2476,7 @@ function StatsCarousel({ widgets }) {
   };
   const onTouchEnd = () => {
     setIsDragging(false);
-    setTimeout(() => setPaused(false), 1200);
+    // Rotation stays stopped – restarts only on next page visit
   };
 
   return (
@@ -2486,7 +2486,6 @@ function StatsCarousel({ widgets }) {
         display: 'flex', gap: 8, alignItems: 'stretch',
         transform: `translateX(-${offset}px)`,
         willChange: 'transform',
-        // Duplicate widgets for seamless loop
       }}>
         {widgets}{widgets}
       </div>
@@ -2708,9 +2707,19 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           return <StatsCarousel widgets={allWidgets} />;
         }
 
+        // Desktop: stretch full width, Poll takes remaining space
         return (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'nowrap', overflow: 'hidden' }}>
-            {allWidgets}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%', marginBottom: 16 }}>
+            {/* Fixed-width widgets */}
+            {simpleWidgets[0]}
+            {formWidget}
+            {simpleWidgets[1]}
+            {simpleWidgets[2]}
+            {/* Poll stretches to fill remaining space */}
+            <div style={{ flex: 1, minWidth: 180, ...C.statWidget, padding: 0, alignItems: 'stretch', justifyContent: 'stretch' }}>
+              <PollWidget me={me} isMobile={false} />
+            </div>
+            {quizWidget}
           </div>
         );
       })()}
