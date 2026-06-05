@@ -2399,12 +2399,17 @@ function PollWidget({ me, isMobile }) {
           const color = BAR_COLORS[i%BAR_COLORS.length];
           const isMyVote = voted && (() => { try { return JSON.parse(localStorage.getItem('vm_poll_votes')||'{}')[poll.id]===i; } catch { return false; } })();
           return voted ? (
-            <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0'}}>
-              <span style={{flex:1,fontSize:10,color:'rgba(255,255,255,.85)',fontFamily:"'Kanit',sans-serif",
-                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
-                fontWeight:isMyVote?700:400}}>{opt}</span>
-              <span style={{flexShrink:0,fontSize:10,fontWeight:700,color:color,
-                fontFamily:"'Fira Code',monospace",minWidth:30,textAlign:'right'}}>{p}%</span>
+            <div key={i} style={{marginBottom:2}}>
+              <div style={{fontSize:10,color:'rgba(255,255,255,.82)',fontFamily:"'Kanit',sans-serif",
+                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2,
+                fontWeight:isMyVote?700:400}}>{opt}</div>
+              <div style={{background:'rgba(255,255,255,.09)',borderRadius:10,height:14,overflow:'hidden'}}>
+                <div style={{width:`${Math.max(p,4)}%`,height:'100%',background:color,borderRadius:10,
+                  display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:5,
+                  transition:'width .35s',boxSizing:'border-box'}}>
+                  {p>12&&<span style={{fontSize:9,fontWeight:700,color:'rgba(0,0,0,.75)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
+                </div>
+              </div>
             </div>
           ) : (
             <button key={i} onClick={()=>vote(i)}
@@ -2418,6 +2423,72 @@ function PollWidget({ me, isMobile }) {
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+
+// ── Stats Carousel (mobile only) ─────────────────────────────────────
+function StatsCarousel({ widgets }) {
+  const trackRef = useRef(null);
+  const [offset, setOffset] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef(null);
+  const startOffset = useRef(0);
+  const animRef = useRef(null);
+  const SPEED = 0.5; // px per frame
+
+  // Total track width (estimated, will adjust once mounted)
+  const [trackW, setTrackW] = useState(0);
+  useEffect(() => {
+    if (trackRef.current) setTrackW(trackRef.current.scrollWidth / 2);
+  }, [widgets]);
+
+  useEffect(() => {
+    if (paused || trackW === 0) return;
+    const step = () => {
+      setOffset(o => {
+        const next = o + SPEED;
+        return next >= trackW ? 0 : next;
+      });
+      animRef.current = requestAnimationFrame(step);
+    };
+    animRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [paused, trackW]);
+
+  // Touch handlers
+  const onTouchStart = (e) => {
+    setPaused(true);
+    setIsDragging(true);
+    dragStart.current = e.touches[0].clientX;
+    startOffset.current = offset;
+  };
+  const onTouchMove = (e) => {
+    if (!isDragging) return;
+    const dx = dragStart.current - e.touches[0].clientX;
+    let next = startOffset.current + dx;
+    if (next < 0) next = trackW + next;
+    if (next >= trackW) next = next - trackW;
+    setOffset(next);
+  };
+  const onTouchEnd = () => {
+    setIsDragging(false);
+    setTimeout(() => setPaused(false), 1200);
+  };
+
+  return (
+    <div style={{ overflow: 'hidden', width: '100%', cursor: 'grab' }}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+      <div ref={trackRef} style={{
+        display: 'flex', gap: 8, alignItems: 'stretch',
+        transform: `translateX(-${offset}px)`,
+        willChange: 'transform',
+        // Duplicate widgets for seamless loop
+      }}>
+        {widgets}{widgets}
       </div>
     </div>
   );
@@ -2575,82 +2646,70 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           ] : []),
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
+        // All widget items in order
+        const formWidget = (
+          <div key="form" style={{ ...C.statWidget, minWidth: 155, padding: '8px 12px',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, flexShrink: 0 }}>
+            <div style={{ fontSize: 9, letterSpacing: 1.5, marginBottom: 3,
+              color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, textTransform: 'uppercase' }}>
+              {formN === 0 ? 'Formtabell' : `Formtabell – siste ${formN} kamp${formN !== 1 ? 'er' : ''}`}
+            </div>
+            {formN === 0 ? (
+              <div style={{ color: 'rgba(255,255,255,.35)', fontSize: 11 }}>Ingen kamper ennå</div>
+            ) : top3Form.map((u, i) => {
+              const isMe = u.id === me.username;
+              return (
+                <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 5,
+                  background: isMe ? 'rgba(255,215,0,.08)' : 'transparent', borderRadius: 4, padding: '1px 3px' }}>
+                  <span style={{ fontSize: 10 }}>{ ['🥇','🥈','🥉'][i] }</span>
+                  <span style={{ flex: 1, fontSize: 10, color: isMe ? '#FFD700' : 'rgba(255,255,255,.8)',
+                    fontWeight: isMe ? 700 : 500, fontFamily: "'Kanit',sans-serif",
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                  <span style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, fontFamily: "'Fira Code',monospace" }}>{u.pts}p</span>
+                  {u.ft > 0 && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.6)' }}>{u.ft}✓</span>}
+                </div>
+              );
+            })}
+          </div>
+        );
+
+        const pollWidget = (
+          <div key="poll" style={{ ...C.statWidget, minWidth: 190, maxWidth: 220, padding: 0,
+            alignItems: 'stretch', justifyContent: 'stretch', flexShrink: 0 }}>
+            <PollWidget me={me} isMobile={isMobile} />
+          </div>
+        );
+
+        const simpleStats = [
+          { key: 'rank',  num: myRank ? `#${myRank}` : '–', label: 'Plass' },
+          { key: 'games', num: finishedCount, label: 'Kamper' },
+          { key: 'goals', num: totalGoals,    label: 'Mål' },
+        ];
+
+        const simpleWidgets = simpleStats.map(({ key, num, label }) => (
+          <div key={key} style={{ ...C.statWidget, minWidth: 68, maxWidth: 88, padding: '8px 6px',
+            flexShrink: 0 }}>
+            <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
+            <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
+          </div>
+        ));
+
+        const quizWidget = (
+          <div key="quiz" style={{ flexShrink: 0 }}>
+            <QuizWidget username={me.username} />
+          </div>
+        );
+
+        const allWidgets = [simpleWidgets[0], formWidget, simpleWidgets[1], simpleWidgets[2], pollWidget, quizWidget];
+
+        if (isMobile) {
+          // Carousel: scrolls left/right, auto-rotates, pauses on touch
+          return <StatsCarousel widgets={allWidgets} />;
+        }
+
         return (
-          <div style={{
-            ...(isMobile ? C.statsRowMobile : C.statsRowDesktop),
-            alignItems: 'stretch',
-            gridTemplateColumns: isMobile ? undefined : 'repeat(5, 1fr) auto',
-            overflow: 'hidden',
-          }}>
-            {/* Din plassering – alltid først */}
-            {stats.slice(0,1).map(({ num, label }) => (
-              <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
-                <div style={{ ...C.statNum, fontSize: isMobile ? 22 : 32 }}>{num}</div>
-                <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 10, letterSpacing: isMobile ? 1 : 2 }}>{label}</div>
-              </div>
-            ))}
-            {/* Formtabell – andre fra venstre */}
-            <div style={{
-              ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
-              minWidth: isMobile ? 110 : 160,
-              padding: isMobile ? '6px 8px' : '10px 14px',
-              display: 'flex', flexDirection: 'column', justifyContent: 'center',
-              gap: 3,
-            }}>
-              <div style={{ fontSize: isMobile ? 8 : 9, letterSpacing: isMobile ? 1 : 2, marginBottom: 3,
-                color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700,
-                textTransform: 'uppercase' }}>
-                {formN === 0 ? 'Formtabell' : `Formtabell – siste ${formN} kamp${formN !== 1 ? 'er' : ''}`}
-              </div>
-              {formN === 0 ? (
-                <div style={{ color: 'rgba(255,255,255,.35)', fontSize: 11 }}>Ingen kamper ennå</div>
-              ) : top3Form.map((u, i) => {
-                const isMe = u.id === me.username;
-                const medal = ['🥇','🥈','🥉'][i];
-                return (
-                  <div key={u.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    background: isMe ? 'rgba(255,215,0,.08)' : 'transparent',
-                    borderRadius: 4, padding: '1px 3px',
-                  }}>
-                    <span style={{ fontSize: 10 }}>{medal}</span>
-                    <span style={{
-                      flex: 1, fontSize: isMobile ? 9 : 10,
-                      color: isMe ? '#FFD700' : 'rgba(255,255,255,.8)',
-                      fontWeight: isMe ? 700 : 500,
-                      fontFamily: "'Kanit',sans-serif",
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{u.name}</span>
-                    <span style={{ fontSize: isMobile ? 9 : 10, color: '#FFD700', fontWeight: 700, fontFamily: "'Fira Code',monospace" }}>
-                      {u.pts}p
-                    </span>
-                    {u.ft > 0 && (
-                      <span style={{ fontSize: 8, color: 'rgba(255,215,0,.6)', marginLeft: 2 }}>
-                        {u.ft}✓
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {/* Resten av stats (Spilte kamper, Antall mål) */}
-            {stats.slice(1).map(({ num, label }) => (
-              <div key={label} style={isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget}>
-                <div style={{ ...C.statNum, fontSize: isMobile ? 22 : 32 }}>{num}</div>
-                <div style={{ ...C.statLabel, fontSize: isMobile ? 8 : 10, letterSpacing: isMobile ? 1 : 2 }}>{label}</div>
-              </div>
-            ))}
-            {/* Poll-widget */}
-            <div style={{
-              ...(isMobile ? { ...C.statWidget, ...C.statWidgetMobile } : C.statWidget),
-              minWidth: isMobile ? 130 : 160, padding: 0,
-              overflow: 'visible', alignItems: 'stretch', justifyContent: 'stretch',
-            }}>
-              <PollWidget me={me} isMobile={isMobile} />
-            </div>
-            <div style={isMobile ? { flexShrink: 0 } : {}}>
-              <QuizWidget username={me.username} />
-            </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'nowrap', overflow: 'hidden' }}>
+            {allWidgets}
           </div>
         );
       })()}
@@ -2696,7 +2755,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('chat')}>
           <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
           <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6 }} onClick={e => e.stopPropagation()}>
-            <VideoButton compact={isMobile} />
+
             <OnlineIndicator onlineUsers={onlineUsers} compact={isMobile} />
             <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
             <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }} title="Fullskjerm">⛶</button>
