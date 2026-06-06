@@ -2307,6 +2307,7 @@ function PollWidget({ me, isMobile }) {
     setAnimatedWidths(targets.map(()=>0));
     const t = setTimeout(() => setAnimatedWidths(targets), 50);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voted, poll?.id]);
 
   const vote = async (optIdx) => {
