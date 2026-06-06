@@ -2661,7 +2661,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         const formWidgetContent = (extraStyle = {}) => (
           <div key="form" style={{ ...C.statWidget, padding: '8px 12px',
             display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, ...extraStyle }}>
-            <div style={{ fontSize: 9, letterSpacing: 1.5, marginBottom: 3,
+            <div style={{ fontSize: 11, letterSpacing: 1.5, marginBottom: 3,
               color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, textTransform: 'uppercase' }}>
               {formN === 0 ? 'Formtabell' : `Formtabell – siste ${formN} kamp${formN !== 1 ? 'er' : ''}`}
             </div>
