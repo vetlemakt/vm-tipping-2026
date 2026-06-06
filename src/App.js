@@ -2328,7 +2328,7 @@ function PollWidget({ me, isMobile }) {
   const totalVotes = poll ? (poll.votes||[]).reduce((s,v)=>s+v,0) : 0;
   // eslint-disable-next-line no-unused-vars
   const maxVotes   = poll ? Math.max(...(poll.votes||[1]),1) : 1;
-  const BAR_COLORS = ['#4fc3f7','#81c784','#ffb74d','#e57373'];
+  const BAR_COLORS = ['#399C33','#E81324','#027CCF'];
 
   const containerStyle = {
     padding:'7px 9px', display:'flex', flexDirection:'column', gap:4,
@@ -2396,8 +2396,9 @@ function PollWidget({ me, isMobile }) {
       )}
       {/* Left: question */}
       <div style={{ flex:'0 0 38%', display:'flex', alignItems:'center' }}>
-        <div style={{ fontSize:11, color:'#FFD700', fontFamily:"'Inter',sans-serif",
-          fontWeight:600, lineHeight:1.4, paddingRight: canCreate ? 12 : 0 }}>
+        <div style={{ fontSize:11, color:'#FFD700', fontFamily:"'Kanit',sans-serif",
+          fontWeight:700, lineHeight:1.3, textTransform:'uppercase', letterSpacing:0.5,
+          paddingRight: canCreate ? 12 : 0 }}>
           {poll.question}
         </div>
       </div>
@@ -2415,11 +2416,11 @@ function PollWidget({ me, isMobile }) {
               <div style={{fontSize:10,color:'rgba(255,255,255,.82)',fontFamily:"'Kanit',sans-serif",
                 overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2,
                 fontWeight:isMyVote?700:400}}>{opt}</div>
-              <div style={{background:'rgba(255,255,255,.09)',borderRadius:10,height:14,overflow:'hidden'}}>
-                <div style={{width:`${Math.max(p,4)}%`,height:'100%',background:color,borderRadius:10,
+              <div style={{height:14,overflow:'hidden'}}>
+                <div style={{width:`${Math.max(p,2)}%`,height:'100%',background:color,borderRadius:0,
                   display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:5,
-                  transition:'width .35s',boxSizing:'border-box'}}>
-                  {p>12&&<span style={{fontSize:9,fontWeight:700,color:'rgba(0,0,0,.75)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
+                  transition:'width .5s ease-out',boxSizing:'border-box'}}>
+                  {p>14&&<span style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,.9)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
                 </div>
               </div>
             </div>
