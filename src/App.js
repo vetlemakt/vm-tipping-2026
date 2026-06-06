@@ -2658,29 +2658,53 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           { num: totalGoals, label: isMobile ? 'Mål' : 'Antall mål' },
         ];
         // All widget items in order
+        const myFormEntry = formScores.find(u => u.id === me.username);
+        const myFormRank = formScores.findIndex(u => u.id === me.username);
+        const meInTop3Form = myFormRank >= 0 && myFormRank < 3;
+
+        const formRow = (u, i, medal = true, isMyRow = false) => (
+          <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 5,
+            background: isMyRow ? 'rgba(255,215,0,.08)' : 'transparent', borderRadius: 4, padding: '1px 3px' }}>
+            {medal
+              ? <span style={{ fontSize: 10 }}>{ ['🥇','🥈','🥉'][i] }</span>
+              : <span style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', width: 14, textAlign: 'right', fontFamily: "'Fira Code',monospace" }}>#{myFormRank + 1}</span>
+            }
+            <span style={{ flex: 1, fontSize: 10, color: isMyRow ? '#FFD700' : 'rgba(255,255,255,.8)',
+              fontWeight: isMyRow ? 700 : 500, fontFamily: "'Kanit',sans-serif",
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+            <span style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, fontFamily: "'Fira Code',monospace" }}>{u.pts}p</span>
+            {u.ft > 0 && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.6)' }}>{u.ft}✓</span>}
+          </div>
+        );
+
         const formWidgetContent = (extraStyle = {}) => (
           <div key="form" style={{ ...C.statWidget, padding: '8px 12px',
             display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, ...extraStyle }}>
-            <div style={{ fontSize: 11, letterSpacing: 1.5, marginBottom: 3,
-              color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, textTransform: 'uppercase' }}>
-              {formN === 0 ? 'Formtabell' : `Formtabell – siste ${formN} kamp${formN !== 1 ? 'er' : ''}`}
-            </div>
-            {formN === 0 ? (
-              <div style={{ color: 'rgba(255,255,255,.35)', fontSize: 11 }}>Ingen kamper ennå</div>
-            ) : top3Form.map((u, i) => {
-              const isMe = u.id === me.username;
-              return (
-                <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 5,
-                  background: isMe ? 'rgba(255,215,0,.08)' : 'transparent', borderRadius: 4, padding: '1px 3px' }}>
-                  <span style={{ fontSize: 10 }}>{ ['🥇','🥈','🥉'][i] }</span>
-                  <span style={{ flex: 1, fontSize: 10, color: isMe ? '#FFD700' : 'rgba(255,255,255,.8)',
-                    fontWeight: isMe ? 700 : 500, fontFamily: "'Kanit',sans-serif",
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
-                  <span style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, fontFamily: "'Fira Code',monospace" }}>{u.pts}p</span>
-                  {u.ft > 0 && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.6)' }}>{u.ft}✓</span>}
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: formN >= 3 ? 4 : 2 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1.5,
+                color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, textTransform: 'uppercase' }}>
+                Formtabell
+              </div>
+              {formN >= 3 && (
+                <div style={{ fontSize: 9, letterSpacing: 1, marginTop: 1,
+                  color: 'rgba(255,215,0,.65)', fontFamily: "'Kanit',sans-serif", fontWeight: 600, textTransform: 'uppercase' }}>
+                  Siste {formN} kamp{formN !== 1 ? 'er' : ''}
                 </div>
-              );
-            })}
+              )}
+            </div>
+            {formN < 3 ? (
+              <div style={{ color: 'rgba(255,255,255,.35)', fontSize: 10, textAlign: 'center' }}>Kommer etter kamp #3</div>
+            ) : (
+              <>
+                {top3Form.map((u, i) => formRow(u, i, true, u.id === me.username))}
+                {!meInTop3Form && myFormEntry && (
+                  <div style={{ marginTop: 5, borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: 4 }}>
+                    {formRow(myFormEntry, null, false, true)}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         );
         const formWidget = formWidgetContent({ flex: 1 });
