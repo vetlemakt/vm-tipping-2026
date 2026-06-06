@@ -2663,8 +2663,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         const meInTop3Form = myFormRank >= 0 && myFormRank < 3;
 
         const formRow = (u, i, medal = true, isMyRow = false) => (
-          <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 5,
-            background: isMyRow ? 'rgba(255,215,0,.08)' : 'transparent', borderRadius: 4, padding: '1px 3px' }}>
+          <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 4,
+            background: isMyRow ? 'rgba(255,215,0,.08)' : 'transparent', borderRadius: 4, padding: '1px 2px', flexShrink: 0 }}>
             {medal
               ? <span style={{ fontSize: 10 }}>{ ['🥇','🥈','🥉'][i] }</span>
               : <span style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', width: 14, textAlign: 'right', fontFamily: "'Fira Code',monospace" }}>#{myFormRank + 1}</span>
@@ -2678,16 +2678,17 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         );
 
         const formWidgetContent = (extraStyle = {}) => (
-          <div key="form" style={{ ...C.statWidget, padding: '8px 12px',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, ...extraStyle }}>
+          <div key="form" style={{ ...C.statWidget, padding: '6px 10px',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            gap: 2, overflow: 'hidden', ...extraStyle }}>
             {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: formN >= 3 ? 4 : 2 }}>
-              <div style={{ fontSize: 11, letterSpacing: 1.5,
+            <div style={{ textAlign: 'center', marginBottom: formN >= 3 ? 3 : 1, flexShrink: 0 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1.5, lineHeight: 1.2,
                 color: '#FFD700', fontFamily: "'Kanit',sans-serif", fontWeight: 700, textTransform: 'uppercase' }}>
                 Formtabell
               </div>
               {formN >= 3 && (
-                <div style={{ fontSize: 9, letterSpacing: 1, marginTop: 1,
+                <div style={{ fontSize: 8, letterSpacing: 1, lineHeight: 1.2,
                   color: 'rgba(255,215,0,.65)', fontFamily: "'Kanit',sans-serif", fontWeight: 600, textTransform: 'uppercase' }}>
                   Siste {formN} kamp{formN !== 1 ? 'er' : ''}
                 </div>
@@ -2699,7 +2700,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <>
                 {top3Form.map((u, i) => formRow(u, i, true, u.id === me.username))}
                 {!meInTop3Form && myFormEntry && (
-                  <div style={{ marginTop: 5, borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: 4 }}>
+                  <div style={{ marginTop: 3, borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: 3, flexShrink: 0 }}>
                     {formRow(myFormEntry, null, false, true)}
                   </div>
                 )}
