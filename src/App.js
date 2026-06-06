@@ -2308,6 +2308,8 @@ function PollWidget({ me, isMobile }) {
     const t = setTimeout(() => setAnimatedWidths(targets), 50);
     return () => clearTimeout(t);
   }, [voted, poll?.id]);
+
+  const vote = async (optIdx) => {
     if (!poll || voted) return;
     const newVotes = [...(poll.votes || poll.options.map(()=>0))];
     newVotes[optIdx]++;
