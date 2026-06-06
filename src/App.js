@@ -2281,6 +2281,7 @@ function PollWidget({ me, isMobile }) {
   const [question, setQuestion] = useState('');
   const [opts, setOpts] = useState(['','']);
   const [saving, setSaving] = useState(false);
+  const [animatedWidths, setAnimatedWidths] = useState([]);
 
   const canCreate = POLL_ADMINS.has(me?.username) || POLL_ADMINS.has(me?.displayName);
 
@@ -2298,7 +2299,15 @@ function PollWidget({ me, isMobile }) {
     return unsub;
   }, []);
 
-  const vote = async (optIdx) => {
+  // Animer stolpene fra 0 til target-bredde når resultater vises
+  useEffect(() => {
+    if (!voted || !poll) return;
+    const totalV = (poll.votes||[]).reduce((s,v)=>s+v,0);
+    const targets = (poll.votes||[]).map(v => totalV>0 ? Math.max(Math.round((v/totalV)*100),2) : 2);
+    setAnimatedWidths(targets.map(()=>0));
+    const t = setTimeout(() => setAnimatedWidths(targets), 50);
+    return () => clearTimeout(t);
+  }, [voted, poll?.id]);
     if (!poll || voted) return;
     const newVotes = [...(poll.votes || poll.options.map(()=>0))];
     newVotes[optIdx]++;
@@ -2415,12 +2424,12 @@ function PollWidget({ me, isMobile }) {
             <div key={i}>
               <div style={{fontSize:10,color:'rgba(255,255,255,.82)',fontFamily:"'Kanit',sans-serif",
                 overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2,
-                fontWeight:isMyVote?700:400}}>{opt}</div>
+                fontWeight:isMyVote?700:400,textAlign:'left'}}>{opt}</div>
               <div style={{height:14,overflow:'hidden'}}>
-                <div style={{width:`${Math.max(p,2)}%`,height:'100%',background:color,borderRadius:0,
+                <div style={{width:`${animatedWidths[i]??0}%`,height:'100%',background:color,borderRadius:0,
                   display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:5,
-                  transition:'width .5s ease-out',boxSizing:'border-box'}}>
-                  {p>14&&<span style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,.9)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
+                  transition:'width .6s cubic-bezier(.25,.8,.25,1)',boxSizing:'border-box'}}>
+                  {(animatedWidths[i]??0)>14&&<span style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,.9)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
                 </div>
               </div>
             </div>
