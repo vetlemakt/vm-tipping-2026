@@ -2290,14 +2290,21 @@ function PollWidget({ me, isMobile }) {
       if (snap.exists()) {
         const data = snap.data();
         setPoll(data);
-        try {
-          const v = JSON.parse(localStorage.getItem('vm_poll_votes')||'{}');
-          setVoted(!!v[data.id]);
-        } catch { setVoted(false); }
+        const username = me?.username || me?.displayName;
+        const firestoreVoted = username && Array.isArray(data.voters) && data.voters.includes(username);
+        if (firestoreVoted) {
+          setVoted(true);
+        } else {
+          try {
+            const v = JSON.parse(localStorage.getItem('vm_poll_votes')||'{}');
+            setVoted(!!v[data.id]);
+          } catch { setVoted(false); }
+        }
       } else { setPoll(null); }
     });
     return unsub;
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.username, me?.displayName]);
 
   // Animer stolpene fra 0 til target-bredde når resultater vises
   useEffect(() => {
@@ -2312,9 +2319,15 @@ function PollWidget({ me, isMobile }) {
 
   const vote = async (optIdx) => {
     if (!poll || voted) return;
+    const username = me?.username || me?.displayName;
+    if (!username) return;
     const newVotes = [...(poll.votes || poll.options.map(()=>0))];
     newVotes[optIdx]++;
-    await updateDoc(doc(db,'config','activePoll'), { votes: newVotes });
+    // Store vote in Firestore (authoritative) and localStorage (fast local check)
+    await updateDoc(doc(db,'config','activePoll'), {
+      votes: newVotes,
+      voters: [...(poll.voters || []), username],
+    });
     try {
       const v = JSON.parse(localStorage.getItem('vm_poll_votes')||'{}');
       v[poll.id] = optIdx; localStorage.setItem('vm_poll_votes', JSON.stringify(v));
