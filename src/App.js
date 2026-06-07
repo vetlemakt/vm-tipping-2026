@@ -1874,10 +1874,17 @@ Dette er tabellmessig interessant fordi: ${triggerText}
 
 Kommenter dette i chatten – kort og engasjert, maks 3 setninger. Skriv som deg selv, ikke nevn at du er en bot.`;
 
+      const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+      if (!apiKey) return;
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 150,
