@@ -2597,7 +2597,35 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     }
 
     if (senderIsBot) return;
-    // @mention handling is done in ChatPage only
+
+    if (t.toLowerCase().includes('@funfact')) {
+      const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+      setTimeout(async () => {
+        const prompt = `${expert.personality}\n\nKom med én interessant funfact om fotball-VM (FIFA World Cup). Finn noe genuint interessant, overraskende eller morsomt – historisk statistikk, rekorder, kuriøse hendelser, underdog-historier. Presenter det som deg selv med din personlighet og dialekt. Maks 3 setninger.`;
+        const reply = await chatWithExpert(expert, prompt, []);
+        await sendChatMessage(expert.name, `🎲 Funfact: ${reply}`, '');
+      }, 800);
+      return;
+    }
+
+    const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
+    const mentionedExperts = [];
+    mentionMatches.forEach(match => {
+      const mentioned = match[1].toLowerCase().replace('-','');
+      const expert = PANEL_EXPERTS.find(e =>
+        e.firstName.toLowerCase() === match[1].toLowerCase() ||
+        e.firstName.toLowerCase().replace('-','') === mentioned ||
+        e.id === mentioned
+      );
+      if (expert && !mentionedExperts.find(e => e.id === expert.id)) mentionedExperts.push(expert);
+    });
+    mentionedExperts.forEach((expert, i) => {
+      setTimeout(async () => {
+        const ctx = buildCompetitionContext(users, results);
+        const reply = await chatWithExpert(expert, t, [], ctx);
+        await sendChatMessage(expert.name, reply, '');
+      }, 1000 + i * 2000);
+    });
   };
 
   const saveSummary = async (matchId) => {
@@ -4763,7 +4791,6 @@ function buildCompetitionContext(users, results) {
 
 async function chatWithExpert(expert, message, history, competitionContext = '') {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-  alert('API key: ' + apiKey); // MIDLERTIDIG DEBUG - FJERN ETTER TEST
 
   const fallbacks = {
     ragnhild: ['Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.', 'Ja, jeg synes Italia har de fineste draktene. Og de er jo katolikker, det er noe.', 'Nei, fotball er ikke min greie egentlig, men jeg prøver så godt jeg kan!'],
@@ -5168,7 +5195,6 @@ function ChatPage({ me }) {
     }
 
     const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
-    alert("mentionMatches: " + JSON.stringify(mentionMatches.map(m => m[1])));
     const mentionedExperts = [];
     mentionMatches.forEach(match => {
       const mentioned = match[1].toLowerCase().replace('-','');
