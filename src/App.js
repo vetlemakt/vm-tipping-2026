@@ -5168,6 +5168,7 @@ function ChatPage({ me }) {
     }
 
     const mentionMatches = [...t.matchAll(/@([a-zæøå-]+)/gi)];
+    alert("mentionMatches: " + JSON.stringify(mentionMatches.map(m => m[1])));
     const mentionedExperts = [];
     mentionMatches.forEach(match => {
       const mentioned = match[1].toLowerCase().replace('-','');
