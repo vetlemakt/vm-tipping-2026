@@ -1874,17 +1874,10 @@ Dette er tabellmessig interessant fordi: ${triggerText}
 
 Kommenter dette i chatten – kort og engasjert, maks 3 setninger. Skriv som deg selv, ikke nevn at du er en bot.`;
 
-      const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-      if (!apiKey) return;
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 150,
@@ -4770,6 +4763,7 @@ function buildCompetitionContext(users, results) {
 
 async function chatWithExpert(expert, message, history, competitionContext = '') {
   const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
+  alert('API key: ' + apiKey); // MIDLERTIDIG DEBUG - FJERN ETTER TEST
 
   const fallbacks = {
     ragnhild: ['Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.', 'Ja, jeg synes Italia har de fineste draktene. Og de er jo katolikker, det er noe.', 'Nei, fotball er ikke min greie egentlig, men jeg prøver så godt jeg kan!'],
