@@ -464,7 +464,7 @@ function DeadlineBar({ user, isAdmin }) {
 
 // ── VM Countdown Bar ─────────────────────────────────────────────────
 // Vises nederst på siden frem til første VM-kamp starter
-const VM_START = new Date('2026-06-11T19:00:00Z'); // A1, 21:00 CEST
+// VM_START er definert ved VMCountdownBanner lenger ned
 
 function VMCountdownBar() {
   const [now, setNow] = useState(() => Date.now());
@@ -474,7 +474,8 @@ function VMCountdownBar() {
     return () => clearInterval(iv);
   }, []);
 
-  const diffMs = VM_START.getTime() - now;
+  const VM_START_MS = new Date('2026-06-11T19:00:00Z').getTime();
+  const diffMs = VM_START_MS - now;
   if (diffMs <= 0) return null; // VM har startet
 
   const totalHours = Math.floor(diffMs / 3600000);
