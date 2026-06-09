@@ -462,6 +462,42 @@ function DeadlineBar({ user, isAdmin }) {
   );
 }
 
+// ── VM Countdown Bar ─────────────────────────────────────────────────
+// Vises nederst på siden frem til første VM-kamp starter
+const VM_START = new Date('2026-06-11T19:00:00Z'); // A1, 21:00 CEST
+
+function VMCountdownBar() {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const diffMs = VM_START.getTime() - now;
+  if (diffMs <= 0) return null; // VM har startet
+
+  const totalHours = Math.floor(diffMs / 3600000);
+  const diffMins = Math.floor((diffMs % 3600000) / 60000);
+
+  const text = `VM starter om ${totalHours} timer og ${diffMins} minutter!`;
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 399,
+      background: 'rgba(0,80,30,.92)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      color: '#a0ffb8',
+      height: 32, fontSize: 12, fontWeight: 600, letterSpacing: 0.5,
+      borderTop: '1px solid rgba(100,255,150,.15)',
+      fontFamily: "'Kanit', sans-serif",
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {text}
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  BANNER (topp-navigasjon)
 // ══════════════════════════════════════════════════════════════════════
@@ -6132,6 +6168,7 @@ export default function App() {
         {' '}© 2026 Vetle Baden Skatvoldsmyr · Ønsker du å bruke koden så spør :)
       </div>
       <DeadlineBar user={user} isAdmin={user.isAdmin} />
+      <VMCountdownBar />
       {/* Permanent goal-confetti canvases – always in DOM so goal bursts work on any page */}
       <canvas id="vm-goal-confetti-back"  style={{ position:'fixed', inset:0, zIndex:9998, pointerEvents:'none', width:'100%', height:'100%' }} />
       <canvas id="vm-goal-confetti-front" style={{ position:'fixed', inset:0, zIndex:9999, pointerEvents:'none', width:'100%', height:'100%' }} />
