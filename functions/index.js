@@ -618,6 +618,33 @@ exports.quizComment = onRequest(
   }
 );
 
+// ── getTopscorers – toppscorerliste fra API-Football ─────────────────
+exports.getTopscorers = onRequest(
+  { secrets: ['FOOTBALL_API_KEY'], cors: true },
+  async (req, res) => {
+    if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
+    try {
+      const response = await fetch(
+        `https://v3.football.api-sports.io/players/topscorers?league=${WC_LEAGUE}&season=${WC_SEASON}`,
+        { headers: { 'x-apisports-key': API_KEY } }
+      );
+      const data = await response.json();
+      if (!data.response?.length) { res.json({ scorers: [] }); return; }
+
+      const scorers = data.response.slice(0, 10).map(entry => ({
+        name: entry.player.name,
+        team: API_TO_NOR[entry.statistics?.[0]?.team?.name] || entry.statistics?.[0]?.team?.name || '–',
+        goals: entry.statistics?.[0]?.goals?.total ?? 0,
+      }));
+
+      res.json({ scorers });
+    } catch (err) {
+      console.error('getTopscorers feilet:', err);
+      res.status(500).json({ error: err.message, scorers: [] });
+    }
+  }
+);
+
 // ── Bygg fixture-lookup ───────────────────────────────────────────────
 exports.buildFixtureLookup = onRequest(async (req, res) => {
   if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }

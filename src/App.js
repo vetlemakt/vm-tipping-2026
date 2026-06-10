@@ -2444,6 +2444,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
+  const [showTopscorers, setShowTopscorers] = useState(false);
   const { soundOn, toggleSound, playSound } = useChatSound();
   const prevMsgCount = useRef(0);
 
@@ -2650,20 +2651,36 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         ];
 
         // Karusell-widgets: faste dimensjoner, like i stående og liggende
-        const carouselSimpleWidgets = simpleStats.map(({ key, num, label }) => (
-          <div key={key} style={{ ...C.statWidget, width: 100, flexShrink: 0, padding: '12px 8px' }}>
-            <div style={{ ...C.statNum, fontSize: 32 }}>{num}</div>
-            <div style={{ ...C.statLabel, fontSize: 10, letterSpacing: 1.5 }}>{label}</div>
-          </div>
-        ));
+        const carouselSimpleWidgets = simpleStats.map(({ key, num, label }) => {
+          const isRank = key === 'rank';
+          const isGoals = key === 'goals';
+          const clickable = isRank || isGoals;
+          return (
+            <div key={key}
+              style={{ ...C.statWidget, width: 100, flexShrink: 0, padding: '12px 8px', ...(clickable ? { cursor: 'pointer' } : {}) }}
+              onClick={isRank ? () => setTab('leaderboard') : isGoals ? () => setShowTopscorers(true) : undefined}
+            >
+              <div style={{ ...C.statNum, fontSize: 32 }}>{num}</div>
+              <div style={{ ...C.statLabel, fontSize: 10, letterSpacing: 1.5 }}>{label}</div>
+            </div>
+          );
+        });
 
         // Desktop-widgets: flex, skalerer med tilgjengelig bredde
-        const simpleWidgets = simpleStats.map(({ key, num, label }) => (
-          <div key={key} style={{ ...C.statWidget, flex: 1, padding: '8px 6px' }}>
-            <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
-            <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
-          </div>
-        ));
+        const simpleWidgets = simpleStats.map(({ key, num, label }) => {
+          const isRank = key === 'rank';
+          const isGoals = key === 'goals';
+          const clickable = isRank || isGoals;
+          return (
+            <div key={key}
+              style={{ ...C.statWidget, flex: 1, padding: '8px 6px', ...(clickable ? { cursor: 'pointer' } : {}) }}
+              onClick={isRank ? () => setTab('leaderboard') : isGoals ? () => setShowTopscorers(true) : undefined}
+            >
+              <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
+              <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
+            </div>
+          );
+        });
 
         const quizWidget = (
           <div key="quiz" style={{ flexShrink: 0 }}>
@@ -2931,6 +2948,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
       </div>
     )}
+    {showTopscorers && <TopscorersPopup onClose={() => setShowTopscorers(false)} />}
     </>
   );
 }
@@ -5478,6 +5496,117 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
 // ══════════════════════════════════════════════════════════════════════
 //  ADMIN MESSAGE TICKER (in banner)
 // ══════════════════════════════════════════════════════════════════════
+
+// ── Topscorer popup ───────────────────────────────────────────────────
+function TopscorersPopup({ onClose }) {
+  const [scorers, setScorers] = useState(null); // null = loading, [] = no data
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    cfPost('getTopscorers', {})
+      .then(data => {
+        if (data?.scorers) setScorers(data.scorers);
+        else setScorers([]);
+      })
+      .catch(() => { setError(true); setScorers([]); });
+  }, []);
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  return createPortal(
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 900,
+      background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'rgba(13,18,48,.97)', border: '2px solid rgba(255,215,0,.4)',
+        borderRadius: 16, padding: '24px 20px', maxWidth: 400, width: '100%',
+        boxShadow: '0 24px 80px rgba(0,0,0,.6)',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 22 }}>⚽</span>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#FFD700', fontFamily: "'Kanit',sans-serif", letterSpacing: 1 }}>
+              Toppscorerliste
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(255,215,0,.55)', fontFamily: "'Fira Code',monospace", letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              FIFA World Cup 2026
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        {scorers === null && (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,.4)', fontSize: 13, fontFamily: "'Kanit',sans-serif" }}>
+            Henter data…
+          </div>
+        )}
+        {error && (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,100,100,.7)', fontSize: 13, fontFamily: "'Kanit',sans-serif" }}>
+            Kunne ikke hente toppscorerliste. Prøv igjen senere.
+          </div>
+        )}
+        {scorers !== null && !error && scorers.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,.4)', fontSize: 13, fontFamily: "'Kanit',sans-serif" }}>
+            Ingen scorerdata tilgjengelig ennå.
+          </div>
+        )}
+        {scorers !== null && scorers.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {scorers.map((s, i) => {
+              const cc = COUNTRY_CODES[s.team] || null;
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: i < 3 ? 'rgba(255,215,0,.07)' : 'rgba(255,255,255,.03)',
+                  borderRadius: 8, padding: '8px 12px',
+                  border: i === 0 ? '1px solid rgba(255,215,0,.25)' : '1px solid rgba(255,255,255,.06)',
+                }}>
+                  {/* Rank */}
+                  <div style={{ width: 28, textAlign: 'center', flexShrink: 0 }}>
+                    {i < 3
+                      ? <span style={{ fontSize: 16 }}>{medals[i]}</span>
+                      : <span style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', fontFamily: "'Fira Code',monospace" }}>{i + 1}</span>
+                    }
+                  </div>
+                  {/* Flag */}
+                  {cc
+                    ? <img src={`https://flagcdn.com/w40/${cc}.png`} width={20} height={14}
+                        alt={s.team} title={s.team}
+                        style={{ borderRadius: 2, objectFit: 'cover', flexShrink: 0 }} />
+                    : <span style={{ fontSize: 14, flexShrink: 0 }}>🏳️</span>
+                  }
+                  {/* Name */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 13, fontWeight: 700, color: i === 0 ? '#FFD700' : '#e8edf8',
+                      fontFamily: "'Kanit',sans-serif", letterSpacing: 0.3,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{s.name}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', fontFamily: "'Inter',sans-serif" }}>{s.team}</div>
+                  </div>
+                  {/* Goals */}
+                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                    <span style={{
+                      fontSize: 18, fontWeight: 800, color: '#FFD700',
+                      fontFamily: "'Fira Code',monospace",
+                    }}>{s.goals}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,215,0,.5)', marginLeft: 3, fontFamily: "'Inter',sans-serif" }}>mål</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <button onClick={onClose} style={{ ...C.btnSecondary, marginTop: 18, width: '100%' }}>Lukk ✕</button>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 function AdminMessagePopup({ message, onClose }) {
   if (!message) return null;
