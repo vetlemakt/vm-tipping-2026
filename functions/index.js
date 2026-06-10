@@ -434,9 +434,25 @@ async function getFixtureLookup() {
   return snap.exists ? snap.data() : {};
 }
 
+// ── Sjekk om det er VM-kamper i dag (UTC) ───────────────────────────
+async function hasTodayFixtures() {
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const data = await apiFetch(
+    `fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&date=${today}`
+  );
+  return (data.response || []).length > 0;
+}
+
 // ── Hovedjobb ────────────────────────────────────────────────────────
 async function pollAndUpdate() {
   if (!API_KEY) { console.warn('FOOTBALL_API_KEY ikke satt'); return; }
+
+  // Ikke gjør noe hvis det ikke er kamper i dag – unngår unødige Firestore-writes
+  const matchDay = await hasTodayFixtures();
+  if (!matchDay) {
+    console.log('Ingen kamper i dag – hopper over poll.');
+    return;
+  }
 
   const liveFixtures     = await getActiveFixtures();
   const finishedFixtures = await getRecentlyFinished();
@@ -501,9 +517,13 @@ async function pollAndUpdate() {
     }
 
     const liveEvent = buildLiveEvent(liveFixtures[0]);
-    batch.set(liveRef, liveEvent || { type: null, ts: Date.now() });
+    // Skriv kun til liveRef hvis det er en faktisk hendelse – unngår å trigge
+    // alle frontend-lyttere med ny ts på hver poll
+    if (liveEvent) {
+      batch.set(liveRef, liveEvent);
+    }
   } else {
-    batch.set(liveRef, { type: null, ts: Date.now() });
+    // Ingen live-kamper – ikke skriv til liveRef denne runden
   }
 
   if (resultsChanged) batch.set(resultsRef, updatedResults, { merge: true });
