@@ -434,25 +434,9 @@ async function getFixtureLookup() {
   return snap.exists ? snap.data() : {};
 }
 
-// ── Sjekk om det er VM-kamper i dag (UTC) ───────────────────────────
-async function hasTodayFixtures() {
-  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-  const data = await apiFetch(
-    `fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&date=${today}`
-  );
-  return (data.response || []).length > 0;
-}
-
 // ── Hovedjobb ────────────────────────────────────────────────────────
 async function pollAndUpdate() {
   if (!API_KEY) { console.warn('FOOTBALL_API_KEY ikke satt'); return; }
-
-  // Ikke gjør noe hvis det ikke er kamper i dag – unngår unødige Firestore-writes
-  const matchDay = await hasTodayFixtures();
-  if (!matchDay) {
-    console.log('Ingen kamper i dag – hopper over poll.');
-    return;
-  }
 
   const liveFixtures     = await getActiveFixtures();
   const finishedFixtures = await getRecentlyFinished();
@@ -517,13 +501,9 @@ async function pollAndUpdate() {
     }
 
     const liveEvent = buildLiveEvent(liveFixtures[0]);
-    // Skriv kun til liveRef hvis det er en faktisk hendelse – unngår å trigge
-    // alle frontend-lyttere med ny ts på hver poll
-    if (liveEvent) {
-      batch.set(liveRef, liveEvent);
-    }
+    batch.set(liveRef, liveEvent || { type: null, ts: Date.now() });
   } else {
-    // Ingen live-kamper – ikke skriv til liveRef denne runden
+    batch.set(liveRef, { type: null, ts: Date.now() });
   }
 
   if (resultsChanged) batch.set(resultsRef, updatedResults, { merge: true });
@@ -562,6 +542,79 @@ exports.manualPoll = onRequest(
   async (req, res) => {
     try { await pollAndUpdate(); res.json({ ok: true, ts: Date.now() }); }
     catch (err) { console.error('manualPoll feilet:', err); res.status(500).json({ ok: false, error: err.message }); }
+  }
+);
+
+// ── Hjelpefunksjon: kall Anthropic API fra server ─────────────────────
+async function callAnthropic(messages, maxTokens = 1000, model = 'claude-sonnet-4-5') {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({ model, max_tokens: maxTokens, messages }),
+  });
+  const data = await resp.json();
+  return data.content?.[0]?.text || '';
+}
+
+// ── chatWithExpert – sikker backend-versjon ───────────────────────────
+exports.expertChat = onRequest(
+  { secrets: ['ANTHROPIC_KEY'], cors: true },
+  async (req, res) => {
+    if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
+    const { systemPrompt, message, history = [], competitionContext = '' } = req.body;
+    if (!systemPrompt || !message) { res.status(400).json({ error: 'systemPrompt og message er påkrevd' }); return; }
+    try {
+      const messages = [
+        ...history,
+        { role: 'user', content: message + competitionContext },
+      ];
+      const text = await callAnthropic(
+        [{ role: 'user', content: systemPrompt + '\n\n' + message + competitionContext }],
+        400
+      );
+      res.json({ text });
+    } catch (err) {
+      console.error('expertChat feilet:', err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// ── generateTips – bot-tipping og spesialspådommer ────────────────────
+exports.generateTips = onRequest(
+  { secrets: ['ANTHROPIC_KEY'], cors: true },
+  async (req, res) => {
+    if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
+    const { prompt, maxTokens = 4000 } = req.body;
+    if (!prompt) { res.status(400).json({ error: 'prompt er påkrevd' }); return; }
+    try {
+      const text = await callAnthropic([{ role: 'user', content: prompt }], maxTokens);
+      res.json({ text });
+    } catch (err) {
+      console.error('generateTips feilet:', err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// ── quizComment – Panini-quiz-kommentar ───────────────────────────────
+exports.quizComment = onRequest(
+  { secrets: ['ANTHROPIC_KEY'], cors: true },
+  async (req, res) => {
+    if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
+    const { prompt } = req.body;
+    if (!prompt) { res.status(400).json({ error: 'prompt er påkrevd' }); return; }
+    try {
+      const text = await callAnthropic([{ role: 'user', content: prompt }], 300);
+      res.json({ text });
+    } catch (err) {
+      console.error('quizComment feilet:', err);
+      res.status(500).json({ error: err.message });
+    }
   }
 );
 

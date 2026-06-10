@@ -11,6 +11,17 @@ import {
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
+
+// ── Cloud Functions base URL (API-nøkkel er trygg på serveren) ────────
+const CF_BASE = 'https://us-central1-vm-tipping-2026.cloudfunctions.net';
+async function cfPost(endpoint, body) {
+  const res = await fetch(`${CF_BASE}/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
 import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
 import { searchPlayers, ALL_PLAYERS } from './squads';
 import {
@@ -751,9 +762,6 @@ function OnlineIndicator({ onlineUsers, compact = false }) {
 
 // ── Bot match summary ────────────────────────────────────────────────
 async function generateBotMatchSummary(match, results, users, allSummaries) {
-  const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-  if (!apiKey) return null;
-
   // Pick expert rotating by match index
   const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
   const matchIdx = allMatches.findIndex(m => m.id === match.id);
@@ -810,18 +818,8 @@ Nåværende rekkefølge: ${scored.map((u,i)=>`${i+1}. ${u.name}`).join(', ')}.${
 Skriv som deg selv – med din personlighet og dialekt. Hold deg til tippekonkurransen, ikke selve fotballen. Ikke bruk hermetegn.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
-    });
-    const data = await response.json();
-    const text = data.content?.[0]?.text;
+    const data = await cfPost('generateTips', { prompt, maxTokens: 300 });
+    const text = data.text;
     if (!text) return null;
     return { text, botId: expert.id, botName: expert.name };
   } catch(e) {
@@ -843,7 +841,7 @@ function BotSummaryTrigger({ matchId, match, results, users, summaries }) {
   };
   // Knappen er skjult – sammendrag genereres automatisk av Cloud Function
   // Vis kun for admin-debugging
-  if (!process.env.REACT_APP_ANTHROPIC_KEY) return null;
+  // Vis kun for admin-debugging med showSummaryBtn
   if (!window.location.search.includes('showSummaryBtn')) return null;
   return (
     <button style={C.botSummaryBtn} onClick={handleGenerate} disabled={loading}>
@@ -1140,34 +1138,8 @@ En spiller i VM-tipping-konkurransen gjenkjente akkurat fotballspilleren ${playe
 
 En spiller i VM-tipping-konkurransen klarte ikke å gjenkjenne fotballspilleren ${playerName} på et Panini-kort. Si noe trøstende eller morsomt på 1-2 setninger i din stil og dialekt. Avslutt med å nevne at et nytt fotballkort kommer kl. 06:00.`;
 
-    const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-    if (!apiKey) {
-      // Fallback uten API
-      const fallbacks = correct
-        ? ['Godt jobba! Nytt kort kl. 06:00.', 'Imponerende! Nytt kort kl. 06:00.']
-        : ['Bedre lykke neste gang! Nytt kort kl. 06:00.', 'Ikke lett! Nytt kort kl. 06:00.'];
-      setComment(fallbacks[Math.floor(Math.random() * fallbacks.length)]);
-      setLoading(false);
-      return;
-    }
-
-    fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 80,
-        system: picked.personality,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    })
-      .then(r => r.json())
-      .then(d => { setComment(d.content?.[0]?.text || ''); })
+    cfPost('quizComment', { prompt })
+      .then(d => { setComment(d.text || (correct ? 'Godt jobba! Nytt kort kl. 06:00.' : 'Bedre lykke neste gang! Nytt kort kl. 06:00.')); })
       .catch(() => setComment(correct ? 'Godt jobba! Nytt kort kl. 06:00.' : 'Bedre lykke neste gang! Nytt kort kl. 06:00.'))
       .finally(() => setLoading(false));
   }, [correct, playerName]);
@@ -3905,21 +3877,11 @@ function AdminPanel() {
             (specInstructions[expert.id] || '') +
             '\n\nVelg fra DISSE lagene: ' + teamList +
             '\n\nSvar KUN med JSON: {"champion":"Brasil","runner_up":"Frankrike","third":"England","most_carded":"Argentina"}';
-          const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-
           let specialTips = {};
-          if (apiKey) {
-            try {
-              const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method:'POST',
-                headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-                body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:200,messages:[{role:'user',content:specPrompt}]})
-              });
-              const d = await res.json();
-              const t = d.content?.[0]?.text || '{}';
-              specialTips = JSON.parse(t.replace(/```json|```/g,'').trim());
-            } catch(e) { console.warn('Special tips failed:', e); }
-          }
+          try {
+            const d = await cfPost('generateTips', { prompt: specPrompt, maxTokens: 200 });
+            specialTips = JSON.parse((d.text || '{}').replace(/```json|```/g,'').trim());
+          } catch(e) { console.warn('Special tips failed:', e); }
           specialTips.topscorer = topscorerMap[expert.id] || '';
           const mergedSpec = { ...specialTips, ...existingSpec };
           mergedSpec.topscorer = topscorerMap[expert.id] || '';
@@ -4646,25 +4608,9 @@ ${groupLines}
 Svar KUN med JSON (ingen annen tekst, ingen forklaring):
 {"tips": {"A1": {"home": 2, "away": 1}, ...}, "groupOrders": {"A": ["lag1","lag2","lag3","lag4"], "B": [...], ...}}`;
 
-  const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-  if (!apiKey) return { tips: {}, groupOrders: {} };
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  const data = await response.json();
-  console.log('API response for tips:', JSON.stringify(data).slice(0, 500));
-  const text = data.content?.[0]?.text || '{}';
+  const data = await cfPost('generateTips', { prompt, maxTokens: 4000 });
+  console.log('CF response for tips:', JSON.stringify(data).slice(0, 500));
+  const text = data.text || '{}';
   try {
     const clean = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
@@ -4715,8 +4661,6 @@ function buildCompetitionContext(users, results) {
 }
 
 async function chatWithExpert(expert, message, history, competitionContext = '') {
-  const apiKey = process.env.REACT_APP_ANTHROPIC_KEY;
-
   const fallbacks = {
     ragnhild: ['Å, så hyggelig at du spør! Jeg tipper på land med fine drakter og god musikk, det gjør jeg.', 'Ja, jeg synes Italia har de fineste draktene. Og de er jo katolikker, det er noe.', 'Nei, fotball er ikke min greie egentlig, men jeg prøver så godt jeg kan!'],
     hendrik: ['Hoi! Dennis Bergkamp var jo fantastisk, ikke sant? Rintje Ritsma spilte jo også litt, tror jeg.', 'Ja, ja, ik ben hier. Jeg hører på DJ Bobo og tenker på fotball. Goed, goed.', 'Nederlandsk fotball er jo det beste. Eller, hva vet jeg egentlig? Jeg har ikke vært ute på lenge.'],
@@ -4724,34 +4668,16 @@ async function chatWithExpert(expert, message, history, competitionContext = '')
     bengt: ['Hei hei! Maradona hadde jo gjort det bra her, tror jeg! Hva mener du?', 'Nei, dette minner meg om da Zico spilte i -82. Fantastisk tider! Hva spurte du om igjen?', 'Jeg scoret ti mål mot Rosenborg som keeper, så jeg vet litt om fotball, jeg!'],
     odd: [`Nei, nei, nei. Brasil jukse' aillfall, det veit æ. Æ ska' hent' leverposteien å tenk på det.`, `Nei, nei, nei. Kvar'n som hæll ha' snø om vinteren e' te' å stoil på. Det e' min filosofi, det.`, `Nei, nei, nei. Fotball e' ein bygreie, men æ følge' med æ, frå Oppdal. Reffrey dømme' aillfall urettferdig.`],
   };
-  // Try API first – stateless, single message only
-  if (apiKey) {
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 150,
-          system: expert.personality + '\n\n' + PANEL_GROUP_CONTEXT + competitionContext + CHAT_SYSTEM_SUFFIX,
-          messages: [{ role: 'user', content: message }],
-        })
-      });
-      const data = await response.json();
-      const text = data.content?.[0]?.text;
-      if (text && text.length > 3) return text;
-      if (data.error) return '(API-feil: ' + data.error.message + ')';
-    } catch(e) {
-      console.error('API error:', e);
-      return '(Nettverksfeil: ' + e.message + ')';
-    }
-  } else {
-    console.log('Ingen API-nøkkel funnet. REACT_APP_ANTHROPIC_KEY:', apiKey);
+  // Kall via sikker Cloud Function
+  try {
+    const systemPrompt = expert.personality + '\n\n' + PANEL_GROUP_CONTEXT + competitionContext + CHAT_SYSTEM_SUFFIX;
+    const data = await cfPost('expertChat', { systemPrompt, message });
+    const text = data.text;
+    if (text && text.length > 3) return text;
+    if (data.error) return '(API-feil: ' + data.error + ')';
+  } catch(e) {
+    console.error('CF error:', e);
+    return '(Nettverksfeil: ' + e.message + ')';
   }
   // Fallback: rotate through hardcoded responses
   const opts = fallbacks[expert.id] || ['Hei!'];
