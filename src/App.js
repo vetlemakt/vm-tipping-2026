@@ -11,6 +11,14 @@ import {
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore';
 import { calcScore, calcMatchPts } from './scoring';
+import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
+import { searchPlayers, ALL_PLAYERS } from './squads';
+import {
+  INVITE_CODE, ADMIN_CODE,
+  GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
+  PHASE_OPTIONS, OPEN_PHASES, FLAGS, WS_MSGS, SPEC_FIELDS, STADIUMS,
+} from './constants';
+import { C } from './styles';
 
 // ── Cloud Functions base URL (API-nøkkel er trygg på serveren) ────────
 const CF_BASE = 'https://us-central1-vm-tipping-2026.cloudfunctions.net';
@@ -22,14 +30,6 @@ async function cfPost(endpoint, body) {
   });
   return res.json();
 }
-import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
-import { searchPlayers, ALL_PLAYERS } from './squads';
-import {
-  INVITE_CODE, ADMIN_CODE,
-  GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
-  PHASE_OPTIONS, OPEN_PHASES, FLAGS, WS_MSGS, SPEC_FIELDS, STADIUMS,
-} from './constants';
-import { C } from './styles';
 
 const YEL = '#FFD700';
 
