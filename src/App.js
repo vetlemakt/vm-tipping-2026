@@ -3973,7 +3973,7 @@ function AdminPanel() {
       </div>
       <div style={C.cardBody}>
         <div style={C.tabs}>
-          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort'], ['msg', 'Melding'], ['matches', 'Kamper'], ['missing', '⚠️ Mangler']].map(([t, l]) => (
+          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort'], ['msg', 'Melding'], ['matches', 'Kamper'], ['missing', '⚠️ Mangler'], ['live', '📡 Live']].map(([t, l]) => (
             <button key={t} style={{ ...C.tab, ...(aTab === t ? C.tabOn : {}) }} onClick={() => setATab(t)}>{l}</button>
           ))}
         </div>
@@ -5193,6 +5193,44 @@ function ChatPage({ me }) {
           }}
         />
         <button style={{...C.btnSend}} onClick={sendMsg}>Send</button>
+        {aTab === 'live' && (() => {
+          const [liveStatus, setLiveStatus] = React.useState('');
+          const buildLookup = async () => {
+            setLiveStatus('Bygger lookup...');
+            try {
+              const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
+              const res = await fetch(`${CF_BASE}/buildFixtureLookup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away })) }),
+              });
+              const data = await res.json();
+              setLiveStatus(`✅ Lookup bygget: ${data.entries} oppføringer`);
+            } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
+          };
+          const manualPoll = async () => {
+            setLiveStatus('Poller nå...');
+            try {
+              const res = await fetch(`${CF_BASE}/manualPoll`, { method: 'POST' });
+              const data = await res.json();
+              setLiveStatus(data.ok ? '✅ Poll OK – ' + new Date().toLocaleTimeString() : '❌ Feil: ' + data.error);
+            } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
+          };
+          return (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:4 }}>
+                pollFootball kjører automatisk hvert minutt under live-kamper. Bruk disse knappene ved behov.
+              </div>
+              <button onClick={buildLookup} style={{ ...C.btnSecondary, textAlign:'left' }}>
+                🗺️ Bygg fixture-lookup (kjør én gang ved kampstart)
+              </button>
+              <button onClick={manualPoll} style={{ ...C.btnSecondary, textAlign:'left' }}>
+                📡 Kjør manuell poll nå
+              </button>
+              {liveStatus && <div style={{ fontSize:11, color:'#4ade80', fontFamily:"'Fira Code',monospace", marginTop:4 }}>{liveStatus}</div>}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
