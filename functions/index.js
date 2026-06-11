@@ -753,6 +753,56 @@ exports.quizComment = onRequest(
 );
 
 // ── getTopscorers – toppscorerliste fra API-Football ─────────────────
+
+// ── Oppdater toppscorere og kort (kjøres hvert 30. min) ──────────────
+exports.updateStatsCache = onSchedule(
+  {
+    schedule: 'every 30 minutes',
+    timeZone: 'Europe/Oslo',
+    secrets: ['FOOTBALL_API_KEY'],
+  },
+  async () => {
+    if (!isWithinMatchWindow()) return;
+    if (!API_KEY) return;
+    try {
+      // Toppscorere
+      const scorersRes = await fetch(
+        `https://v3.football.api-sports.io/players/topscorers?league=${WC_LEAGUE}&season=${WC_SEASON}`,
+        { headers: { 'x-apisports-key': API_KEY } }
+      );
+      const scorersData = await scorersRes.json();
+      if (scorersData.response?.length) {
+        const scorers = scorersData.response.slice(0, 10).map(e => ({
+          name: e.player.name,
+          team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
+          goals: e.statistics?.[0]?.goals?.total ?? 0,
+        }));
+        await db.collection('config').doc('statsCache').set({ scorers, updatedAt: Date.now() }, { merge: true });
+        console.log('Toppscorere oppdatert:', scorers.length);
+      }
+
+      // Kort (topp gule/røde)
+      const cardsRes = await fetch(
+        `https://v3.football.api-sports.io/players/topcards?league=${WC_LEAGUE}&season=${WC_SEASON}`,
+        { headers: { 'x-apisports-key': API_KEY } }
+      );
+      const cardsData = await cardsRes.json();
+      if (cardsData.response?.length) {
+        const cards = cardsData.response.slice(0, 10).map(e => ({
+          name: e.player.name,
+          team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
+          yellow: e.statistics?.[0]?.cards?.yellow ?? 0,
+          red: (e.statistics?.[0]?.cards?.red ?? 0) + (e.statistics?.[0]?.cards?.yellowred ?? 0),
+        }));
+        await db.collection('config').doc('statsCache').set({ cards, updatedAt: Date.now() }, { merge: true });
+        console.log('Kortliste oppdatert:', cards.length);
+      }
+    } catch (err) {
+      console.error('updateStatsCache feilet:', err.message);
+    }
+  }
+);
+
 exports.getTopscorers = onRequest(
   { secrets: ['FOOTBALL_API_KEY'], cors: true },
   async (req, res) => {

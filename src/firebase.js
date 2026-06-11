@@ -127,3 +127,10 @@ export function subscribeQuizPlayer(callback) {
     callback(snap.exists() ? snap.data().idx : null);
   });
 }
+
+// ── Stats-cache (toppscorere og kort fra Cloud Function) ─────────────
+export function subscribeStatsCache(callback) {
+  return onSnapshot(doc(db, 'config', 'statsCache'), snap => {
+    callback(snap.exists() ? snap.data() : null);
+  });
+}

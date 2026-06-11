@@ -6,7 +6,7 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage,
   subscribePhase, subscribeResults,
-  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer,
+  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -2460,6 +2460,24 @@ function StatsCarousel({ widgets }) {
   );
 }
 
+function StatBoxWithTooltip({ num, label, tooltip }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ ...C.statWidget, flex: 1, padding: '8px 6px', position: 'relative', cursor: 'default' }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
+      <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
+      {show && tooltip && (
+        <div style={{ position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(10,14,30,0.97)', border: '1px solid rgba(255,215,0,.25)', borderRadius: 10,
+          padding: '10px 14px', zIndex: 999, boxShadow: '0 8px 32px rgba(0,0,0,.6)', pointerEvents: 'none' }}>
+          {tooltip}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard({ me, phase, onShowTips, setTab }) {
   const isMobile = useIsMobile();
   const isTouch = useIsTouch();
@@ -2499,11 +2517,13 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const chatBot = useRef(null);
 
   const [liveEvent, setLiveEvent] = useState(null);
+  const [statsCache, setStatsCache] = useState({ scorers: [], cards: [] });
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
+  useEffect(() => { const u = subscribeStatsCache(data => setStatsCache(data || { scorers: [], cards: [] })); return u; }, []);
   const chatBoxRef = useRef(null);
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
@@ -2690,12 +2710,29 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         ));
 
         // Desktop-widgets: flex, skalerer med tilgjengelig bredde
-        const simpleWidgets = simpleStats.map(({ key, num, label }) => (
-          <div key={key} style={{ ...C.statWidget, flex: 1, padding: '8px 6px' }}>
-            <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
-            <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
-          </div>
-        ));
+        const simpleWidgets = simpleStats.map(({ key, num, label }) => {
+          if (key === 'goals' && statsCache.scorers?.length > 0) {
+            return (
+              <StatBoxWithTooltip key={key} num={num} label={label} tooltip={
+                <div style={{ minWidth: 180 }}>
+                  <div style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>⚽ TOPPSCORERE</div>
+                  {statsCache.scorers.slice(0, 8).map((s, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                      <span style={{ color: 'rgba(255,255,255,.8)' }}>{i + 1}. {s.name}</span>
+                      <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
+                    </div>
+                  ))}
+                </div>
+              } />
+            );
+          }
+          return (
+            <div key={key} style={{ ...C.statWidget, flex: 1, padding: '8px 6px' }}>
+              <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
+              <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
+            </div>
+          );
+        });
 
         const quizWidget = (
           <div key="quiz" style={{ flexShrink: 0 }}>
