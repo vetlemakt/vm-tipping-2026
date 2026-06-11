@@ -991,7 +991,7 @@ Skriv 3-5 setninger om tabellsituasjonen etter kampen. Hvem leder, hvem klatrer,
 
 
 // ── Manuell trigger for toppscorere/kort ─────────────────────────────
-exports.updatestatscache = onRequest(
+exports.refreshStatsCache = onRequest(
   { secrets: ['FOOTBALL_API_KEY'], cors: true },
   async (req, res) => {
     if (!API_KEY) { res.status(500).json({ ok: false, error: 'FOOTBALL_API_KEY ikke satt' }); return; }

@@ -4389,7 +4389,7 @@ function LiveAdmin() {
       <button onClick={async () => {
         setLiveStatus('Oppdaterer toppscorere...');
         try {
-          const res = await fetch(CF_V2('updatestatscache'), { method: 'POST' });
+          const res = await fetch(CF_V2('refreshstatscache'), { method: 'POST' });
           const data = await res.json();
           setLiveStatus(data.ok ? '✅ Toppscorere oppdatert!' : '❌ ' + (data.error||'ukjent'));
         } catch(e) { setLiveStatus('❌ ' + e.message); }
