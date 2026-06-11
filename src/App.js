@@ -4366,7 +4366,8 @@ function InfoPage() {
 function YouTubePlayer() {
   const [visible, setVisible] = useState(true);
   const [minimized, setMinimized] = useState(true);
-  const [startIndex] = useState(() => Math.floor(Math.random() * 50));
+  const YT_STARTS = ['L20NUEcjsZs','1FeEa2Ew2yo','eG9z0R9oDe4','dHuLtbLhnJQ','GqRbaybv3tA','qiSqdBU2vio','T8T1a45HX4o','xm7et8ecVjM','wU26xVT_vBU','V15BYnSr0P8','D3jKArZm0wg','JkDCVLompxQ','D_QLxj8jCF0','EcBntqpUpg0','JEPmnB-Wewk','qWcOxPfzRPs','VPGJwRCXb7U','LdZK5zkH_4s','cc4og_BpscM','RtJqHUsedYY','bFOAZD6P4QE','A6fGu5Zsr48','Og8giwn8pfg','pcbGxT7nG60','Qm9KCQd3mg4','9lyNR0UMVic','vwT1Xb4vMpQ','VJ13O6qHIEI','-YL6dR120lU','mFkfKSPHIfw','45et6rqenvA','BCxiZAs497A','lFQdcPTTzSg','228FtMaq8uY','fcnDmrtj6Sk','vrY1THC_NQE','HLDak8dEyZw','zbjBKLTTxK4','TVKcgzCM9Z0','5FvRS8Q7DGY','GNzA7g0s2-k'];
+  const [startId] = useState(() => YT_STARTS[Math.floor(Math.random() * YT_STARTS.length)]);
   if (!visible) return null;
   return (
     <div style={{
@@ -4415,7 +4416,7 @@ function YouTubePlayer() {
           <iframe
             width="240"
             height="135"
-            src={`https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=${startIndex}&loop=1&autoplay=0&rel=0`}
+            src={`https://www.youtube.com/embed/${startId}?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&loop=1&autoplay=0&rel=0`}
             title="VM-musikk"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
