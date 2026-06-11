@@ -227,7 +227,7 @@ const DEADLINES = [
     label: 'innlevering av gruppespillskamper, spesialtips og gruppeplassering',
     shortLabel: 'Gruppespillet starter',
     // First group match: A1, 2026-06-11 21:00 CEST = 19:00 UTC
-    deadline: new Date('2026-06-11T18:50:00Z'),
+    deadline: new Date('2026-06-11T19:00:00Z'),
     checkDone: (user) => {
       const tips = user?.tips || {};
       const grpO = user?.groupOrders || {};
@@ -5190,7 +5190,7 @@ function ChatPage({ me }) {
 
 // ── Auto Phase Management ─────────────────────────────────────────────
 const PHASE_SCHEDULE = [
-  { phase: 'pre',          until: new Date('2026-06-11T19:00:00+02:00') },
+  { phase: 'pre',          until: new Date('2026-06-11T21:00:00+02:00') },
   { phase: 'group_lock',   until: new Date('2026-06-27T23:59:00+02:00') },
   { phase: 'group_done',   until: new Date('2026-06-28T16:00:00+02:00') },
   { phase: 'r32_lock',     until: new Date('2026-07-03T23:59:00+02:00') },
