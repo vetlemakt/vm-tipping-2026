@@ -2497,10 +2497,12 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   }, [chatFullscreen, matchesFullscreen]);
   const chatBot = useRef(null);
 
+  const [liveEvent, setLiveEvent] = useState(null);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
+  useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
   const chatBoxRef = useRef(null);
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
