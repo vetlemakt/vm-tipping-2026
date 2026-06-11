@@ -4773,6 +4773,8 @@ ABSOLUTTE REGLER – BRYT ALDRI DISSE:
 // Bygger en tekstlig oversikt over konkurransen som sendes til boten
 function buildCompetitionContext(users, results, liveEvent) {
   let ctx = '';
+
+  // Live-kamp
   if (liveEvent) {
     if (liveEvent.type === 'goal') {
       const { shortHome, shortAway, homeGoals, awayGoals, playerName, minute } = liveEvent;
@@ -4781,14 +4783,43 @@ function buildCompetitionContext(users, results, liveEvent) {
       ctx += `\n\nLIVE KAMP PÅ GANG NÅ: ${liveEvent.text}. Svar basert på dette hvis noen spør om kampen.`;
     }
   }
+
   if (!users || users.length === 0) return ctx;
-  const sorted = [...users]
+
+  // Stillingstabell
+  const realUsers = users.filter(u => !u.id.startsWith('panel_') && u.id !== 'admin');
+  const sorted = [...realUsers]
     .map(u => ({ ...u, ...calcScore(u, results) }))
     .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
   const lines = sorted.map((u, i) =>
     `${i + 1}. ${u.displayName}: ${u.total}p (${u.fulltreff} fulltreff)`
   ).join('\n');
-  ctx += `\n\nAKTUELL STILLINGSTABELL I TIPPEKONKURRANSEN:\n${lines}\n\nBruk dette aktivt hvis noen spør om konkurransen, hvem som leder, hvem som ligger dårlig an osv.`;
+  ctx += `\n\nAKTUELL STILLINGSTABELL I TIPPEKONKURRANSEN:\n${lines}`;
+
+  // Kommende og pågående kamper med tips
+  const now = Date.now();
+  const upcoming = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES]
+    .filter(m => {
+      const ms = new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime();
+      const isUpcoming = ms > now;
+      const isLive = ms <= now && now - ms < 3 * 60 * 60 * 1000 && !results[m.id];
+      return isUpcoming || isLive;
+    })
+    .slice(0, 5);
+
+  if (upcoming.length > 0) {
+    ctx += `\n\nKOMMENDE OG PÅGÅENDE KAMPER MED TIPS:`;
+    upcoming.forEach(m => {
+      const tipLines = realUsers
+        .filter(u => u.tips?.[m.id]?.home !== undefined)
+        .map(u => `  ${u.displayName}: ${u.tips[m.id].home}-${u.tips[m.id].away}`)
+        .join('\n');
+      ctx += `\n${m.home} vs ${m.away} (${m.date} ${m.time || ''}):\n${tipLines || '  (ingen tips ennå)'}`;
+    });
+  }
+
+  // Spesialtips-sammendrag
+  ctx += `\n\nBruk tabellen og tipsene aktivt når noen spør om hvem som leder, hvem som har tippet hva, hvem som har 0-0 på en kamp, osv.`;
   return ctx;
 }
 
@@ -5246,7 +5277,7 @@ function ChatPage({ me }) {
 
 // ── Auto Phase Management ─────────────────────────────────────────────
 const PHASE_SCHEDULE = [
-  { phase: 'pre',          until: new Date('2026-06-12T01:00:00+02:00') },
+  { phase: 'pre',          until: new Date('2026-06-11T22:30:00+02:00') },
   { phase: 'group_lock',   until: new Date('2026-06-27T23:59:00+02:00') },
   { phase: 'group_done',   until: new Date('2026-06-28T16:00:00+02:00') },
   { phase: 'r32_lock',     until: new Date('2026-07-03T23:59:00+02:00') },
