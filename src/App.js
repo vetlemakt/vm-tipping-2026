@@ -1197,7 +1197,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
       const real = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
       const board = real.map(u => {
         const uname = u.id;
-        const userAnswers = answers.filter(a => a.id.startsWith(uname + '_'));
+        const userAnswers = answers.filter(a => a.id.startsWith(uname + '_') && a.scoring);
         const correct = userAnswers.filter(a => a.correct).length;
         const wrong = userAnswers.filter(a => !a.correct).length;
         return { name: u.displayName || u.id, correct, wrong, total: userAnswers.length };
