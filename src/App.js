@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  getUser, getAllUsers, createUser, updateUser,
+  getUser, getAllUsers, updateUser,
   getResults, setResults, getPhase, setPhase,
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage,
@@ -14,7 +14,7 @@ import { calcScore, calcMatchPts } from './scoring';
 import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
 import { searchPlayers, ALL_PLAYERS } from './squads';
 import {
-  INVITE_CODE, ADMIN_CODE,
+  ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
   PHASE_OPTIONS, OPEN_PHASES, FLAGS, WS_MSGS, SPEC_FIELDS, STADIUMS,
 } from './constants';
