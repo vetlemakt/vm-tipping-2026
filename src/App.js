@@ -5246,7 +5246,7 @@ function ChatPage({ me }) {
 
 // ── Auto Phase Management ─────────────────────────────────────────────
 const PHASE_SCHEDULE = [
-  { phase: 'pre',          until: new Date('2026-06-11T21:00:00+02:00') },
+  { phase: 'pre',          until: new Date('2026-06-12T01:00:00+02:00') },
   { phase: 'group_lock',   until: new Date('2026-06-27T23:59:00+02:00') },
   { phase: 'group_done',   until: new Date('2026-06-28T16:00:00+02:00') },
   { phase: 'r32_lock',     until: new Date('2026-07-03T23:59:00+02:00') },
