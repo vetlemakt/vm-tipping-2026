@@ -37,6 +37,136 @@ const API_TO_NOR = Object.fromEntries(
 const LIVE_STATUSES     = new Set(['1H','HT','2H','ET','BT','P','LIVE']);
 const FINISHED_STATUSES = new Set(['FT','AET','PEN']);
 
+// ── Kampprogram: når skal vi polle? (UTC-tider) ──────────────────────
+// Bare poll 90 min rundt kampstart for å spare API-kvoter
+const MATCH_WINDOWS = [
+  // Gruppe A
+  { date: '2026-06-11', utcHour: 19, utcMin: 0 },   // Mexico-Sør-Afrika 21:00 CEST
+  { date: '2026-06-12', utcHour: 2,  utcMin: 0 },   // Sør-Korea-Tsjekkia
+  { date: '2026-06-12', utcHour: 19, utcMin: 0 },   // Canada-Bosnia
+  { date: '2026-06-13', utcHour: 1,  utcMin: 0 },   // USA-Paraguay
+  { date: '2026-06-13', utcHour: 19, utcMin: 0 },   // Qatar-Sveits
+  { date: '2026-06-14', utcHour: 4,  utcMin: 0 },
+  { date: '2026-06-14', utcHour: 17, utcMin: 0 },
+  { date: '2026-06-14', utcHour: 20, utcMin: 0 },
+  { date: '2026-06-14', utcHour: 22, utcMin: 0 },
+  { date: '2026-06-15', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-15', utcHour: 3,  utcMin: 0 },
+  { date: '2026-06-15', utcHour: 16, utcMin: 0 },
+  { date: '2026-06-15', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-15', utcHour: 22, utcMin: 0 },
+  { date: '2026-06-16', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-16', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-16', utcHour: 3,  utcMin: 0 },
+  { date: '2026-06-16', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-17', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-17', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-17', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-18', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-18', utcHour: 4,  utcMin: 0 },
+  { date: '2026-06-18', utcHour: 16, utcMin: 0 },
+  { date: '2026-06-18', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-19', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-19', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-19', utcHour: 3,  utcMin: 0 },
+  { date: '2026-06-19', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-20', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-20', utcHour: 0,  utcMin: 30 },
+  { date: '2026-06-20', utcHour: 3,  utcMin: 0 },
+  { date: '2026-06-20', utcHour: 17, utcMin: 0 },
+  { date: '2026-06-20', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-21', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-21', utcHour: 16, utcMin: 0 },
+  { date: '2026-06-21', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-21', utcHour: 20, utcMin: 0 },
+  { date: '2026-06-22', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-22', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-22', utcHour: 3,  utcMin: 0 },
+  { date: '2026-06-22', utcHour: 4,  utcMin: 0 },
+  { date: '2026-06-22', utcHour: 17, utcMin: 0 },
+  { date: '2026-06-22', utcHour: 21, utcMin: 0 },
+  { date: '2026-06-23', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-23', utcHour: 2,  utcMin: 0 },
+  { date: '2026-06-23', utcHour: 3,  utcMin: 0 },
+  { date: '2026-06-23', utcHour: 5,  utcMin: 0 },
+  { date: '2026-06-24', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-24', utcHour: 3,  utcMin: 0 },
+  // Siste gruppekamper (parallelle)
+  { date: '2026-06-25', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-25', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-25', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-25', utcHour: 21, utcMin: 0 },
+  { date: '2026-06-26', utcHour: 0,  utcMin: 0 },
+  { date: '2026-06-26', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-26', utcHour: 2,  utcMin: 0 },
+  { date: '2026-06-26', utcHour: 20, utcMin: 0 },
+  { date: '2026-06-26', utcHour: 22, utcMin: 0 },
+  { date: '2026-06-27', utcHour: 1,  utcMin: 0 },
+  { date: '2026-06-27', utcHour: 2,  utcMin: 0 },
+  { date: '2026-06-27', utcHour: 3,  utcMin: 0 },
+  { date: '2026-06-27', utcHour: 5,  utcMin: 0 },
+  { date: '2026-06-27', utcHour: 19, utcMin: 0 },
+  { date: '2026-06-27', utcHour: 21, utcMin: 0 },
+  { date: '2026-06-28', utcHour: 2,  utcMin: 0, knockout: true },
+  { date: '2026-06-28', utcHour: 4,  utcMin: 0, knockout: true },
+  // Sluttspill – legg til etter hvert
+  { date: '2026-06-28', utcHour: 19, utcMin: 0, knockout: true },
+  { date: '2026-06-28', utcHour: 22, utcMin: 0, knockout: true },
+  { date: '2026-06-29', utcHour: 1,  utcMin: 0, knockout: true },
+  { date: '2026-06-29', utcHour: 19, utcMin: 0, knockout: true },
+  { date: '2026-06-29', utcHour: 22, utcMin: 0, knockout: true },
+  { date: '2026-06-30', utcHour: 1,  utcMin: 0, knockout: true },
+  { date: '2026-06-30', utcHour: 19, utcMin: 0, knockout: true },
+  { date: '2026-06-30', utcHour: 22, utcMin: 0, knockout: true },
+  { date: '2026-07-01', utcHour: 1,  utcMin: 0, knockout: true },
+  { date: '2026-07-01', utcHour: 19, utcMin: 0, knockout: true },
+  { date: '2026-07-01', utcHour: 22, utcMin: 0, knockout: true },
+  { date: '2026-07-02', utcHour: 1,  utcMin: 0, knockout: true },
+  { date: '2026-07-02', utcHour: 19, utcMin: 0, knockout: true },
+  { date: '2026-07-02', utcHour: 22, utcMin: 0, knockout: true },
+  { date: '2026-07-03', utcHour: 1,  utcMin: 0, knockout: true },
+  { date: '2026-07-04', utcHour: 17, utcMin: 0, knockout: true },
+  { date: '2026-07-04', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-05', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-05', utcHour: 17, utcMin: 0, knockout: true },
+  { date: '2026-07-05', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-06', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-07', utcHour: 17, utcMin: 0, knockout: true },
+  { date: '2026-07-07', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-08', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-08', utcHour: 17, utcMin: 0, knockout: true },
+  { date: '2026-07-08', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-09', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-10', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-11', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-11', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-12', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-14', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-15', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-15', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-16', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-18', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-19', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-07-19', utcHour: 21, utcMin: 0, knockout: true },
+  { date: '2026-07-20', utcHour: 0,  utcMin: 0, knockout: true },
+];
+
+// Sjekk om vi er innenfor et kampvindu
+// Gruppespill: 3 timer etter kampstart (90 min + pause + ekstra)
+// Sluttspill (w.knockout): 4 timer (ekstraomganger + straffekonkurranse)
+function isWithinMatchWindow() {
+  const now = new Date();
+  const nowMs = now.getTime();
+  return MATCH_WINDOWS.some(w => {
+    const wDate = new Date(`${w.date}T${String(w.utcHour).padStart(2,'0')}:${String(w.utcMin).padStart(2,'0')}:00Z`);
+    const windowAfterMs = (w.knockout ? 3 : 2) * 60 * 60 * 1000;
+    const windowBeforeMs = 10 * 60 * 1000; // 10 min før kampstart
+    return nowMs >= wDate.getTime() - windowBeforeMs && nowMs <= wDate.getTime() + windowAfterMs;
+  });
+}
+
+
+
 // ── Ekspertpanel-personas ────────────────────────────────────────────
 const PANEL_EXPERTS = [
   {
@@ -523,6 +653,10 @@ exports.pollFootball = onSchedule(
     secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'],
   },
   async () => {
+    if (!isWithinMatchWindow()) {
+      console.log('Ingen kamp innenfor 90 min – hopper over polling');
+      return;
+    }
     const start = Date.now();
     let calls = 0;
     while (true) {
@@ -538,7 +672,7 @@ exports.pollFootball = onSchedule(
 
 // ── Manuell HTTP-trigger ──────────────────────────────────────────────
 exports.manualPoll = onRequest(
-  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'], cors: true },
+  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'] },
   async (req, res) => {
     try { await pollAndUpdate(); res.json({ ok: true, ts: Date.now() }); }
     catch (err) { console.error('manualPoll feilet:', err); res.status(500).json({ ok: false, error: err.message }); }
@@ -646,7 +780,7 @@ exports.getTopscorers = onRequest(
 );
 
 // ── Bygg fixture-lookup ───────────────────────────────────────────────
-exports.buildFixtureLookup = onRequest({ cors: true }, async (req, res) => {
+exports.buildFixtureLookup = onRequest(async (req, res) => {
   if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
   const { matches } = req.body;
   if (!matches || !Array.isArray(matches)) {
