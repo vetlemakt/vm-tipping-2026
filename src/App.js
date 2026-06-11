@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  getUser, getAllUsers, updateUser,
+  getUser, getAllUsers, createUser, updateUser,
   getResults, setResults, getPhase, setPhase,
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage,
@@ -14,7 +14,7 @@ import { calcScore, calcMatchPts } from './scoring';
 import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
 import { searchPlayers, ALL_PLAYERS } from './squads';
 import {
-  ADMIN_CODE,
+  INVITE_CODE, ADMIN_CODE,
   GROUPS, ALL_TEAMS, GROUP_MATCHES, KNOCKOUT_MATCHES, KNOCKOUT_ROUNDS,
   PHASE_OPTIONS, OPEN_PHASES, FLAGS, WS_MSGS, SPEC_FIELDS, STADIUMS,
 } from './constants';
@@ -156,7 +156,8 @@ function subscribeMatchSummaries(callback) {
 //  AUTH
 // ══════════════════════════════════════════════════════════════════════
 function AuthScreen({ onLogin }) {
-  const [f, setF] = useState({ username: '', password: '' });
+  const [mode, setMode] = useState('login');
+  const [f, setF] = useState({ username: '', password: '', inviteCode: '', displayName: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const upd = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -164,13 +165,22 @@ function AuthScreen({ onLogin }) {
   const submit = async () => {
     setError(''); setLoading(true);
     try {
-      if (f.username === 'admin' && f.password === ADMIN_CODE) {
-        onLogin({ username: 'admin', displayName: 'Admin', isAdmin: true }); return;
+      if (mode === 'login') {
+        if (f.username === 'admin' && f.password === ADMIN_CODE) {
+          onLogin({ username: 'admin', displayName: 'Admin', isAdmin: true }); return;
+        }
+        const u = await getUser(f.username);
+        if (!u) { setError('Brukeren finnes ikke.'); setLoading(false); return; }
+        if (u.password !== f.password) { setError('Feil passord.'); setLoading(false); return; }
+        onLogin({ ...u, username: f.username });
+      } else {
+        if (f.inviteCode.trim().toUpperCase() !== INVITE_CODE) { setError('Feil invitasjonskode.'); setLoading(false); return; }
+        if (!f.username || !f.displayName || !f.password) { setError('Fyll ut alle felt.'); setLoading(false); return; }
+        if (await getUser(f.username)) { setError('Brukernavnet er tatt.'); setLoading(false); return; }
+        const nu = { password: f.password, displayName: f.displayName, tips: {}, specialTips: {}, groupOrders: {} };
+        await createUser(f.username, nu);
+        onLogin({ ...nu, username: f.username });
       }
-      const u = await getUser(f.username);
-      if (!u) { setError('Brukeren finnes ikke.'); setLoading(false); return; }
-      if (u.password !== f.password) { setError('Feil passord.'); setLoading(false); return; }
-      onLogin({ ...u, username: f.username });
     } catch { setError('Noe gikk galt. Prøv igjen.'); setLoading(false); }
   };
 
@@ -182,18 +192,27 @@ function AuthScreen({ onLogin }) {
           <img src="/vm-logo-login.png" alt="VM-tipping 2026" style={C.authLogoImg} />
         </div>
         <p style={C.authSub}>FIFA World Cup · USA · Canada · Mexico</p>
+        <div style={C.tabs}>
+          {['login', 'register'].map(m => (
+            <button key={m} style={{ ...C.tab, ...(mode === m ? C.tabOn : {}) }}
+              onClick={() => { setMode(m); setError(''); }}>
+              {m === 'login' ? 'Logg inn' : 'Registrer'}
+            </button>
+          ))}
+        </div>
+        {mode === 'register' && <>
+          <input style={C.inp} name="inviteCode" placeholder="Invitasjonskode" value={f.inviteCode} onChange={upd} />
+          <input style={C.inp} name="displayName" placeholder="Ditt navn (vises i tabellen)" value={f.displayName} onChange={upd} />
+        </>}
         <input style={C.inp} name="username" placeholder="Brukernavn" value={f.username} onChange={upd} />
         <input style={C.inp} name="password" placeholder="Passord" type="password" value={f.password} onChange={upd}
           onKeyDown={e => e.key === 'Enter' && submit()} />
         {error && <p style={C.err}>{error}</p>}
         <button style={{ ...C.btnGold, width: '100%', display: 'block' }} onClick={submit} disabled={loading}>
-          {loading ? <span style={C.spinner}>⟳</span> : 'Logg inn →'}
+          {loading ? <span style={C.spinner}>⟳</span> : mode === 'login' ? 'Logg inn →' : 'Opprett konto →'}
         </button>
-        <p style={{ color: '#4a5a80', fontSize: 11, marginTop: 20, textAlign: 'center', fontFamily: "'Fira Code',monospace", lineHeight: 1.7 }}>
-          Har du glemt brukernavn og/eller passord?<br />
-          Ring eller send melding til Vetle på<br />
-          <span style={{ color: '#6a7a9a' }}>NITTIFÆM HOINNERÅNITTN HOINNERÅSØTTN</span><br />
-          <span style={{ fontSize: 10, color: '#3a4a60' }}>(lykke til med å stjæle telefonnummeret mitt, spambots!)</span>
+        <p style={{ color: '#4a5a80', fontSize: 11, marginTop: 14, textAlign: 'center', fontFamily: "'Fira Code',monospace" }}>
+          Invitasjonskode fås av admin
         </p>
       </div>
     </div>
@@ -4347,8 +4366,7 @@ function InfoPage() {
 function YouTubePlayer() {
   const [visible, setVisible] = useState(true);
   const [minimized, setMinimized] = useState(true);
-  const YT_STARTS = ['n5F-4Dd0LwU','OjY6k5aTgik','0J2QdDbelmY','dLB56lFYlBI'];
-  const [startId] = useState(() => YT_STARTS[Math.floor(Math.random() * YT_STARTS.length)]);
+  const [startIndex] = useState(() => Math.floor(Math.random() * 50));
   if (!visible) return null;
   return (
     <div style={{
@@ -4397,7 +4415,7 @@ function YouTubePlayer() {
           <iframe
             width="240"
             height="135"
-            src={`https://www.youtube.com/embed/${startId}?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&autoplay=0&rel=0`}
+            src={`https://www.youtube.com/embed/videoseries?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&index=${startIndex}&autoplay=0&rel=0`}
             title="VM-musikk"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
