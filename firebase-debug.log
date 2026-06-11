@@ -1,0 +1,99 @@
+[debug] [2026-06-11T23:40:36.265Z] ----------------------------------------------------------------------
+[debug] [2026-06-11T23:40:36.268Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Vetle\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions
+[debug] [2026-06-11T23:40:36.268Z] CLI Version:   15.16.0
+[debug] [2026-06-11T23:40:36.268Z] Platform:      win32
+[debug] [2026-06-11T23:40:36.268Z] Node Version:  v24.15.0
+[debug] [2026-06-11T23:40:36.269Z] Time:          Fri Jun 12 2026 01:40:36 GMT+0200 (sentraleuropeisk sommertid)
+[debug] [2026-06-11T23:40:36.269Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-11T23:40:38.302Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-11T23:40:38.303Z] > authorizing via signed-in user (vetlemakt@gmail.com)
+[debug] [2026-06-11T23:40:38.303Z] [iam] checking project vm-tipping-2026 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-06-11T23:40:38.304Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:38.304Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:38.305Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions [none]
+[debug] [2026-06-11T23:40:38.305Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions  x-goog-user-project=vm-tipping-2026
+[debug] [2026-06-11T23:40:38.305Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-06-11T23:40:38.570Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions 200
+[debug] [2026-06-11T23:40:38.570Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-06-11T23:40:38.571Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:38.571Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:38.571Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/vm-tipping-2026/serviceAccounts/vm-tipping-2026@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-06-11T23:40:38.571Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/vm-tipping-2026/serviceAccounts/vm-tipping-2026@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-06-11T23:40:39.346Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/vm-tipping-2026/serviceAccounts/vm-tipping-2026@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-06-11T23:40:39.346Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/vm-tipping-2026/serviceAccounts/vm-tipping-2026@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'vm-tipping-2026'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-06-11T23:40:39.349Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:39.349Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:39.349Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026 [none]
+[debug] [2026-06-11T23:40:39.553Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026 200
+[debug] [2026-06-11T23:40:39.553Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026 {"projectNumber":"1060307731188","projectId":"vm-tipping-2026","lifecycleState":"ACTIVE","name":"Vm-tipping 2026","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-04-20T11:35:10.101Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-06-11T23:40:39.556Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:39.556Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:39.556Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/vm-tipping-2026/adminSdkConfig [none]
+[debug] [2026-06-11T23:40:40.115Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/vm-tipping-2026/adminSdkConfig 200
+[debug] [2026-06-11T23:40:40.115Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/vm-tipping-2026/adminSdkConfig {"projectId":"vm-tipping-2026","storageBucket":"vm-tipping-2026.firebasestorage.app"}
+[debug] [2026-06-11T23:40:40.116Z] Validating nodejs source
+[warn] !  functions: Runtime Node.js 20 was deprecated on 2026-04-30 and will be decommissioned on 2026-10-30, after which you will not be able to deploy without upgrading. Consider upgrading now to avoid disruption. See https://cloud.google.com/functions/docs/runtime-support for full details on the lifecycle policy 
+[warn] !  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] !  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2026-06-11T23:40:41.160Z] > [functions] package.json contents: {
+  "name": "vm-tipping-functions",
+  "description": "Cloud Functions for VM-tipping 2026",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  }
+}
+[debug] [2026-06-11T23:40:41.160Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[debug] [2026-06-11T23:40:41.161Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-06-11T23:40:41.174Z] Found firebase-functions binary at 'C:\Users\Vetle\vm-tipping\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8792
+
+[debug] [2026-06-11T23:40:41.717Z] Got response from /__/functions.yaml {"endpoints":{"pollFootball":{"availableMemoryMb":256,"timeoutSeconds":60,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"FOOTBALL_API_KEY"},{"key":"ANTHROPIC_KEY"}],"labels":{},"scheduleTrigger":{"schedule":"every 1 minutes","retryConfig":{},"timeZone":"Europe/Oslo"},"entryPoint":"pollFootball"},"manualPoll":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"FOOTBALL_API_KEY"},{"key":"ANTHROPIC_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"manualPoll"},"expertChat":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"ANTHROPIC_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"expertChat"},"generateTips":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"ANTHROPIC_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"generateTips"},"quizComment":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"ANTHROPIC_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"quizComment"},"updateStatsCache":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"FOOTBALL_API_KEY"}],"labels":{},"scheduleTrigger":{"schedule":"every 30 minutes","retryConfig":{},"timeZone":"Europe/Oslo"},"entryPoint":"updateStatsCache"},"triggerSummary":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"FOOTBALL_API_KEY"},{"key":"ANTHROPIC_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"triggerSummary"},"updatestatscache":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"FOOTBALL_API_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"updatestatscache"},"getTopscorers":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","secretEnvironmentVariables":[{"key":"FOOTBALL_API_KEY"}],"labels":{},"httpsTrigger":{},"entryPoint":"getTopscorers"},"buildFixtureLookup":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"httpsTrigger":{},"entryPoint":"buildFixtureLookup"}},"specVersion":"v1alpha1","requiredAPIs":[{"api":"cloudscheduler.googleapis.com","reason":"Needed for scheduled functions."}],"extensions":{}}
+[info] i  extensions: ensuring required API firebaseextensions.googleapis.com is enabled... 
+[debug] [2026-06-11T23:40:45.763Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-11T23:40:45.763Z] > authorizing via signed-in user (vetlemakt@gmail.com)
+[debug] [2026-06-11T23:40:45.764Z] [iam] checking project vm-tipping-2026 for permissions ["firebase.projects.get","firebaseextensions.instances.list"]
+[debug] [2026-06-11T23:40:45.764Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:45.764Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:45.764Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions [none]
+[debug] [2026-06-11T23:40:45.764Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions  x-goog-user-project=vm-tipping-2026
+[debug] [2026-06-11T23:40:45.764Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions {"permissions":["firebase.projects.get","firebaseextensions.instances.list"]}
+[debug] [2026-06-11T23:40:45.987Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions 200
+[debug] [2026-06-11T23:40:45.987Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vm-tipping-2026:testIamPermissions {"permissions":["firebase.projects.get","firebaseextensions.instances.list"]}
+[debug] [2026-06-11T23:40:45.987Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:45.987Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:45.987Z] >>> [apiv2][query] GET https://firebaseextensions.googleapis.com/v1beta/projects/vm-tipping-2026/instances pageSize=100&pageToken=
+[debug] [2026-06-11T23:40:46.883Z] <<< [apiv2][status] GET https://firebaseextensions.googleapis.com/v1beta/projects/vm-tipping-2026/instances 200
+[debug] [2026-06-11T23:40:46.883Z] <<< [apiv2][body] GET https://firebaseextensions.googleapis.com/v1beta/projects/vm-tipping-2026/instances {}
+[info] i  functions: preparing functions directory for uploading... 
+[info] i  functions: packaged C:\Users\Vetle\vm-tipping\functions (105.54 KB) for uploading 
+[debug] [2026-06-11T23:40:46.922Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:46.922Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:46.922Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/vm-tipping-2026/locations/-/functions [none]
+[debug] [2026-06-11T23:40:47.743Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/vm-tipping-2026/locations/-/functions 200
+[debug] [2026-06-11T23:40:47.744Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/vm-tipping-2026/locations/-/functions {}
+[debug] [2026-06-11T23:40:47.744Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:47.744Z] Checked if tokens are valid: true, expires at: 1781224270604
+[debug] [2026-06-11T23:40:47.744Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v2/projects/vm-tipping-2026/locations/-/functions filter=environment%3D%22GEN_2%22
