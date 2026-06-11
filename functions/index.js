@@ -415,7 +415,7 @@ Skriv en kort kommentar (maks 3-4 setninger) om dette målet og/eller hva det be
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 200,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -556,7 +556,7 @@ Skriv en kort (3-5 setninger) kommentar om tabellsituasjonen etter denne kampen 
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 250,
         system: expert.personality,
         messages: [{ role: 'user', content: prompt }],
@@ -908,30 +908,110 @@ exports.triggerSummary = onRequest(
     try {
       const resultsSnap = await db.collection('config').doc('results').get();
       const results = resultsSnap.exists ? resultsSnap.data() : {};
-      const summariesSnap = await db.collection('summaries').get();
-      const existingSummaries = new Set(summariesSnap.docs.map(d => d.id));
+      console.log('triggerSummary: results keys:', Object.keys(results));
 
-      // Finn siste ferdige kamp uten bot-referat
-      const finished = Object.entries(results)
-        .filter(([id]) => {
-          const hasBotSummary = summariesSnap.docs.find(d => d.id === id && d.data().botText);
-          return !hasBotSummary;
-        })
-        .slice(-1);
+      // Finn kamp-IDer: stort bokstav + tall (A1, B12 osv.)
+      const matchEntries = Object.entries(results)
+        .filter(([id, r]) => /^[A-Z]\d+$/.test(id) && r && typeof r.home === 'number' && typeof r.away === 'number')
+        .sort(([a], [b]) => a.localeCompare(b));
 
-      if (!finished.length) { res.json({ ok: false, error: 'Ingen ferdigspilte kamper uten referat' }); return; }
+      console.log('triggerSummary: matchEntries:', matchEntries.map(([id]) => id));
 
-      const [matchId, result] = finished[0];
-      // Hent kampen fra constants for å få lagnavn
+      if (!matchEntries.length) { res.json({ ok: false, error: 'Ingen ferdigspilte kamper i results' }); return; }
+
+      const [matchId, result] = matchEntries[matchEntries.length - 1];
+      console.log('triggerSummary: generating for', matchId, result);
+
       const lookup = await db.collection('config').doc('fixtureLookup').get();
       const lookupData = lookup.exists ? lookup.data() : {};
       const homeAway = Object.entries(lookupData).find(([k, v]) => v === matchId);
-      const [homeNor, awayNor] = homeAway ? homeAway[0].split('_') : [matchId, ''];
+      const homeNor = homeAway ? homeAway[0].split('_')[0] : matchId;
+      const awayNor = homeAway ? homeAway[0].split('_')[1] : '';
+      console.log('triggerSummary: teams:', homeNor, 'vs', awayNor);
 
-      await handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, results);
-      res.json({ ok: true, matchId });
+      // Kall handleMatchFinished direkte og kast feil oppover
+      if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_KEY ikke satt');
+
+      const usersSnap = await db.collection('users').get();
+      const allUsers = usersSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+
+      function calcPts(user) {
+        let total = 0, fulltreff = 0;
+        for (const [mid, act] of Object.entries(results)) {
+          const tip = user.tips?.[mid];
+          if (!tip || act?.home === undefined) continue;
+          const th = parseInt(tip.home), ta = parseInt(tip.away);
+          const ah = parseInt(act.home), aa = parseInt(act.away);
+          if (isNaN(th)||isNaN(ta)||isNaN(ah)||isNaN(aa)) continue;
+          let p = 0;
+          if ((th>ta?'H':th<ta?'A':'D') === (ah>aa?'H':ah<aa?'A':'D')) p+=2;
+          if (th===ah) p+=1; if (ta===aa) p+=1;
+          if (p===4 && ah+aa>=5) p=5;
+          total+=p; if(p>=4) fulltreff++;
+        }
+        return { total, fulltreff };
+      }
+
+      const ranked = allUsers.map(u=>({...u,...calcPts(u)})).sort((a,b)=>b.total-a.total||b.fulltreff-a.fulltreff);
+      const tableLines = ranked.map((u,i)=>`${i+1}. ${u.displayName||u.id}: ${u.total}p`).join('\n');
+      const matchTips = allUsers.map(u=>{ const t=u.tips?.[matchId]; return t?`${u.displayName||u.id}: ${t.home}-${t.away}`:null; }).filter(Boolean).join(', ');
+
+      const expert = PANEL_EXPERTS[Math.floor(Math.random()*PANEL_EXPERTS.length)];
+      const prompt = `${homeNor} vs ${awayNor} endte ${result.home}-${result.away}.
+Deltakernes tips: ${matchTips||'ingen'}
+Stillingstabell:
+${tableLines}
+
+Skriv 3-5 setninger om tabellsituasjonen etter kampen. Hvem leder, hvem klatrer, hvem sliter. Ikke om kampen selv. Hold deg i karakter.`;
+
+      console.log('triggerSummary: calling Anthropic for', expert.name);
+      const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'x-api-key':ANTHROPIC_KEY, 'anthropic-version':'2023-06-01' },
+        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:250, system:expert.personality, messages:[{role:'user',content:prompt}] }),
+      });
+      if (!apiRes.ok) throw new Error(`Anthropic ${apiRes.status}: ${await apiRes.text()}`);
+      const apiData = await apiRes.json();
+      const text = apiData.content?.[0]?.text?.trim();
+      if (!text) throw new Error('Ingen tekst fra Anthropic');
+
+      console.log('triggerSummary: got text, saving...');
+      await postBotChat(expert, text);
+      await db.collection('summaries').doc(matchId).set({ botText:text, botId:expert.id, botName:expert.name, ts:FieldValue.serverTimestamp() }, { merge:true });
+      console.log('triggerSummary: done, matchId:', matchId);
+      res.json({ ok: true, matchId, expert: expert.name });
     } catch (err) {
       console.error('triggerSummary feilet:', err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  }
+);
+
+
+// ── Manuell trigger for toppscorere/kort ─────────────────────────────
+exports.updatestatscache = onRequest(
+  { secrets: ['FOOTBALL_API_KEY'], cors: true },
+  async (req, res) => {
+    if (!API_KEY) { res.status(500).json({ ok: false, error: 'FOOTBALL_API_KEY ikke satt' }); return; }
+    try {
+      const scorersRes = await fetch(
+        `https://v3.football.api-sports.io/players/topscorers?league=${WC_LEAGUE}&season=${WC_SEASON}`,
+        { headers: { 'x-apisports-key': API_KEY } }
+      );
+      const scorersData = await scorersRes.json();
+      if (!scorersData.response?.length) { res.json({ ok: false, error: 'Ingen data fra API' }); return; }
+      const scorers = scorersData.response.slice(0, 10).map(e => ({
+        name: e.player.name,
+        team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
+        goals: e.statistics?.[0]?.goals?.total ?? 0,
+      }));
+      await db.collection('config').doc('statsCache').set({ scorers, updatedAt: Date.now() }, { merge: true });
+      console.log('updatestatscache: oppdatert', scorers.length, 'scorers');
+      res.json({ ok: true, count: scorers.length });
+    } catch (err) {
+      console.error('updatestatscache feilet:', err);
       res.status(500).json({ ok: false, error: err.message });
     }
   }
