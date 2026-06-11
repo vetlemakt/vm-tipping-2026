@@ -538,7 +538,7 @@ exports.pollFootball = onSchedule(
 
 // ── Manuell HTTP-trigger ──────────────────────────────────────────────
 exports.manualPoll = onRequest(
-  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'] },
+  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'], cors: true },
   async (req, res) => {
     try { await pollAndUpdate(); res.json({ ok: true, ts: Date.now() }); }
     catch (err) { console.error('manualPoll feilet:', err); res.status(500).json({ ok: false, error: err.message }); }
@@ -646,7 +646,7 @@ exports.getTopscorers = onRequest(
 );
 
 // ── Bygg fixture-lookup ───────────────────────────────────────────────
-exports.buildFixtureLookup = onRequest(async (req, res) => {
+exports.buildFixtureLookup = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
   const { matches } = req.body;
   if (!matches || !Array.isArray(matches)) {
