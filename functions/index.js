@@ -569,9 +569,9 @@ Skriv en kort (3-5 setninger) kommentar om tabellsituasjonen etter denne kampen 
       await postBotChat(expert, text);
       // Lagre også som match summary i Firestore
       await db.collection('summaries').doc(matchId).set({
-        text, botId: expert.id, botName: expert.name,
+        botText: text, botId: expert.id, botName: expert.name,
         ts: FieldValue.serverTimestamp(),
-      });
+      }, { merge: true });
       console.log(`Tabellreferat postet av ${expert.name} for kamp ${matchId}`);
     }
   } catch (err) {
@@ -911,9 +911,12 @@ exports.triggerSummary = onRequest(
       const summariesSnap = await db.collection('summaries').get();
       const existingSummaries = new Set(summariesSnap.docs.map(d => d.id));
 
-      // Finn siste kamp uten referat
+      // Finn siste ferdige kamp uten bot-referat
       const finished = Object.entries(results)
-        .filter(([id]) => !existingSummaries.has(id) && id.match(/^[A-Z]\d+$|^r\d+_|^qf|^sf|^final|^bronze/))
+        .filter(([id]) => {
+          const hasBotSummary = summariesSnap.docs.find(d => d.id === id && d.data().botText);
+          return !hasBotSummary;
+        })
         .slice(-1);
 
       if (!finished.length) { res.json({ ok: false, error: 'Ingen ferdigspilte kamper uten referat' }); return; }

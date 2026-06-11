@@ -2870,14 +2870,22 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 </div>
                 <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
                 {/* Spillers kampreferat */}
-                {sum?.text ? (
+                {sum?.text && !isEditing ? (
                   <div style={{ marginTop:6 }}>
                     <div style={C.matchSummaryText}>{sum.text}</div>
-                    <div style={C.matchSummaryAuthor}>✍️ {sum.author}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={C.matchSummaryAuthor}>✍️ {sum.author}</div>
+                      {sum.author === me.displayName && (
+                        <button style={{ background:'none', border:'none', color:'rgba(255,255,255,.3)', fontSize:11, cursor:'pointer', padding:0 }}
+                          onClick={() => { setEditingSummary(m.id); setSummaryText(sum.text); }}>
+                          ✏️ Rediger
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : isEditing ? (
                   <div style={{ marginTop: 8 }}>
-                    <textarea style={{ ...C.ta, fontSize: 12, marginBottom: 6 }} rows={3}
+                    <textarea style={{ ...C.ta, fontSize: 12, marginBottom: 6 }} rows={5}
                       value={summaryText} onChange={e => setSummaryText(e.target.value)}
                       placeholder="Skriv et kort kampreferat…" />
                     <div style={{ display: 'flex', gap: 6 }}>
@@ -2965,15 +2973,22 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <span style={{ ...C.matchTeam, textAlign:'right' }}>{m.away} <Flag team={m.away} /></span>
                 </div>
                 <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
-                {sum?.text && (
+                {sum?.text && !isEditing ? (
                   <div style={{ marginTop:6 }}>
                     <div style={C.matchSummaryText}>{sum.text}</div>
-                    <div style={C.matchSummaryAuthor}>✍️ {sum.author}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={C.matchSummaryAuthor}>✍️ {sum.author}</div>
+                      {sum.author === me.displayName && (
+                        <button style={{ background:'none', border:'none', color:'rgba(255,255,255,.3)', fontSize:11, cursor:'pointer', padding:0 }}
+                          onClick={() => { setEditingSummary(m.id); setSummaryText(sum.text); }}>
+                          ✏️ Rediger
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )}
-                {!sum?.text && isEditing && (
+                ) : isEditing ? (
                   <div style={{ marginTop:8 }}>
-                    <textarea style={{ ...C.ta, fontSize:12, marginBottom:6 }} rows={3}
+                    <textarea style={{ ...C.ta, fontSize:12, marginBottom:6 }} rows={5}
                       value={summaryText} onChange={e => setSummaryText(e.target.value)}
                       placeholder="Skriv et kort kampreferat…" />
                     <div style={{ display:'flex', gap:6 }}>
@@ -2981,8 +2996,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                       <button style={{ ...C.btnSecondary, padding:'6px 14px', fontSize:11 }} onClick={() => setEditingSummary(null)}>Avbryt</button>
                     </div>
                   </div>
-                )}
-                {!sum?.text && !isEditing && (
+                ) : (
                   <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>✍️ Skriv kampreferat</button>
                 )}
                 {sum?.botText && (

@@ -353,6 +353,7 @@ export const C = {
     lineHeight: 1.6, padding: '8px 12px',
     background: 'rgba(255,255,255,.04)', borderRadius: 8,
     border: '1px solid rgba(255,255,255,.08)',
+    whiteSpace: 'pre-wrap',
   },
   matchSummaryAuthor: { fontSize: 11, color: '#4ade80', fontFamily: "'Fira Code',monospace", marginTop: 4 },
 
@@ -677,6 +678,7 @@ export const C = {
     fontSize: 12,
     color: 'rgba(255,255,255,.75)',
     lineHeight: 1.5,
+    whiteSpace: 'pre-wrap',
   },
   botSummaryAuthor: {
     fontSize: 11,
