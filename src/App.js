@@ -4366,8 +4366,65 @@ function InfoPage() {
 function YouTubePlayer() {
   const [visible, setVisible] = useState(true);
   const [minimized, setMinimized] = useState(true);
-  const YT_STARTS = ['L20NUEcjsZs','1FeEa2Ew2yo','eG9z0R9oDe4','dHuLtbLhnJQ','GqRbaybv3tA','qiSqdBU2vio','T8T1a45HX4o','xm7et8ecVjM','wU26xVT_vBU','V15BYnSr0P8','D3jKArZm0wg','JkDCVLompxQ','D_QLxj8jCF0','EcBntqpUpg0','JEPmnB-Wewk','qWcOxPfzRPs','VPGJwRCXb7U','LdZK5zkH_4s','cc4og_BpscM','RtJqHUsedYY','bFOAZD6P4QE','A6fGu5Zsr48','Og8giwn8pfg','pcbGxT7nG60','Qm9KCQd3mg4','9lyNR0UMVic','vwT1Xb4vMpQ','VJ13O6qHIEI','-YL6dR120lU','mFkfKSPHIfw','45et6rqenvA','BCxiZAs497A','lFQdcPTTzSg','228FtMaq8uY','fcnDmrtj6Sk','vrY1THC_NQE','HLDak8dEyZw','zbjBKLTTxK4','TVKcgzCM9Z0','5FvRS8Q7DGY','GNzA7g0s2-k'];
-  const [startId] = useState(() => YT_STARTS[Math.floor(Math.random() * YT_STARTS.length)]);
+  const [iframeMounted, setIframeMounted] = useState(false);
+  const playerDivRef = useRef(null);
+  const playerRef = useRef(null);
+
+  const PLAYLIST_ID = 'PLZ-7xLISie3crAStc-KmPn4Oausod43CV';
+  const YT_IDS = ['L20NUEcjsZs','1FeEa2Ew2yo','eG9z0R9oDe4','dHuLtbLhnJQ','GqRbaybv3tA','qiSqdBU2vio','T8T1a45HX4o','xm7et8ecVjM','wU26xVT_vBU','V15BYnSr0P8','D3jKArZm0wg','JkDCVLompxQ','D_QLxj8jCF0','EcBntqpUpg0','JEPmnB-Wewk','qWcOxPfzRPs','VPGJwRCXb7U','LdZK5zkH_4s','cc4og_BpscM','RtJqHUsedYY','bFOAZD6P4QE','A6fGu5Zsr48','Og8giwn8pfg','pcbGxT7nG60','Qm9KCQd3mg4','9lyNR0UMVic','vwT1Xb4vMpQ','VJ13O6qHIEI','-YL6dR120lU','mFkfKSPHIfw','45et6rqenvA','BCxiZAs497A','lFQdcPTTzSg','228FtMaq8uY','fcnDmrtj6Sk','vrY1THC_NQE','HLDak8dEyZw','zbjBKLTTxK4','TVKcgzCM9Z0','5FvRS8Q7DGY','GNzA7g0s2-k'];
+  const [startIndex] = useState(() => Math.floor(Math.random() * YT_IDS.length));
+
+  const expand = () => { setMinimized(false); setIframeMounted(true); };
+
+  // Last inn YouTube IFrame API og initialiser player når div er klar
+  useEffect(() => {
+    if (!iframeMounted || !playerDivRef.current) return;
+
+    const initPlayer = () => {
+      // eslint-disable-next-line no-undef
+      playerRef.current = new YT.Player(playerDivRef.current, {
+        width: '240',
+        height: '135',
+        videoId: YT_IDS[startIndex],
+        playerVars: {
+          list: PLAYLIST_ID,
+          listType: 'playlist',
+          index: startIndex,
+          autoplay: 0,
+          rel: 0,
+          loop: 1,
+        },
+        events: {
+          onReady: (e) => {
+            // Sett riktig startindeks eksplisitt via API etter at spilleren er klar
+            e.target.playVideoAt(startIndex);
+            e.target.stopVideo();
+          },
+        },
+      });
+    };
+
+    if (window.YT && window.YT.Player) {
+      initPlayer();
+    } else {
+      // Last inn API-scriptet hvis det ikke er der ennå
+      if (!document.getElementById('yt-iframe-api')) {
+        const tag = document.createElement('script');
+        tag.id = 'yt-iframe-api';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+      }
+      window.onYouTubeIframeAPIReady = initPlayer;
+    }
+
+    return () => {
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch {}
+        playerRef.current = null;
+      }
+    };
+  }, [iframeMounted]); // eslint-disable-line
+
   if (!visible) return null;
   return (
     <div style={{
@@ -4381,7 +4438,7 @@ function YouTubePlayer() {
     }}>
       {minimized ? (
         /* Minimert: bare noteikon-knapp */
-        <button onClick={() => setMinimized(false)} title="VM-musikk" style={{
+        <button onClick={expand} title="VM-musikk" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           height: 40, padding: '0 12px', background: 'transparent', border: 'none',
           cursor: 'pointer', color: '#FFD700',
@@ -4413,15 +4470,8 @@ function YouTubePlayer() {
               }}>×</button>
             </div>
           </div>
-          <iframe
-            width="240"
-            height="135"
-            src={`https://www.youtube.com/embed/${startId}?list=PLZ-7xLISie3crAStc-KmPn4Oausod43CV&loop=1&autoplay=0&rel=0`}
-            title="VM-musikk"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+          {/* YouTube IFrame API monterer spilleren i denne div-en */}
+          <div ref={playerDivRef} style={{ width: 240, height: 135 }} />
         </>
       )}
     </div>
