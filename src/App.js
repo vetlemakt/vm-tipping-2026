@@ -2547,7 +2547,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     });
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
-        const ctx = buildCompetitionContext(users, results);
+        const ctx = buildCompetitionContext(users, results, liveEvent);
         const reply = await chatWithExpert(expert, t, [], ctx);
         await sendChatMessage(expert.name, reply, '');
       }, 1000 + i * 2000);
@@ -4728,15 +4728,25 @@ ABSOLUTTE REGLER – BRYT ALDRI DISSE:
 `;
 
 // Bygger en tekstlig oversikt over konkurransen som sendes til boten
-function buildCompetitionContext(users, results) {
-  if (!users || users.length === 0) return '';
+function buildCompetitionContext(users, results, liveEvent) {
+  let ctx = '';
+  if (liveEvent) {
+    if (liveEvent.type === 'goal') {
+      const { shortHome, shortAway, homeGoals, awayGoals, playerName, minute } = liveEvent;
+      ctx += `\n\nLIVE KAMP PÅ GANG NÅ: ${shortHome} ${homeGoals}-${awayGoals} ${shortAway}. Siste mål: ${playerName} '${minute}. Svar basert på dette hvis noen spør om kampen eller stillingen.`;
+    } else if (liveEvent.text) {
+      ctx += `\n\nLIVE KAMP PÅ GANG NÅ: ${liveEvent.text}. Svar basert på dette hvis noen spør om kampen.`;
+    }
+  }
+  if (!users || users.length === 0) return ctx;
   const sorted = [...users]
     .map(u => ({ ...u, ...calcScore(u, results) }))
     .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
   const lines = sorted.map((u, i) =>
     `${i + 1}. ${u.displayName}: ${u.total}p (${u.fulltreff} fulltreff)`
   ).join('\n');
-  return `\n\nAKTUELL STILLINGSTABELL I TIPPEKONKURRANSEN:\n${lines}\n\nBruk dette aktivt hvis noen spør om konkurransen, hvem som leder, hvem som ligger dårlig an osv.`;
+  ctx += `\n\nAKTUELL STILLINGSTABELL I TIPPEKONKURRANSEN:\n${lines}\n\nBruk dette aktivt hvis noen spør om konkurransen, hvem som leder, hvem som ligger dårlig an osv.`;
+  return ctx;
 }
 
 async function chatWithExpert(expert, message, history, competitionContext = '') {
@@ -5079,6 +5089,7 @@ function ChatPage({ me }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [results, setResults] = useState({});
+  const [liveEvent, setLiveEvent] = useState(null);
   const chatBoxRef = useRef(null);
   const { soundOn, toggleSound, playSound } = useChatSound();
   const prevMsgCount = useRef(0);
@@ -5086,6 +5097,7 @@ function ChatPage({ me }) {
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeResults(setResults); return u; }, []);
+  useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
   useEffect(() => {
     getAllUsers().then(us => setUsers(
       us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
@@ -5137,7 +5149,7 @@ function ChatPage({ me }) {
     });
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
-        const ctx = buildCompetitionContext(users, results);
+        const ctx = buildCompetitionContext(users, results, liveEvent);
         const reply = await chatWithExpert(expert, t, [], ctx);
         await sendChatMessage(expert.name, reply, '');
       }, 1000 + i * 2000);
@@ -6023,6 +6035,44 @@ export default function App() {
     const interval = setInterval(() => updatePresence(user.username, user.displayName), 30000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // Klient-side live-polling som backup for Cloud Function pollFootball
+  // Poller API-Football hvert 30. sek og skriver til config/liveEvent i Firestore
+  useEffect(() => {
+    if (!user) return;
+    let prevEvKey = null;
+    let prevGoalKey = null;
+    const poll = async () => {
+      try {
+        const ev = await fetchLiveEvents();
+        const evKey = ev ? (ev.type + (ev.text || '')) : null;
+        if (evKey !== prevEvKey) {
+          prevEvKey = evKey;
+          const { setDoc: fsSetDoc, doc: fsDoc } = await import('firebase/firestore');
+          const { db: fsDb } = await import('./firebase');
+          if (ev) {
+            await fsSetDoc(fsDoc(fsDb, 'config', 'liveEvent'), ev);
+            // Nytt mål – bot-kommentar i chat
+            const goalKey = ev.type === 'goal' ? ev.text : null;
+            if (goalKey && goalKey !== prevGoalKey) {
+              prevGoalKey = goalKey;
+              const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+              const prompt = `${expert.personality}\n\nI et VM-tipping-spill kommenterer du dette målet: ${ev.text}. Si noe kort og engasjert – maks 2 setninger.`;
+              const reply = await chatWithExpert(expert, prompt, []);
+              await sendChatMessage(expert.name, '⚽ ' + reply, '');
+            }
+          } else {
+            await fsSetDoc(fsDoc(fsDb, 'config', 'liveEvent'), { cleared: true });
+          }
+        }
+      } catch(e) {
+        console.warn('Client poll error:', e);
+      }
+    };
+    const iv = setInterval(poll, 30000);
+    poll(); // kjør umiddelbart
+    return () => clearInterval(iv);
+  }, [user]); // eslint-disable-line
 
   useEffect(() => {
     if (!user?.isAdmin) return;
