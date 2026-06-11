@@ -1197,7 +1197,7 @@ function QuizPopup({ player, username, onClose, onAnswered }) {
       const real = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
       const board = real.map(u => {
         const uname = u.id;
-        const userAnswers = answers.filter(a => a.id.startsWith(uname + '_') && a.scoring);
+        const userAnswers = answers.filter(a => a.id.startsWith(uname + '_'));
         const correct = userAnswers.filter(a => a.correct).length;
         const wrong = userAnswers.filter(a => !a.correct).length;
         return { name: u.displayName || u.id, correct, wrong, total: userAnswers.length };
@@ -2078,22 +2078,50 @@ function ArneScheieDiagram({ options, votes }) {
 }
 
 // ── 7. Plain percent bars ─────────────────────────────────────────────
+// Darken a hex color by mixing with black
+function darkenHex(hex, amount=0.45) {
+  const n = parseInt(hex.slice(1),16);
+  const r = Math.round(((n>>16)&255)*(1-amount));
+  const g = Math.round(((n>>8)&255)*(1-amount));
+  const b = Math.round((n&255)*(1-amount));
+  return `rgb(${r},${g},${b})`;
+}
 function PercentDiagram({ options, votes }) {
   const total = votes.reduce((s,v)=>s+v,0);
   const colors = ['#4fc3f7','#81c784','#ffb74d','#e57373'];
+  // Bar needs to be wide enough to show both vote count (left) and pct (right)
+  // Threshold: ~30% fits both comfortably
+  const BOTH_THRESHOLD = 30;
+  const ONE_THRESHOLD  = 14;
   return (
     <div style={{display:'flex',flexDirection:'column',gap:5}}>
       {options.map((opt,i)=>{
         const p = pct(votes[i],total);
+        const v = votes[i];
+        const color = colors[i%4];
+        const darkColor = darkenHex(color, 0.4);
+        const showBoth  = p >= BOTH_THRESHOLD;
+        const showOne   = p >= ONE_THRESHOLD;
         return (
           <div key={i}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
               <span style={{fontSize:10,color:'rgba(255,255,255,.8)',fontFamily:"'Kanit',sans-serif"}}>{opt}</span>
-              <span style={{fontSize:10,color:colors[i%4],fontFamily:"'Fira Code',monospace",fontWeight:700}}>{p}%</span>
+              <span style={{fontSize:10,color:color,fontFamily:"'Fira Code',monospace",fontWeight:700}}>{p}%</span>
             </div>
             <div style={{background:'rgba(255,255,255,.08)',borderRadius:20,height:14,overflow:'hidden'}}>
-              <div style={{width:`${Math.max(p,2)}%`,height:'100%',background:colors[i%4],borderRadius:20,display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:5,transition:'width .4s'}}>
-                {p>18&&<span style={{fontSize:9,fontWeight:700,color:'#000'}}>{votes[i]}</span>}
+              <div style={{width:`${Math.max(p,2)}%`,height:'100%',background:color,borderRadius:20,display:'flex',alignItems:'center',justifyContent:'space-between',paddingLeft:6,paddingRight:5,transition:'width .4s',boxSizing:'border-box'}}>
+                {/* Vote count left – only when ≥1 vote and bar wide enough */}
+                {v > 0 && showOne && (
+                  <span style={{fontSize:9,fontWeight:700,color:darkColor,lineHeight:1,flexShrink:0}}>
+                    {v}
+                  </span>
+                )}
+                {/* Pct right – only when bar is wide enough to fit both */}
+                {showBoth && (
+                  <span style={{fontSize:9,fontWeight:700,color:'#fff',lineHeight:1,flexShrink:0,marginLeft:'auto'}}>
+                    {p}%
+                  </span>
+                )}
               </div>
             </div>
           </div>
