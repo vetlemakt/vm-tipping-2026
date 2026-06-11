@@ -4322,6 +4322,16 @@ function LiveAdmin() {
       setLiveStatus(data.ok ? '✅ Poll OK – ' + new Date().toLocaleTimeString() : '❌ Feil: ' + data.error);
     } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
   };
+  const triggerSummary = async () => {
+    setLiveStatus('Genererer tabellreferat...');
+    try {
+      const res = await fetch(CF_V2('triggersummary'), { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}) });
+      const data = await res.json();
+      setLiveStatus(data.ok ? '✅ Tabellreferat postet!' : '❌ Feil: ' + (data.error||'ukjent'));
+    } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
+  };
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
       <div style={{ fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:4 }}>
@@ -4332,6 +4342,9 @@ function LiveAdmin() {
       </button>
       <button onClick={manualPoll} style={{ background:'rgba(74,222,128,.1)', border:'1px solid rgba(74,222,128,.3)', color:'#4ade80', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
         📡 Kjør manuell poll nå
+      </button>
+      <button onClick={triggerSummary} style={{ background:'rgba(147,51,234,.1)', border:'1px solid rgba(147,51,234,.3)', color:'#c084fc', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
+        🤖 Generer tabellreferat manuelt (siste kamp)
       </button>
       {liveStatus && <div style={{ fontSize:11, color:'#4ade80', fontFamily:"'Fira Code',monospace", marginTop:4 }}>{liveStatus}</div>}
     </div>

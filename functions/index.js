@@ -488,6 +488,97 @@ async function handleGoalEvent(matchId, liveEvent, prevGoalKey) {
   if (comment) await postBotChat(expert, comment);
 }
 
+
+// ── Tabellreferat etter fullført kamp ────────────────────────────────
+async function handleMatchFinished(matchId, homeNor, awayNor, homeGoals, awayGoals, updatedResults) {
+  if (!ANTHROPIC_KEY) return;
+
+  // Hent alle brukere
+  const usersSnap = await db.collection('users').get();
+  const allUsers = usersSnap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+
+  // Beregn stillingstabell
+  function calcScore(user) {
+    let total = 0, fulltreff = 0;
+    for (const [mid, act] of Object.entries(updatedResults)) {
+      const tip = user.tips?.[mid];
+      if (!tip || act?.home === undefined) continue;
+      const th = parseInt(tip.home), ta = parseInt(tip.away);
+      const ah = parseInt(act.home), aa = parseInt(act.away);
+      if (isNaN(th) || isNaN(ta) || isNaN(ah) || isNaN(aa)) continue;
+      let p = 0;
+      const tOut = th > ta ? 'H' : th < ta ? 'A' : 'D';
+      const aOut = ah > aa ? 'H' : ah < aa ? 'A' : 'D';
+      if (tOut === aOut) p += 2;
+      if (th === ah) p += 1;
+      if (ta === aa) p += 1;
+      if (p === 4 && (ah + aa) >= 5) p = 5;
+      total += p;
+      if (p >= 4) fulltreff++;
+    }
+    return { total, fulltreff };
+  }
+
+  const ranked = allUsers
+    .map(u => ({ ...u, ...calcScore(u) }))
+    .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
+
+  const tableLines = ranked.map((u, i) =>
+    `${i + 1}. ${u.displayName || u.id}: ${u.total}p (${u.fulltreff} fulltreff)`
+  ).join('\n');
+
+  // Hvem tippet riktig på denne kampen?
+  const matchTips = allUsers.map(u => {
+    const tip = u.tips?.[matchId];
+    if (!tip) return null;
+    return `${u.displayName || u.id}: ${tip.home}-${tip.away}`;
+  }).filter(Boolean).join(', ');
+
+  const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
+
+  const prompt = `${homeNor} slo ${awayNor} ${homeGoals}-${awayGoals} (eller det var uavgjort/tap). Kampen er nå ferdigspilt.
+
+Deltakernes tips på denne kampen: ${matchTips || 'ingen tips'}
+
+Oppdatert stillingstabell etter kampen:
+${tableLines}
+
+Skriv en kort (3-5 setninger) kommentar om tabellsituasjonen etter denne kampen – hvem leder, hvem klatrer, hvem sliter. Fokuser på KONKURRANSEN og tabellen, ikke på selve kampen. Hold deg i karakter. Ikke lag markdown.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 250,
+        system: expert.personality,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) throw new Error(`Anthropic API ${res.status}`);
+    const data = await res.json();
+    const text = data.content?.[0]?.text?.trim();
+    if (text) {
+      await postBotChat(expert, text);
+      // Lagre også som match summary i Firestore
+      await db.collection('summaries').doc(matchId).set({
+        text, botId: expert.id, botName: expert.name,
+        ts: FieldValue.serverTimestamp(),
+      });
+      console.log(`Tabellreferat postet av ${expert.name} for kamp ${matchId}`);
+    }
+  } catch (err) {
+    console.error('handleMatchFinished feilet:', err.message);
+  }
+}
+
 // ── API-Football helpers ──────────────────────────────────────────────
 async function apiFetch(path) {
   const url = `https://v3.football.api-sports.io/${path}`;
@@ -592,9 +683,15 @@ async function pollAndUpdate() {
     const result = buildMatchResult(fixture);
     if (!result) continue;
     const existing = currentResults[matchId];
-    if (!existing || existing.home !== result.home || existing.away !== result.away) {
+    const isNew = !existing || existing.home !== result.home || existing.away !== result.away;
+    if (isNew) {
       updatedResults[matchId] = result;
       resultsChanged = true;
+      // Trigger tabellreferat kun når et resultat skrives for første gang (kamp nettopp ferdig)
+      if (!existing) {
+        handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
+          .catch(e => console.error('handleMatchFinished feil:', e.message));
+      }
     }
   }
 
@@ -799,6 +896,40 @@ exports.updateStatsCache = onSchedule(
       }
     } catch (err) {
       console.error('updateStatsCache feilet:', err.message);
+    }
+  }
+);
+
+
+// ── Manuell trigger for tabellreferat (siste ferdige kamp) ───────────
+exports.triggerSummary = onRequest(
+  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'], cors: true },
+  async (req, res) => {
+    try {
+      const resultsSnap = await db.collection('config').doc('results').get();
+      const results = resultsSnap.exists ? resultsSnap.data() : {};
+      const summariesSnap = await db.collection('summaries').get();
+      const existingSummaries = new Set(summariesSnap.docs.map(d => d.id));
+
+      // Finn siste kamp uten referat
+      const finished = Object.entries(results)
+        .filter(([id]) => !existingSummaries.has(id) && id.match(/^[A-Z]\d+$|^r\d+_|^qf|^sf|^final|^bronze/))
+        .slice(-1);
+
+      if (!finished.length) { res.json({ ok: false, error: 'Ingen ferdigspilte kamper uten referat' }); return; }
+
+      const [matchId, result] = finished[0];
+      // Hent kampen fra constants for å få lagnavn
+      const lookup = await db.collection('config').doc('fixtureLookup').get();
+      const lookupData = lookup.exists ? lookup.data() : {};
+      const homeAway = Object.entries(lookupData).find(([k, v]) => v === matchId);
+      const [homeNor, awayNor] = homeAway ? homeAway[0].split('_') : [matchId, ''];
+
+      await handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, results);
+      res.json({ ok: true, matchId });
+    } catch (err) {
+      console.error('triggerSummary feilet:', err);
+      res.status(500).json({ ok: false, error: err.message });
     }
   }
 );
