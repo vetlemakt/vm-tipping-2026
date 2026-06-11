@@ -2369,9 +2369,10 @@ function PollWidget({ me, isMobile }) {
                 fontWeight:isMyVote?700:400,textAlign:'left'}}>{opt}</div>
               <div style={{height:14,overflow:'hidden'}}>
                 <div style={{width:`${animatedWidths[i]??0}%`,height:'100%',background:color,borderRadius:0,
-                  display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:5,
+                  display:'flex',alignItems:'center',justifyContent:'space-between',paddingLeft:6,paddingRight:5,
                   transition:'width .6s cubic-bezier(.25,.8,.25,1)',boxSizing:'border-box'}}>
-                  {(animatedWidths[i]??0)>14&&<span style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,.9)',fontFamily:"'Fira Code',monospace"}}>{p}%</span>}
+                  {v>0&&(animatedWidths[i]??0)>=14&&<span style={{fontSize:9,fontWeight:700,color:darkenHex(color,0.4),fontFamily:"'Fira Code',monospace",flexShrink:0,lineHeight:1}}>{v}</span>}
+                  {(animatedWidths[i]??0)>=30&&<span style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,.9)',fontFamily:"'Fira Code',monospace",flexShrink:0,lineHeight:1,marginLeft:'auto'}}>{p}%</span>}
                 </div>
               </div>
             </div>
