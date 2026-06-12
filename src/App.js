@@ -5711,14 +5711,14 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
 
   // Lytt på live-hendelser fra Cloud Function via Firestore
   const prevEventRef = useRef(null);
+  const mountTimeRef = useRef(Date.now());
   useEffect(() => {
     const unsub = subscribeLiveEvent(ev => {
       if (ev?.type) {
-        // Bruk type+spiller+minutt som nøkkel, IKKE ts (ts endres hver poll)
         const evKey = ev.type + (ev.playerName || '') + (ev.minute || '') + (ev.text || '');
-        // Ignorer hendelser eldre enn 60 sekunder (unngår replay ved refresh)
-        const ageMs = Date.now() - (ev.ts || 0);
-        if (evKey !== prevEventRef.current && ageMs < 60000) {
+        // Ignorer hendelser fra FØR siden ble lastet (unngår replay ved refresh/oppstart)
+        const isAfterMount = (ev.ts || 0) > mountTimeRef.current;
+        if (evKey !== prevEventRef.current && isAfterMount) {
           prevEventRef.current = evKey;
           setLiveEvent(ev);
           setTimeout(() => { setLiveEvent(null); }, 30000);
