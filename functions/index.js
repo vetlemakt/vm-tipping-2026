@@ -566,8 +566,7 @@ Skriv en kort (3-5 setninger) kommentar om tabellsituasjonen etter denne kampen 
     const data = await res.json();
     const text = data.content?.[0]?.text?.trim();
     if (text) {
-      await postBotChat(expert, text);
-      // Lagre også som match summary i Firestore
+      // Lagre som match summary i Firestore (ikke i chat)
       await db.collection('summaries').doc(matchId).set({
         botText: text, botId: expert.id, botName: expert.name,
         ts: FieldValue.serverTimestamp(),
@@ -978,7 +977,6 @@ Skriv 3-5 setninger om tabellsituasjonen etter kampen. Hvem leder, hvem klatrer,
       if (!text) throw new Error('Ingen tekst fra Anthropic');
 
       console.log('triggerSummary: got text, saving...');
-      await postBotChat(expert, text);
       await db.collection('summaries').doc(matchId).set({ botText:text, botId:expert.id, botName:expert.name, ts:FieldValue.serverTimestamp() }, { merge:true });
       console.log('triggerSummary: done, matchId:', matchId);
       res.json({ ok: true, matchId, expert: expert.name });

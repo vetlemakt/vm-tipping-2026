@@ -2712,17 +2712,17 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
         // Karusell-widgets: faste dimensjoner, like i stående og liggende
         const carouselSimpleWidgets = simpleStats.map(({ key, num, label }) => {
-          if (key === 'goals' && statsCache.scorers?.length > 0) {
+          if (key === 'goals') {
             return (
               <StatBoxWithTooltip key={key} num={num} label={label} mobile={true} tooltip={
                 <div style={{ minWidth: 200 }}>
                   <div style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>⚽ TOPPSCORERE</div>
-                  {statsCache.scorers.slice(0, 8).map((s, i) => (
+                  {statsCache.scorers?.length > 0 ? statsCache.scorers.slice(0, 8).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{i + 1}. {s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
                     </div>
-                  ))}
+                  )) : <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontStyle: 'italic' }}>Toppscorerliste kommer</div>}
                 </div>
               } />
             );
@@ -2737,17 +2737,17 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
         // Desktop-widgets: flex, skalerer med tilgjengelig bredde
         const simpleWidgets = simpleStats.map(({ key, num, label }) => {
-          if (key === 'goals' && statsCache.scorers?.length > 0) {
+          if (key === 'goals') {
             return (
               <StatBoxWithTooltip key={key} num={num} label={label} tooltip={
                 <div style={{ minWidth: 180 }}>
                   <div style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>⚽ TOPPSCORERE</div>
-                  {statsCache.scorers.slice(0, 8).map((s, i) => (
+                  {statsCache.scorers?.length > 0 ? statsCache.scorers.slice(0, 8).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{i + 1}. {s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
                     </div>
-                  ))}
+                  )) : <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontStyle: 'italic' }}>Toppscorerliste kommer</div>}
                 </div>
               } />
             );
