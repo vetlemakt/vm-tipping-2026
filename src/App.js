@@ -685,10 +685,7 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
       marginLeft: mine ? 8 : 0,
       marginRight: mine ? 0 : 8,
       position: 'relative',
-    }}
-      onMouseEnter={() => setShowPicker(true)}
-      onMouseLeave={() => setShowPicker(false)}
-    >
+    }}>
       {/* Navn + tid over bobla */}
       <div style={{ ...C.chatMeta, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
         <span style={{ ...C.chatUser, color: nameColor, ...(isAdminMsg ? { textTransform: 'uppercase', fontWeight: 800 } : {}) }}>{m.user}</span>
@@ -701,13 +698,13 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
         )}
       </div>
       {/* Boble */}
-      <span style={{
+      <span onClick={() => m.id && username && setShowPicker(s => !s)} style={{
         ...C.chatBubble,
         background: isAdminMsg ? 'rgba(74,222,128,.07)' : mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)',
         border: `1px solid ${isAdminMsg ? 'rgba(74,222,128,.35)' : mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`,
         ...(isAdminMsg ? { borderLeft: `3px solid ${ADMIN_GREEN}`, color: ADMIN_GREEN, textTransform: 'uppercase', fontWeight: 700 } : {}),
         ...(isHAL ? { borderLeft: '3px solid #ff4444' } : botColor && !isAdminMsg ? { borderLeft: `3px solid ${botColor}` } : {}),
-        display: 'block',
+        display: 'block', cursor: 'pointer',
       }}>
         {m.image
           ? <img src={m.image} alt="bilde" style={{ maxWidth:'100%', maxHeight: maxImgH, borderRadius:8, display:'block' }} />
@@ -2508,25 +2505,41 @@ function StatsCarousel({ widgets }) {
 
 function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   const [show, setShow] = useState(false);
+  const boxRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  const openTooltip = () => {
+    if (boxRef.current) {
+      const r = boxRef.current.getBoundingClientRect();
+      setPos({ top: r.top + window.scrollY - 8, left: r.left + r.width / 2 });
+    }
+    setShow(s => !s);
+  };
+
+  useEffect(() => {
+    if (!show) return;
+    const close = () => setShow(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [show]);
+
   return (
-    <div style={{ ...C.statWidget, flex: mobile ? undefined : 1, width: mobile ? 100 : undefined,
+    <div ref={boxRef} style={{ ...C.statWidget, flex: mobile ? undefined : 1, width: mobile ? 100 : undefined,
       flexShrink: mobile ? 0 : undefined, padding: mobile ? '12px 8px' : '8px 6px',
-      position: 'relative', cursor: 'pointer', overflow: 'visible', zIndex: show ? 100 : undefined }}
-      onMouseEnter={() => !mobile && setShow(true)}
-      onMouseLeave={() => !mobile && setShow(false)}
-      onClick={() => mobile && setShow(s => !s)}>
+      cursor: 'pointer' }}
+      onClick={e => { e.stopPropagation(); openTooltip(); }}>
       <div style={{ ...C.statNum, fontSize: mobile ? 32 : 28 }}>{num}</div>
       <div style={{ ...C.statLabel, fontSize: mobile ? 10 : 9, letterSpacing: 1.5 }}>{label}
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
       {show && tooltip && (
-        <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
+        <div style={{ position: 'fixed', bottom: `calc(100vh - ${pos.top}px)`, left: pos.left,
+          transform: 'translateX(-50%)',
           background: 'rgba(10,14,30,0.97)', border: '1px solid rgba(255,215,0,.25)', borderRadius: 10,
-          padding: '10px 14px', zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,.6)', minWidth: 200,
-          pointerEvents: mobile ? 'auto' : 'none', whiteSpace: 'nowrap' }}
+          padding: '10px 14px', zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,.6)', minWidth: 200 }}
           onClick={e => e.stopPropagation()}>
           {tooltip}
-          {mobile && <button onClick={() => setShow(false)} style={{ display:'block', margin:'8px auto 0', background:'none', border:'1px solid rgba(255,255,255,.2)', color:'rgba(255,255,255,.5)', borderRadius:6, padding:'4px 12px', fontSize:11, cursor:'pointer' }}>Lukk</button>}
+          <button onClick={() => setShow(false)} style={{ display:'block', margin:'8px auto 0', background:'none', border:'1px solid rgba(255,255,255,.2)', color:'rgba(255,255,255,.5)', borderRadius:6, padding:'4px 12px', fontSize:11, cursor:'pointer' }}>Lukk</button>
         </div>
       )}
     </div>
