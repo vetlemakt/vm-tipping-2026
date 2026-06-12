@@ -2506,41 +2506,49 @@ function StatsCarousel({ widgets }) {
 function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   const [show, setShow] = useState(false);
   const boxRef = useRef(null);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const [rect, setRect] = useState(null);
 
-  const openTooltip = () => {
-    if (boxRef.current) {
-      const r = boxRef.current.getBoundingClientRect();
-      setPos({ top: r.top + window.scrollY - 8, left: r.left + r.width / 2 });
-    }
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (!show && boxRef.current) setRect(boxRef.current.getBoundingClientRect());
     setShow(s => !s);
   };
 
   useEffect(() => {
     if (!show) return;
-    const close = () => setShow(false);
-    document.addEventListener('click', close);
+    const close = (e) => setShow(false);
+    setTimeout(() => document.addEventListener('click', close), 0);
     return () => document.removeEventListener('click', close);
   }, [show]);
 
+  const popupStyle = rect ? {
+    position: 'fixed',
+    top: Math.max(8, rect.top - 8),
+    left: Math.max(8, Math.min(window.innerWidth - 220, rect.left + rect.width/2 - 110)),
+    transform: 'translateY(-100%)',
+    background: 'rgba(10,14,30,0.97)',
+    border: '1px solid rgba(255,215,0,.25)',
+    borderRadius: 10,
+    padding: '10px 14px',
+    zIndex: 99999,
+    boxShadow: '0 8px 32px rgba(0,0,0,.8)',
+    minWidth: 200,
+  } : {};
+
   return (
     <div ref={boxRef} style={{ ...C.statWidget, flex: mobile ? undefined : 1, width: mobile ? 100 : undefined,
-      flexShrink: mobile ? 0 : undefined, padding: mobile ? '12px 8px' : '8px 6px',
-      cursor: 'pointer' }}
-      onClick={e => { e.stopPropagation(); openTooltip(); }}>
+      flexShrink: mobile ? 0 : undefined, padding: mobile ? '12px 8px' : '8px 6px', cursor: 'pointer' }}
+      onClick={toggle}>
       <div style={{ ...C.statNum, fontSize: mobile ? 32 : 28 }}>{num}</div>
       <div style={{ ...C.statLabel, fontSize: mobile ? 10 : 9, letterSpacing: 1.5 }}>{label}
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
-      {show && tooltip && (
-        <div style={{ position: 'fixed', bottom: `calc(100vh - ${pos.top}px)`, left: pos.left,
-          transform: 'translateX(-50%)',
-          background: 'rgba(10,14,30,0.97)', border: '1px solid rgba(255,215,0,.25)', borderRadius: 10,
-          padding: '10px 14px', zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,.6)', minWidth: 200 }}
-          onClick={e => e.stopPropagation()}>
+      {show && tooltip && typeof document !== 'undefined' && createPortal(
+        <div style={popupStyle} onClick={e => e.stopPropagation()}>
           {tooltip}
           <button onClick={() => setShow(false)} style={{ display:'block', margin:'8px auto 0', background:'none', border:'1px solid rgba(255,255,255,.2)', color:'rgba(255,255,255,.5)', borderRadius:6, padding:'4px 12px', fontSize:11, cursor:'pointer' }}>Lukk</button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
