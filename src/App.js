@@ -5721,7 +5721,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
         if (evKey !== prevEventRef.current && ageMs < 60000) {
           prevEventRef.current = evKey;
           setLiveEvent(ev);
-          setTimeout(() => { setLiveEvent(null); prevEventRef.current = null; }, 30000);
+          setTimeout(() => { setLiveEvent(null); }, 30000);
           if (ev.type === 'goal') {
             setTimeout(() => fireGoalConfetti(3), 400);
             try {
