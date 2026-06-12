@@ -1049,7 +1049,7 @@ exports.updateStatsCache = onSchedule(
       );
       const scorersData = await scorersRes.json();
       if (scorersData.response?.length) {
-        const scorers = scorersData.response.slice(0, 10).map(e => ({
+        const scorers = scorersData.response.slice(0, 50).map(e => ({
           name: e.player.name,
           team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
           goals: e.statistics?.[0]?.goals?.total ?? 0,
@@ -1181,7 +1181,7 @@ exports.refreshStatsCache = onRequest(
       );
       const scorersData = await scorersRes.json();
       if (!scorersData.response?.length) { res.json({ ok: false, error: 'Ingen data fra API' }); return; }
-      const scorers = scorersData.response.slice(0, 10).map(e => ({
+      const scorers = scorersData.response.slice(0, 50).map(e => ({
         name: e.player.name,
         team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
         goals: e.statistics?.[0]?.goals?.total ?? 0,

@@ -2509,7 +2509,11 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   const [rect, setRect] = useState(null);
 
   const openTooltip = () => {
-    if (boxRef.current) setRect(boxRef.current.getBoundingClientRect());
+    if (boxRef.current) {
+      const r = boxRef.current.getBoundingClientRect();
+      // Bruk absolutt posisjon (pageY) så popup ikke beveger seg ved scrolling
+      setRect({ top: r.top + window.scrollY, left: r.left + window.scrollX, width: r.width, height: r.height });
+    }
     setShow(true);
   };
   const closeTooltip = () => setShow(false);
@@ -2522,7 +2526,7 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   };
 
   const popupStyle = rect ? {
-    position: 'fixed',
+    position: 'absolute',
     top: rect.top,
     left: rect.left,
     transform: 'none',
