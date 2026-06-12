@@ -2511,7 +2511,7 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   return (
     <div style={{ ...C.statWidget, flex: mobile ? undefined : 1, width: mobile ? 100 : undefined,
       flexShrink: mobile ? 0 : undefined, padding: mobile ? '12px 8px' : '8px 6px',
-      position: 'relative', cursor: 'pointer', overflow: 'visible' }}
+      position: 'relative', cursor: 'pointer', overflow: 'visible', zIndex: show ? 100 : undefined }}
       onMouseEnter={() => !mobile && setShow(true)}
       onMouseLeave={() => !mobile && setShow(false)}
       onClick={() => mobile && setShow(s => !s)}>
@@ -2520,18 +2520,10 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
       {show && tooltip && (
-        <div ref={el => {
-          if (el) {
-            const rect = el.parentElement?.getBoundingClientRect();
-            if (rect) {
-              el.style.top = Math.max(8, rect.top - el.offsetHeight - 8) + 'px';
-              el.style.left = Math.min(window.innerWidth - el.offsetWidth - 8, Math.max(8, rect.left + rect.width/2 - el.offsetWidth/2)) + 'px';
-            }
-          }
-        }} style={{ position: 'fixed', bottom: mobile ? 80 : undefined,
-          left: mobile ? '50%' : undefined, transform: mobile ? 'translateX(-50%)' : undefined,
+        <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
           background: 'rgba(10,14,30,0.97)', border: '1px solid rgba(255,215,0,.25)', borderRadius: 10,
-          padding: '10px 14px', zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,.6)', minWidth: 200 }}
+          padding: '10px 14px', zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,.6)', minWidth: 200,
+          pointerEvents: mobile ? 'auto' : 'none', whiteSpace: 'nowrap' }}
           onClick={e => e.stopPropagation()}>
           {tooltip}
           {mobile && <button onClick={() => setShow(false)} style={{ display:'block', margin:'8px auto 0', background:'none', border:'1px solid rgba(255,255,255,.2)', color:'rgba(255,255,255,.5)', borderRadius:6, padding:'4px 12px', fontSize:11, cursor:'pointer' }}>Lukk</button>}
