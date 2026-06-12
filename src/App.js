@@ -5714,7 +5714,8 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   useEffect(() => {
     const unsub = subscribeLiveEvent(ev => {
       if (ev?.type) {
-        const evKey = ev.type + (ev.text || '') + (ev.ts || '');
+        // Bruk type+spiller+minutt som nøkkel, IKKE ts (ts endres hver poll)
+        const evKey = ev.type + (ev.playerName || '') + (ev.minute || '') + (ev.text || '');
         // Ignorer hendelser eldre enn 60 sekunder (unngår replay ved refresh)
         const ageMs = Date.now() - (ev.ts || 0);
         if (evKey !== prevEventRef.current && ageMs < 60000) {
