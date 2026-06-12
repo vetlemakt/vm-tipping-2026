@@ -5774,6 +5774,10 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
           }
         }
         setLiveEvent(ev);
+        // Auto-fjern etter 30 sek
+        if (ev.type === 'goal' || ev.type === 'card' || ev.type === 'finished') {
+          setTimeout(() => setLiveEvent(null), 30000);
+        }
       } else {
         setLiveEvent(null);
       }
@@ -5801,18 +5805,18 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   const renderLiveContent = () => {
     if (!liveEvent) return null;
     if (liveEvent.type === 'goal') {
-      const { homeTeam, awayTeam, shortHome, shortAway, homeGoals, awayGoals, homeScored, playerName, minute, suffix } = liveEvent;
-      const flagH = FLAGS[homeTeam] || '';
-      const flagA = FLAGS[awayTeam] || '';
+      const { homeTeam, awayTeam, homeGoals, awayGoals, homeScored, playerName, minute, suffix } = liveEvent;
+      const flagH = FLAGS[homeTeam] || '🏳️';
+      const flagA = FLAGS[awayTeam] || '🏳️';
       return (
-        <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
-          <span>⚽</span>
-          <span style={{ color:'rgba(255,255,255,.8)' }}>{flagH}{shortHome}</span>
-          <span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.8)' }}> {homeGoals}</span>
-          <span style={{ color:'rgba(255,255,255,.5)' }}>–</span>
-          <span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.8)' }}>{awayGoals} </span>
-          <span style={{ color:'rgba(255,255,255,.8)' }}>{flagA}{shortAway}</span>
-          <span style={{ color:'rgba(255,255,255,.6)', marginLeft:3 }}>· {playerName} '{minute}{suffix}</span>
+        <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
+          <span style={{ color: YEL, fontWeight:900, letterSpacing:1 }}>MÅL!</span>
+          <span>{flagH}</span>
+          <span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{homeGoals}</span>
+          <span style={{ color:'rgba(255,255,255,.4)' }}>–</span>
+          <span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{awayGoals}</span>
+          <span>{flagA}</span>
+          <span style={{ color:'rgba(255,255,255,.55)', fontSize:10, marginLeft:2 }}>· {playerName} '{minute}{suffix}</span>
         </div>
       );
     }

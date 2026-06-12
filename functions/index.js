@@ -461,6 +461,18 @@ async function postBotChat(expert, text) {
 
 // ── Sjekk og trigger bot-kommentarer ved nytt mål ────────────────────
 async function handleGoalEvent(matchId, liveEvent, prevGoalKey) {
+  // Dedup: sjekk om denne goal-keyen allerede er håndtert
+  const goalKey = `${matchId}_${liveEvent.homeGoals}_${liveEvent.awayGoals}_${liveEvent.playerName}_${liveEvent.minute}`;
+  const dedupRef = db.collection('config').doc('firedGoals');
+  let alreadyFired = false;
+  await db.runTransaction(async tx => {
+    const snap = await tx.get(dedupRef);
+    const fired = snap.exists ? (snap.data().keys || []) : [];
+    if (fired.includes(goalKey)) { alreadyFired = true; return; }
+    tx.set(dedupRef, { keys: [...fired.slice(-20), goalKey] });
+  });
+  if (alreadyFired) { console.log('handleGoalEvent: allerede håndtert:', goalKey); return; }
+
   // 20% sjanse for å si ingenting
   if (Math.random() < 0.2) {
     console.log('Bot hopper over kommentar (20% sjanse)');
