@@ -2508,18 +2508,18 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   const boxRef = useRef(null);
   const [rect, setRect] = useState(null);
 
+  const openTooltip = () => {
+    if (boxRef.current) setRect(boxRef.current.getBoundingClientRect());
+    setShow(true);
+  };
+  const closeTooltip = () => setShow(false);
   const toggle = (e) => {
     e.stopPropagation();
-    if (!show && boxRef.current) setRect(boxRef.current.getBoundingClientRect());
-    setShow(s => !s);
+    if (mobile) {
+      if (!show && boxRef.current) setRect(boxRef.current.getBoundingClientRect());
+      setShow(s => !s);
+    }
   };
-
-  useEffect(() => {
-    if (!show) return;
-    const close = (e) => setShow(false);
-    setTimeout(() => document.addEventListener('click', close), 0);
-    return () => document.removeEventListener('click', close);
-  }, [show]);
 
   const popupStyle = rect ? {
     position: 'fixed',
@@ -2538,6 +2538,8 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   return (
     <div ref={boxRef} style={{ ...C.statWidget, flex: mobile ? undefined : 1, width: mobile ? 100 : undefined,
       flexShrink: mobile ? 0 : undefined, padding: mobile ? '12px 8px' : '8px 6px', cursor: 'pointer' }}
+      onMouseEnter={() => !mobile && openTooltip()}
+      onMouseLeave={() => !mobile && closeTooltip()}
       onClick={toggle}>
       <div style={{ ...C.statNum, fontSize: mobile ? 32 : 28 }}>{num}</div>
       <div style={{ ...C.statLabel, fontSize: mobile ? 10 : 9, letterSpacing: 1.5 }}>{label}
@@ -2783,13 +2785,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             return (
               <StatBoxWithTooltip key={key} num={num} label={label} mobile={true} tooltip={
                 <div style={{ minWidth: 200 }}>
-                  <div style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>⚽ TOPPSCORERE</div>
-                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).slice(0, 8).map((s, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                      <span style={{ color: 'rgba(255,255,255,.8)' }}>{i + 1}. {s.name}</span>
+                  <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
+                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).map((s, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                      <span style={{ color: 'rgba(255,255,255,.8)' }}>{s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
                     </div>
                   )) : <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontStyle: 'italic' }}>Toppscorerliste kommer</div>}
+                  </div>
                 </div>
               } />
             );
@@ -2808,13 +2812,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             return (
               <StatBoxWithTooltip key={key} num={num} label={label} tooltip={
                 <div style={{ minWidth: 180 }}>
-                  <div style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>⚽ TOPPSCORERE</div>
-                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).slice(0, 8).map((s, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                      <span style={{ color: 'rgba(255,255,255,.8)' }}>{i + 1}. {s.name}</span>
+                  <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
+                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).map((s, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                      <span style={{ color: 'rgba(255,255,255,.8)' }}>{s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
                     </div>
                   )) : <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontStyle: 'italic' }}>Toppscorerliste kommer</div>}
+                  </div>
                 </div>
               } />
             );
