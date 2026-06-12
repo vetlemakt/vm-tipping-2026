@@ -663,8 +663,10 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300 }) {
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
   const isAdminMsg = m.user === 'Admin';
+  const isHAL = m.user === 'HAL 9000';
   const ADMIN_GREEN = '#4ade80';
-  const nameColor = isAdminMsg ? ADMIN_GREEN : mine ? 'rgba(255,215,0,.7)' : botColor || 'rgba(255,255,255,.45)';
+  const HAL_RED = '#ff4444';
+  const nameColor = isAdminMsg ? ADMIN_GREEN : isHAL ? HAL_RED : mine ? 'rgba(255,215,0,.7)' : botColor || 'rgba(255,255,255,.45)';
   const fmt = ts => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -695,7 +697,7 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300 }) {
         background: isAdminMsg ? 'rgba(74,222,128,.07)' : mine ? 'rgba(30,45,80,.9)' : 'rgba(20,25,40,.9)',
         border: `1px solid ${isAdminMsg ? 'rgba(74,222,128,.35)' : mine ? 'rgba(42,61,112,.8)' : 'rgba(42,48,80,.6)'}`,
         ...(isAdminMsg ? { borderLeft: `3px solid ${ADMIN_GREEN}`, color: ADMIN_GREEN, textTransform: 'uppercase', fontWeight: 700 } : {}),
-        ...(botColor && !isAdminMsg ? { borderLeft: `3px solid ${botColor}` } : {}),
+        ...(isHAL ? { borderLeft: '3px solid #ff4444' } : botColor && !isAdminMsg ? { borderLeft: `3px solid ${botColor}` } : {}),
         display: 'block',
       }}>
         {m.image
@@ -3118,9 +3120,10 @@ function renderPtsBadge(pts) {
 // ══════════════════════════════════════════════════════════════════════
 //  MATCH INFO POPUP
 // ══════════════════════════════════════════════════════════════════════
-function MatchInfoPopup({ match, onClose, anchorRef }) {
+function MatchInfoPopup({ match, onClose, anchorRef, results }) {
   const s = STADIUMS[match.stadium] || {};
   const fmtD = d => { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}.${m}.${y}`; };
+  const r = results?.[match.id];
 
   // Position: try to show near the anchor element if provided
   const [pos, setPos] = useState({ bottom: 28, left: 12 });
@@ -3158,6 +3161,26 @@ function MatchInfoPopup({ match, onClose, anchorRef }) {
               {match.away} <Flag team={match.away} />
             </span>
           </div>
+          {r?.home !== undefined && (
+            <div style={{ textAlign:'center', margin:'6px 0 10px', padding:'8px', background:'rgba(255,255,255,.06)', borderRadius:8 }}>
+              <div style={{ fontSize:22, fontWeight:800, color:'#e8edf8', fontFamily:"'Inter',sans-serif", letterSpacing:2 }}>
+                {r.home} – {r.away}
+              </div>
+              {(r.etHome !== null && r.etHome !== undefined) && (
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.5)', marginTop:2 }}>
+                  Etter ekstraomganger: {r.etHome} – {r.etAway}
+                </div>
+              )}
+              {(r.penHome !== null && r.penHome !== undefined) && (
+                <div style={{ fontSize:11, color:'#FFD700', marginTop:2 }}>
+                  Straffer: {r.penHome} – {r.penAway}
+                </div>
+              )}
+              {r.status && r.status !== 'FT' && r.status !== 'AET' && r.status !== 'PEN' && (
+                <div style={{ fontSize:10, color:'#4ade80', marginTop:2 }}>🔴 LIVE – {r.elapsed}'</div>
+              )}
+            </div>
+          )}
           <div style={{ fontSize:12, color:'rgba(255,255,255,.65)', lineHeight:2 }}>
             <div>📅 {fmtD(match.date)} · {match.time} CEST</div>
             {s.name && <div>🏟️ {s.name}</div>}
@@ -3856,7 +3879,7 @@ function TipsForm({ me, phase, viewUser }) {
         <GroupOrderPopup group={grpPopup} grpO={grpO} setOrd={setOrd} results={results} grpOk={grpOk} onClose={() => setGrpPopup(null)} />
       )}
       {matchPopup && (
-        <MatchInfoPopup match={matchPopup} onClose={() => setMatchPopup(null)} />
+        <MatchInfoPopup match={matchPopup} onClose={() => setMatchPopup(null)} results={results} />
       )}
     </>
   );
@@ -5647,14 +5670,66 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   useEffect(() => {
     const unsub = subscribeLiveEvent(ev => {
       if (ev?.type) {
-        // Fire confetti on NEW goal events (not on re-renders of same event)
-        const evKey = ev.type + (ev.text || '');
-        if (ev.type === 'goal' && evKey !== prevEventRef.current) {
+        const evKey = ev.type + (ev.text || '') + (ev.ts || '');
+        if (evKey !== prevEventRef.current) {
           prevEventRef.current = evKey;
-          // Konfetti kun ved mål, ikke ved kort
-          setTimeout(() => fireGoalConfetti(3), 400);
-        } else if (ev.type === 'card') {
-          prevEventRef.current = evKey; // oppdater nøkkelen men ingen konfetti
+          if (ev.type === 'goal') {
+            // Konfetti
+            setTimeout(() => fireGoalConfetti(3), 400);
+            // Lyd – mål-jingle
+            try {
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              const freqs = [523, 659, 784, 1047];
+              freqs.forEach((f, i) => {
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.frequency.value = f;
+                o.type = 'sine';
+                g.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.35);
+                o.start(ctx.currentTime + i * 0.12);
+                o.stop(ctx.currentTime + i * 0.12 + 0.35);
+              });
+            } catch(e) {}
+            // HAL 9000 i chat
+            const { shortHome, shortAway, homeGoals, awayGoals, playerName, minute, suffix } = ev;
+            const msg = `⚽ MÅL! ${playerName}${suffix||''} '${minute} — ${shortHome} ${homeGoals}–${awayGoals} ${shortAway}`;
+            sendChatMessage('HAL 9000', msg, '').catch(() => {});
+          } else if (ev.type === 'card') {
+            // Lyd – kort-pip
+            try {
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              const o = ctx.createOscillator();
+              const g = ctx.createGain();
+              o.connect(g); g.connect(ctx.destination);
+              o.frequency.value = ev.cardColor === 'Red' ? 220 : 440;
+              o.type = 'square';
+              g.gain.setValueAtTime(0.1, ctx.currentTime);
+              g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+              o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
+            } catch(e) {}
+            // HAL 9000 i chat
+            const cardEmoji = ev.cardColor === 'Red' ? '🟥' : '🟨';
+            sendChatMessage('HAL 9000', `${cardEmoji} ${ev.text}`, '').catch(() => {});
+          } else if (ev.type === 'finished') {
+            // Lyd – sluttsignal
+            try {
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              [600, 500, 400].forEach((f, i) => {
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.frequency.value = f;
+                o.type = 'sine';
+                g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.2);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.3);
+                o.start(ctx.currentTime + i * 0.2);
+                o.stop(ctx.currentTime + i * 0.2 + 0.3);
+              });
+            } catch(e) {}
+            sendChatMessage('HAL 9000', `🏁 ${ev.text}`, '').catch(() => {});
+          }
         }
         setLiveEvent(ev);
       } else {
@@ -5705,11 +5780,11 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
 
   return (
     <div onClick={adminMessage && !liveEvent ? onAdminMessageClick : undefined} style={{
-      position: 'absolute',
-      top: 5,
+      position: 'fixed',
+      top: 8,
       left: '50%',
       transform: 'translateX(-50%)',
-      zIndex: 50,
+      zIndex: 9000,
       width: w,
       background: 'rgba(1,23,76,.95)',
       backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',

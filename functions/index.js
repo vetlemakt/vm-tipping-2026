@@ -10,7 +10,7 @@ const API_KEY        = process.env.FOOTBALL_API_KEY;
 const ANTHROPIC_KEY  = process.env.ANTHROPIC_KEY;
 const WC_LEAGUE      = 1;
 const WC_SEASON      = 2026;
-const POLL_INTERVAL_MS  = 15000;
+const POLL_INTERVAL_MS  = 20000;
 const FUNCTION_DURATION = 50000;
 
 // ── Lagnavn-mapping ──────────────────────────────────────────────────
@@ -737,6 +737,10 @@ async function pollAndUpdate() {
 
   await batch.commit();
   console.log(`Poll ferdig. Live: ${liveFixtures.length}, Ferdig: ${finishedFixtures.length}`);
+  // Returner allFinished=true hvis det ikke er noen live-kamper igjen
+  // (men bare hvis vi faktisk har sett minst én live kamp tidligere, dvs. prevGoals har data)
+  const hadLiveMatches = Object.keys(prevGoals).length > 0;
+  return { allFinished: hadLiveMatches && liveFixtures.length === 0 };
 }
 
 // ── Scheduled function med intern loop ───────────────────────────────
@@ -750,14 +754,35 @@ exports.pollFootball = onSchedule(
   },
   async () => {
     if (!isWithinMatchWindow()) {
-      console.log('Ingen kamp innenfor 90 min – hopper over polling');
+      console.log('Ingen kamp innenfor kampvindu – hopper over polling');
       return;
+    }
+    // Sjekk om forrige invokasjon allerede markerte alle kamper som ferdige
+    const liveSnap = await db.collection('config').doc('liveEvent').get();
+    const liveData = liveSnap.exists ? liveSnap.data() : {};
+    if (liveData?.allDone === true) {
+      // Sjekk om vi er i et NYTT kampvindu (ny kamp har startet siden allDone ble satt)
+      const doneSinceMs = Date.now() - (liveData.ts || 0);
+      if (doneSinceMs < 60 * 60 * 1000) { // allDone satt for mindre enn 1 time siden
+        console.log('Alle kamper allerede ferdig – hopper over polling');
+        return;
+      }
+      // Over 1 time siden – nullstill flagget og poll normalt (ny kamp)
+      console.log('Nytt kampvindu – nullstiller allDone');
+      await db.collection('config').doc('liveEvent').set({ allDone: false, type: null, ts: Date.now() });
     }
     const start = Date.now();
     let calls = 0;
     while (true) {
-      try { await pollAndUpdate(); calls++; }
+      let result;
+      try { result = await pollAndUpdate(); calls++; }
       catch (err) { console.error(`Poll #${calls + 1} feilet:`, err.message); }
+      // Hvis pollAndUpdate rapporterer at ingen live-kamper gjenstår, stopp tidlig
+      if (result?.allFinished) {
+        console.log('Alle kamper ferdigspilt – setter allDone-flagg');
+        await db.collection('config').doc('liveEvent').set({ allDone: true, type: null, ts: Date.now() });
+        break;
+      }
       const elapsed = Date.now() - start;
       if (elapsed + POLL_INTERVAL_MS >= FUNCTION_DURATION) break;
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
