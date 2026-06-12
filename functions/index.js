@@ -36,6 +36,8 @@ const API_TO_NOR = Object.fromEntries(
 
 const LIVE_STATUSES     = new Set(['1H','HT','2H','ET','BT','P','LIVE']);
 const FINISHED_STATUSES = new Set(['FT','AET','PEN']);
+// In-memory dedup for events within the same process lifetime
+const firedEvents = new Set();
 
 const NOR_TO_SHORT = {
   'Mexico':'MEX','Sør-Afrika':'RSA','Sør-Korea':'KOR','Tsjekkia':'CZE',
@@ -666,8 +668,12 @@ function buildLiveEvent(fixture, includeCards = false) {
   const min       = relevant.time?.elapsed;
   if (relevant.type === 'Goal') {
     const sm = relevant.detail === 'Own Goal' ? ' (s.m.)' : relevant.detail === 'Penalty' ? ' (str.)' : '';
+    const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
+    const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();
     return {
-      type: 'goal', homeNor, awayNor, homeGoals: hg, awayGoals: ag,
+      type: 'goal', homeTeam: homeNor, awayTeam: awayNor,
+      shortHome: shortH, shortAway: shortA,
+      homeGoals: hg, awayGoals: ag,
       homeScored: isHome, playerName: relevant.player?.name || '?',
       minute: min, suffix: sm, ts: Date.now(),
     };
@@ -787,14 +793,25 @@ async function pollAndUpdate() {
       const prevGoalKey    = prevGoals[`${homeNor}_${awayNor}`];
 
       if (prevGoalKey && prevGoalKey !== currentGoalKey) {
-        // Nytt mål! Skriv prevGoals umiddelbart for å unngå duplikat
-        newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
-        await prevGoalsRef.set(newPrevGoals);
-        const liveEvent = buildLiveEvent(fixture);
-        if (liveEvent?.type === 'goal' && matchId) {
-          handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
-            console.error('handleGoalEvent feil:', e.message)
-          );
+        // Nytt mål – bruk transaksjon for å unngå duplikat på tvers av instanser
+        const teamKey = `${homeNor}_${awayNor}`;
+        let isFirstToFire = false;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(prevGoalsRef);
+          const data = snap.exists ? snap.data() : {};
+          if (data[teamKey] !== currentGoalKey) {
+            tx.set(prevGoalsRef, { ...data, [teamKey]: currentGoalKey });
+            isFirstToFire = true;
+          }
+        });
+        newPrevGoals[teamKey] = currentGoalKey;
+        if (isFirstToFire) {
+          const liveEvent = buildLiveEvent(fixture);
+          if (liveEvent?.type === 'goal' && matchId) {
+            handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
+              console.error('handleGoalEvent feil:', e.message)
+            );
+          }
         }
       } else {
         newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
@@ -805,14 +822,22 @@ async function pollAndUpdate() {
       if (lastCardEvent) {
         const cardKey = `${homeNor}_${awayNor}_${lastCardEvent.player?.name}_${lastCardEvent.time?.elapsed}_${lastCardEvent.detail}`;
         const prevCardKey = newPrevCards[`${homeNor}_${awayNor}`];
+        let cardIsNew = false;
         if (cardKey !== prevCardKey) {
+          await db.runTransaction(async tx => {
+            const snap = await tx.get(prevCardsRef);
+            const data = snap.exists ? snap.data() : {};
+            if (data[`${homeNor}_${awayNor}`] !== cardKey) {
+              tx.set(prevCardsRef, { ...data, [`${homeNor}_${awayNor}`]: cardKey });
+              cardIsNew = true;
+            }
+          });
           newPrevCards[`${homeNor}_${awayNor}`] = cardKey;
-          // Skriv prevCards umiddelbart for å unngå duplikat-deteksjon i samme invokasjon
-          await prevCardsRef.set(newPrevCards);
+        }
+        if (cardIsNew) {
           const ce = buildLiveEvent(fixture, true);
           if (ce?.type === 'card') {
             cardEventThisPoll = ce;
-            // Nullstill liveEvent etter 30 sek
             setTimeout(async () => {
               try { await db.collection('config').doc('liveEvent').set({ type: null, ts: Date.now() }); } catch(e) {}
             }, 30000);

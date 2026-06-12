@@ -5738,10 +5738,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
                 o.stop(ctx.currentTime + i * 0.12 + 0.35);
               });
             } catch(e) {}
-            // HAL 9000 i chat
-            const { shortHome, shortAway, homeGoals, awayGoals, playerName, minute, suffix } = ev;
-            const msg = `⚽ MÅL! ${playerName}${suffix||''} '${minute} — ${shortHome} ${homeGoals}–${awayGoals} ${shortAway}`;
-            sendChatMessage('HAL 9000', msg, '').catch(() => {});
+            // HAL 9000 poster i chat via Cloud Function – ikke fra klient
           } else if (ev.type === 'card') {
             // Lyd – kort-pip
             try {
@@ -5755,9 +5752,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
               g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
               o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
             } catch(e) {}
-            // HAL 9000 i chat
-            const cardEmoji = ev.cardColor === 'Red' ? '🟥' : '🟨';
-            sendChatMessage('HAL 9000', `${cardEmoji} ${ev.text}`, '').catch(() => {});
+            // HAL 9000 poster i chat via Cloud Function – ikke fra klient
           } else if (ev.type === 'finished') {
             // Lyd – sluttsignal
             try {
@@ -5774,7 +5769,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
                 o.stop(ctx.currentTime + i * 0.2 + 0.3);
               });
             } catch(e) {}
-            sendChatMessage('HAL 9000', `🏁 ${ev.text}`, '').catch(() => {});
+            // HAL 9000 poster i chat via Cloud Function – ikke fra klient
           }
         }
         setLiveEvent(ev);
