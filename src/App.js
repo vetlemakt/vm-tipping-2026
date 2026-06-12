@@ -3633,8 +3633,10 @@ function TipsForm({ me, phase, viewUser }) {
                           <span style={{fontSize:8,color:'rgba(255,215,0,.5)',fontFamily:"'Inter',sans-serif"}}>Gruppe {m.group}</span>
                         </div>
                         {isFirstMatch && (
-                          <span style={{ fontSize: 9, color: '#FFD700', whiteSpace: 'nowrap', fontFamily: "'Kanit',sans-serif", fontWeight: 600, opacity: 0.85 }}>
-                            ← kampinfo
+                          <span style={{ position:'absolute', bottom:-14, left:0, right:0, textAlign:'center',
+                            fontSize: 8, color: '#FFD700', whiteSpace: 'nowrap', fontFamily: "'Kanit',sans-serif",
+                            fontWeight: 600, opacity: 0.75, pointerEvents:'none' }}>
+                            kampinfo ↑
                           </span>
                         )}
                       </div>
