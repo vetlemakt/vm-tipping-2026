@@ -37,6 +37,23 @@ const API_TO_NOR = Object.fromEntries(
 const LIVE_STATUSES     = new Set(['1H','HT','2H','ET','BT','P','LIVE']);
 const FINISHED_STATUSES = new Set(['FT','AET','PEN']);
 
+const NOR_TO_SHORT = {
+  'Mexico':'MEX','Sør-Afrika':'RSA','Sør-Korea':'KOR','Tsjekkia':'CZE',
+  'Canada':'CAN','Bosnia-Herz':'BIH','Qatar':'QAT','Sveits':'SUI',
+  'Brasil':'BRA','Marokko':'MAR','Haiti':'HAI','Skottland':'SCO',
+  'USA':'USA','Paraguay':'PAR','Australia':'AUS','Tyrkia':'TUR',
+  'Tyskland':'GER','Curacao':'CUW','Elfenbenskysten':'CIV','Ecuador':'ECU',
+  'Nederland':'NED','Japan':'JPN','Sverige':'SWE','Tunisia':'TUN',
+  'Belgia':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spania':'ESP','Kapp Verde':'CPV','Saudi-Arabia':'KSA','Uruguay':'URU',
+  'Frankrike':'FRA','Senegal':'SEN','Irak':'IRQ','Norge':'NOR',
+  'Argentina':'ARG','Algerie':'ALG','Østerrike':'AUT','Jordan':'JOR',
+  'Portugal':'POR','Kongo DR':'COD','Usbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Kroatia':'CRO','Ghana':'GHA','Panama':'PAN',
+};
+
+
+
 // ── Kampprogram: når skal vi polle? (UTC-tider) ──────────────────────
 // Bare poll 90 min rundt kampstart for å spare API-kvoter
 const MATCH_WINDOWS = [
@@ -603,16 +620,32 @@ async function getRecentlyFinished() {
 }
 
 function buildMatchResult(fixture) {
-  const home = fixture.goals?.home;
-  const away = fixture.goals?.away;
-  if (home === null || home === undefined) return null;
   const status     = fixture.fixture?.status?.short;
   const isLive     = LIVE_STATUSES.has(status);
   const isFinished = FINISHED_STATUSES.has(status);
   const elapsed    = fixture.fixture?.status?.elapsed || null;
-  const penHome    = fixture.score?.penalty?.home ?? null;
-  const penAway    = fixture.score?.penalty?.away ?? null;
-  return { home, away, status, elapsed, isLive, isFinished, penHome, penAway, updatedAt: Date.now() };
+
+  // Bruk alltid 90-minuttsresultatet for poengberegning (fulltime)
+  // I ekstraomganger/straffer er fixture.goals oppdatert løpende,
+  // mens score.fulltime er låst etter 90 min
+  const ftHome = fixture.score?.fulltime?.home;
+  const ftAway = fixture.score?.fulltime?.away;
+  const liveHome = fixture.goals?.home;
+  const liveAway = fixture.goals?.away;
+
+  // Under kamp: bruk live-score. Etter FT: bruk fulltime-score
+  const home = (isFinished && ftHome !== null && ftHome !== undefined) ? ftHome : liveHome;
+  const away = (isFinished && ftAway !== null && ftAway !== undefined) ? ftAway : liveAway;
+
+  if (home === null || home === undefined) return null;
+
+  const penHome = fixture.score?.penalty?.home ?? null;
+  const penAway = fixture.score?.penalty?.away ?? null;
+  const etHome  = fixture.score?.extratime?.home ?? null;
+  const etAway  = fixture.score?.extratime?.away ?? null;
+
+  return { home, away, status, elapsed, isLive, isFinished,
+    penHome, penAway, etHome, etAway, updatedAt: Date.now() };
 }
 
 function buildLiveEvent(fixture) {
@@ -638,15 +671,34 @@ function buildLiveEvent(fixture) {
     };
   }
   if (relevant.type === 'Card') {
-    // Gult kort: ingen confetti-trigger, bare tekst
-    const icon = relevant.detail?.includes('Yellow') ? '🟨' : '🟥';
+    const isYellow = relevant.detail?.includes('Yellow');
+    const icon = isYellow ? '🟨' : '🟥';
+    const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
+    const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();
     return {
       type: 'card',
-      text: `${icon} ${relevant.player?.name || '?'} '${min} (${isHome ? homeNor : awayNor})`,
+      cardColor: isYellow ? 'Yellow' : 'Red',
+      text: `${icon} ${relevant.player?.name || '?'} '${min} (${isHome ? shortH : shortA})`,
+      playerName: relevant.player?.name || '?',
+      minute: min,
+      teamNor: isHome ? homeNor : awayNor,
+      shortHome: shortH, shortAway: shortA,
+      homeGoals: hg, awayGoals: ag,
       ts: Date.now(),
     };
   }
   return null;
+}
+
+async function getFixtureEvents(fixtureId) {
+  if (!fixtureId) return [];
+  try {
+    const data = await apiFetch(`fixtures/events?fixture=${fixtureId}`);
+    return data.response || [];
+  } catch(e) {
+    console.warn('getFixtureEvents feilet:', e.message);
+    return [];
+  }
 }
 
 async function getFixtureLookup() {
@@ -665,9 +717,11 @@ async function pollAndUpdate() {
   const resultsRef     = db.collection('config').doc('results');
   const liveRef        = db.collection('config').doc('liveEvent');
   const prevGoalsRef   = db.collection('config').doc('prevGoals');
+  const prevCardsRef   = db.collection('config').doc('prevCards');
 
   const currentResults = (await resultsRef.get()).data() || {};
   const prevGoals      = (await prevGoalsRef.get()).data() || {};
+  const prevCards      = (await prevCardsRef.get()).data() || {};
 
   const updatedResults = { ...currentResults };
   let   resultsChanged = false;
@@ -690,12 +744,25 @@ async function pollAndUpdate() {
       if (!existing) {
         handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
           .catch(e => console.error('handleMatchFinished feil:', e.message));
+        // Lagre finished-event – sendes til klienten etter live-loop
+        const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
+        const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();
+        finishedEvent = {
+          type: 'finished',
+          text: `Slutt! ${shortH} ${result.home}–${result.away} ${shortA}`,
+          shortHome: shortH, shortAway: shortA,
+          homeGoals: result.home, awayGoals: result.away,
+          ts: Date.now(),
+        };
       }
     }
   }
 
   // Live-kamper: oppdater score + sjekk nye mål
+  let finishedEvent = null;
+  let cardEventThisPoll = null;
   const newPrevGoals = { ...prevGoals };
+  const newPrevCards = { ...prevCards };
 
   if (liveFixtures.length > 0) {
     for (const fixture of liveFixtures) {
@@ -708,6 +775,11 @@ async function pollAndUpdate() {
         if (result) { updatedResults[matchId] = result; resultsChanged = true; }
       }
 
+      // Hent hendelser separat for denne kampen
+      const fixtureId = fixture.fixture?.id;
+      const events = fixtureId ? await getFixtureEvents(fixtureId) : [];
+      fixture.events = events; // legg på fixture-objektet for buildLiveEvent
+
       // Sjekk om det er scoret et nytt mål siden forrige poll
       const currentGoalKey = `${homeNor}_${awayNor}_${fixture.goals?.home}_${fixture.goals?.away}`;
       const prevGoalKey    = prevGoals[`${homeNor}_${awayNor}`];
@@ -716,7 +788,6 @@ async function pollAndUpdate() {
         // Nytt mål! Bygg live-event og trigger bot-kommentar (kun ved mål, ikke kort)
         const liveEvent = buildLiveEvent(fixture);
         if (liveEvent?.type === 'goal' && matchId) {
-          // Ikke await – la bot-kommentaren kjøre asynkront
           handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
             console.error('handleGoalEvent feil:', e.message)
           );
@@ -724,16 +795,54 @@ async function pollAndUpdate() {
       }
 
       newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
+
+      // Sjekk nye kort
+      const lastCardEvent = [...events].reverse().find(e => e.type === 'Card');
+      if (lastCardEvent) {
+        const cardKey = `${homeNor}_${awayNor}_${lastCardEvent.player?.name}_${lastCardEvent.time?.elapsed}_${lastCardEvent.detail}`;
+        const prevCardKey = newPrevCards[`${homeNor}_${awayNor}`];
+        if (cardKey !== prevCardKey) {
+          newPrevCards[`${homeNor}_${awayNor}`] = cardKey;
+          const ce = buildLiveEvent(fixture);
+          if (ce?.type === 'card') cardEventThisPoll = ce;
+
+          // Oppdater kortstatistikk i config/cards
+          try {
+            const isYellow = lastCardEvent.detail?.includes('Yellow');
+            const isRed = !isYellow;
+            const cardTeamApi = lastCardEvent.team?.name;
+            const cardTeamNor = toNor(cardTeamApi) || cardTeamApi;
+            const cardsRef = db.collection('config').doc('cards');
+            const cardsSnap = await cardsRef.get();
+            const cardsData = cardsSnap.exists ? cardsSnap.data() : {};
+            const yKey = `_y_${cardTeamNor}`;
+            const rKey = `_r_${cardTeamNor}`;
+            const newY = (cardsData[yKey] || 0) + (isYellow ? 1 : 0);
+            const newR = (cardsData[rKey] || 0) + (isRed ? 1 : 0);
+            await cardsRef.set({
+              ...cardsData,
+              [yKey]: newY,
+              [rKey]: newR,
+              [cardTeamNor]: newY + newR * 3,
+            });
+            console.log(`Kort registrert: ${isYellow ? 'Gult' : 'Rødt'} til ${cardTeamNor} (${lastCardEvent.player?.name})`);
+          } catch(e) {
+            console.error('Kortregistrering feilet:', e.message);
+          }
+        }
+      }
     }
 
     const liveEvent = buildLiveEvent(liveFixtures[0]);
-    batch.set(liveRef, liveEvent || { type: null, ts: Date.now() });
+    // Prioriter: nytt kort > live mål/score > ingenting
+    batch.set(liveRef, cardEventThisPoll || liveEvent || finishedEvent || { type: null, ts: Date.now() });
   } else {
-    batch.set(liveRef, { type: null, ts: Date.now() });
+    batch.set(liveRef, finishedEvent || { type: null, ts: Date.now() });
   }
 
   if (resultsChanged) batch.set(resultsRef, updatedResults, { merge: true });
   batch.set(prevGoalsRef, newPrevGoals);
+  batch.set(prevCardsRef, newPrevCards);
 
   await batch.commit();
   console.log(`Poll ferdig. Live: ${liveFixtures.length}, Ferdig: ${finishedFixtures.length}`);
@@ -757,32 +866,14 @@ exports.pollFootball = onSchedule(
       console.log('Ingen kamp innenfor kampvindu – hopper over polling');
       return;
     }
-    // Sjekk om forrige invokasjon allerede markerte alle kamper som ferdige
-    const liveSnap = await db.collection('config').doc('liveEvent').get();
-    const liveData = liveSnap.exists ? liveSnap.data() : {};
-    if (liveData?.allDone === true) {
-      // Sjekk om vi er i et NYTT kampvindu (ny kamp har startet siden allDone ble satt)
-      const doneSinceMs = Date.now() - (liveData.ts || 0);
-      if (doneSinceMs < 60 * 60 * 1000) { // allDone satt for mindre enn 1 time siden
-        console.log('Alle kamper allerede ferdig – hopper over polling');
-        return;
-      }
-      // Over 1 time siden – nullstill flagget og poll normalt (ny kamp)
-      console.log('Nytt kampvindu – nullstiller allDone');
-      await db.collection('config').doc('liveEvent').set({ allDone: false, type: null, ts: Date.now() });
-    }
+
     const start = Date.now();
     let calls = 0;
     while (true) {
       let result;
       try { result = await pollAndUpdate(); calls++; }
       catch (err) { console.error(`Poll #${calls + 1} feilet:`, err.message); }
-      // Hvis pollAndUpdate rapporterer at ingen live-kamper gjenstår, stopp tidlig
-      if (result?.allFinished) {
-        console.log('Alle kamper ferdigspilt – setter allDone-flagg');
-        await db.collection('config').doc('liveEvent').set({ allDone: true, type: null, ts: Date.now() });
-        break;
-      }
+
       const elapsed = Date.now() - start;
       if (elapsed + POLL_INTERVAL_MS >= FUNCTION_DURATION) break;
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));

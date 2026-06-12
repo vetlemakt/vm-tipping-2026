@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc,
+  getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove,
   collection, getDocs, onSnapshot, addDoc,
   serverTimestamp, query, orderBy
 } from 'firebase/firestore';
@@ -132,5 +132,18 @@ export function subscribeQuizPlayer(callback) {
 export function subscribeStatsCache(callback) {
   return onSnapshot(doc(db, 'config', 'statsCache'), snap => {
     callback(snap.exists() ? snap.data() : null);
+  });
+}
+
+// ── Chat reactions ───────────────────────────────────────────────────
+export async function addReaction(msgId, emoji, username) {
+  const ref = doc(db, 'chat', msgId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const reactions = snap.data().reactions || {};
+  const users = reactions[emoji] || [];
+  const alreadyReacted = users.includes(username);
+  await updateDoc(ref, {
+    [`reactions.${emoji}`]: alreadyReacted ? arrayRemove(username) : arrayUnion(username)
   });
 }

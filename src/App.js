@@ -4,7 +4,7 @@ import {
   getUser, getAllUsers, createUser, updateUser,
   getResults, setResults, getPhase, setPhase,
   getCardStats, setCardStats,
-  subscribeChatMessages, sendChatMessage, deleteChatMessage,
+  subscribeChatMessages, sendChatMessage, deleteChatMessage, addReaction,
   subscribePhase, subscribeResults,
   updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache,
   db,
@@ -659,7 +659,10 @@ function renderChatText(text) {
 
 
 // ── Reusable chat message bubble (name+time above bubble) ───────────
-function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300 }) {
+const REACTION_EMOJIS = ['👍','😂','😮','❤️','🔥','👏'];
+
+function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
+  const [showPicker, setShowPicker] = useState(false);
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
   const isAdminMsg = m.user === 'Admin';
@@ -672,18 +675,24 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300 }) {
     const d = ts.toDate ? ts.toDate() : new Date(ts);
     return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
   };
+  const reactions = m.reactions || {};
+  const hasReactions = Object.values(reactions).some(u => u.length > 0);
+
   return (
     <div style={{
       ...C.chatMsg,
       alignSelf: mine ? 'flex-end' : 'flex-start',
       marginLeft: mine ? 8 : 0,
       marginRight: mine ? 0 : 8,
-    }}>
+      position: 'relative',
+    }}
+      onMouseEnter={() => setShowPicker(true)}
+      onMouseLeave={() => setShowPicker(false)}
+    >
       {/* Navn + tid over bobla */}
       <div style={{ ...C.chatMeta, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
         <span style={{ ...C.chatUser, color: nameColor, ...(isAdminMsg ? { textTransform: 'uppercase', fontWeight: 800 } : {}) }}>{m.user}</span>
         <span style={C.chatTime}>{fmt(m.ts)}</span>
-
         {(mine || isAdmin) && onDelete && (
           <button onClick={() => onDelete(m.id)} style={{
             background:'none', border:'none', color:'rgba(255,100,100,.35)',
@@ -705,6 +714,41 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300 }) {
           : renderChatText(m.text)
         }
       </span>
+      {/* Reaksjoner */}
+      {hasReactions && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:3, marginTop:3, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+          {Object.entries(reactions).filter(([,u]) => u.length > 0).map(([emoji, users]) => (
+            <button key={emoji} onClick={() => m.id && addReaction(m.id, emoji, username)} style={{
+              background: users.includes(username) ? 'rgba(255,215,0,.15)' : 'rgba(255,255,255,.06)',
+              border: `1px solid ${users.includes(username) ? 'rgba(255,215,0,.4)' : 'rgba(255,255,255,.12)'}`,
+              borderRadius: 10, padding:'1px 6px', cursor:'pointer', fontSize:12,
+              color:'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:3,
+            }}>
+              {emoji} <span style={{ fontSize:10, color:'rgba(255,255,255,.5)' }}>{users.length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {/* Emoji-picker ved hover */}
+      {showPicker && m.id && username && (
+        <div style={{
+          position:'absolute', [mine ? 'right' : 'left']: 0,
+          bottom: hasReactions ? 'calc(100% - 20px)' : '100%',
+          background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,255,255,.12)',
+          borderRadius:20, padding:'4px 6px', display:'flex', gap:2,
+          zIndex:100, boxShadow:'0 4px 16px rgba(0,0,0,.5)',
+        }}>
+          {REACTION_EMOJIS.map(e => (
+            <button key={e} onClick={() => { addReaction(m.id, e, username); setShowPicker(false); }} style={{
+              background:'none', border:'none', cursor:'pointer', fontSize:16, padding:'2px 3px',
+              borderRadius:8, transition:'transform .1s',
+            }}
+              onMouseEnter={ev => ev.target.style.transform='scale(1.3)'}
+              onMouseLeave={ev => ev.target.style.transform='scale(1)'}
+            >{e}</button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2842,7 +2886,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => (
             <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName}
-              isAdmin={me.isAdmin} onDelete={deleteChatMessage} maxImgH={200} />
+              isAdmin={me.isAdmin} onDelete={deleteChatMessage} maxImgH={200} username={me.displayName} />
           ))}
         </div>
         <div style={C.chatInputRow}>
@@ -2963,7 +3007,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             </div>
             <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px' }} ref={el => { if(el) el.scrollTop = el.scrollHeight; }}>
               {msgs.map((m, i) => (
-                <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName} />
+                <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName} username={me.displayName} />
               ))}
               <div ref={chatBot}/>
             </div>
@@ -5369,7 +5413,7 @@ function ChatPage({ me }) {
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => (
           <ChatBubble key={m.id || i} m={m} mine={m.user === me.displayName}
-            isAdmin={me.isAdmin} onDelete={deleteChatMessage} />
+            isAdmin={me.isAdmin} onDelete={deleteChatMessage} username={me.displayName} />
         ))}
       </div>
       <div style={C.chatInputRow}>
