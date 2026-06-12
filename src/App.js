@@ -2546,9 +2546,8 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
       {show && tooltip && typeof document !== 'undefined' && createPortal(
-        <div style={popupStyle} onClick={e => e.stopPropagation()}>
+        <div style={{...popupStyle, maxHeight: 300, overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
           {tooltip}
-          <button onClick={() => setShow(false)} style={{ display:'block', margin:'8px auto 0', background:'none', border:'1px solid rgba(255,255,255,.2)', color:'rgba(255,255,255,.5)', borderRadius:6, padding:'4px 12px', fontSize:11, cursor:'pointer' }}>Lukk</button>
         </div>,
         document.body
       )}
@@ -2786,7 +2785,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <StatBoxWithTooltip key={key} num={num} label={label} mobile={true} tooltip={
                 <div style={{ minWidth: 200 }}>
                   <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
-                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                  <div>
                   {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{s.name}</span>
@@ -2813,7 +2812,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <StatBoxWithTooltip key={key} num={num} label={label} tooltip={
                 <div style={{ minWidth: 180 }}>
                   <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
-                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                  <div>
                   {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{s.name}</span>
