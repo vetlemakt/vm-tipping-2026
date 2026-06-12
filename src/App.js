@@ -6213,43 +6213,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // Klient-side live-polling som backup for Cloud Function pollFootball
-  // Poller API-Football hvert 30. sek og skriver til config/liveEvent i Firestore
-  useEffect(() => {
-    if (!user) return;
-    let prevEvKey = null;
-    let prevGoalKey = null;
-    const poll = async () => {
-      try {
-        const ev = await fetchLiveEvents();
-        const evKey = ev ? (ev.type + (ev.text || '')) : null;
-        if (evKey !== prevEvKey) {
-          prevEvKey = evKey;
-          const { setDoc: fsSetDoc, doc: fsDoc } = await import('firebase/firestore');
-          const { db: fsDb } = await import('./firebase');
-          if (ev) {
-            await fsSetDoc(fsDoc(fsDb, 'config', 'liveEvent'), ev);
-            // Nytt mål – bot-kommentar i chat
-            const goalKey = ev.type === 'goal' ? ev.text : null;
-            if (goalKey && goalKey !== prevGoalKey) {
-              prevGoalKey = goalKey;
-              const expert = PANEL_EXPERTS[Math.floor(Math.random() * PANEL_EXPERTS.length)];
-              const prompt = `${expert.personality}\n\nI et VM-tipping-spill kommenterer du dette målet: ${ev.text}. Si noe kort og engasjert – maks 2 setninger.`;
-              const reply = await chatWithExpert(expert, prompt, []);
-              await sendChatMessage(expert.name, '⚽ ' + reply, '');
-            }
-          } else {
-            await fsSetDoc(fsDoc(fsDb, 'config', 'liveEvent'), { cleared: true });
-          }
-        }
-      } catch(e) {
-        console.warn('Client poll error:', e);
-      }
-    };
-    const iv = setInterval(poll, 30000);
-    poll(); // kjør umiddelbart
-    return () => clearInterval(iv);
-  }, [user]); // eslint-disable-line
+
 
   useEffect(() => {
     if (!user?.isAdmin) return;
