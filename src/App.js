@@ -5720,65 +5720,52 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
         const ageMs = Date.now() - (ev.ts || 0);
         if (evKey !== prevEventRef.current && ageMs < 60000) {
           prevEventRef.current = evKey;
+          setLiveEvent(ev);
+          setTimeout(() => { setLiveEvent(null); prevEventRef.current = null; }, 30000);
           if (ev.type === 'goal') {
-            // Konfetti
             setTimeout(() => fireGoalConfetti(3), 400);
-            // Lyd – mål-jingle
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const freqs = [523, 659, 784, 1047];
-              freqs.forEach((f, i) => {
-                const o = ctx.createOscillator();
-                const g = ctx.createGain();
+              [523, 659, 784, 1047].forEach((f, i) => {
+                const o = ctx.createOscillator(); const g = ctx.createGain();
                 o.connect(g); g.connect(ctx.destination);
-                o.frequency.value = f;
-                o.type = 'sine';
+                o.frequency.value = f; o.type = 'sine';
                 g.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
                 g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.35);
-                o.start(ctx.currentTime + i * 0.12);
-                o.stop(ctx.currentTime + i * 0.12 + 0.35);
+                o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.35);
               });
             } catch(e) {}
-            // HAL 9000 poster i chat via Cloud Function – ikke fra klient
           } else if (ev.type === 'card') {
-            // Lyd – kort-pip
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const o = ctx.createOscillator();
-              const g = ctx.createGain();
+              const o = ctx.createOscillator(); const g = ctx.createGain();
               o.connect(g); g.connect(ctx.destination);
-              o.frequency.value = ev.cardColor === 'Red' ? 220 : 440;
-              o.type = 'square';
+              o.frequency.value = ev.cardColor === 'Red' ? 220 : 440; o.type = 'square';
               g.gain.setValueAtTime(0.1, ctx.currentTime);
               g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
               o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
             } catch(e) {}
-            // HAL 9000 poster i chat via Cloud Function – ikke fra klient
           } else if (ev.type === 'finished') {
-            // Lyd – sluttsignal
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
               [600, 500, 400].forEach((f, i) => {
-                const o = ctx.createOscillator();
-                const g = ctx.createGain();
+                const o = ctx.createOscillator(); const g = ctx.createGain();
                 o.connect(g); g.connect(ctx.destination);
-                o.frequency.value = f;
-                o.type = 'sine';
+                o.frequency.value = f; o.type = 'sine';
                 g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.2);
                 g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.3);
-                o.start(ctx.currentTime + i * 0.2);
-                o.stop(ctx.currentTime + i * 0.2 + 0.3);
+                o.start(ctx.currentTime + i * 0.2); o.stop(ctx.currentTime + i * 0.2 + 0.3);
               });
             } catch(e) {}
-            // HAL 9000 poster i chat via Cloud Function – ikke fra klient
           }
-        }
-        setLiveEvent(ev);
-        // Auto-fjern etter 30 sek
-        if (ev.type === 'goal' || ev.type === 'card' || ev.type === 'finished') {
-          setTimeout(() => setLiveEvent(null), 30000);
+        } else if (evKey === prevEventRef.current) {
+          // Samme hendelse — ikke gjør noe (unngår reset av 30-sek timer)
+        } else {
+          // Gammel hendelse (>60 sek) — vis bare score
+          setLiveEvent(ev);
         }
       } else {
+        prevEventRef.current = null;
         setLiveEvent(null);
       }
     });
