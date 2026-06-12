@@ -2523,9 +2523,9 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
 
   const popupStyle = rect ? {
     position: 'fixed',
-    top: Math.max(8, rect.top - 8),
-    left: Math.max(8, Math.min(window.innerWidth - 220, rect.left + rect.width/2 - 110)),
-    transform: 'translateY(-100%)',
+    top: rect.top,
+    left: rect.left,
+    transform: 'none',
     background: 'rgba(10,14,30,0.97)',
     border: '1px solid rgba(255,215,0,.25)',
     borderRadius: 10,
