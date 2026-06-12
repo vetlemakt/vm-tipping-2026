@@ -648,7 +648,7 @@ function buildMatchResult(fixture) {
     penHome, penAway, etHome, etAway, updatedAt: Date.now() };
 }
 
-function buildLiveEvent(fixture) {
+function buildLiveEvent(fixture, includeCards = false) {
   const events = fixture.events || [];
   if (!events.length) return null;
   const homeTeamApi = fixture.teams?.home?.name;
@@ -657,7 +657,9 @@ function buildLiveEvent(fixture) {
   const awayNor = toNor(awayTeamApi);
   const hg = fixture.goals?.home ?? 0;
   const ag = fixture.goals?.away ?? 0;
-  const relevant = [...events].reverse().find(e => e.type === 'Goal' || e.type === 'Card');
+  const relevant = includeCards
+    ? [...events].reverse().find(e => e.type === 'Goal' || e.type === 'Card')
+    : [...events].reverse().find(e => e.type === 'Goal');
   if (!relevant) return null;
   const evTeamApi = relevant.team?.name;
   const isHome    = evTeamApi === homeTeamApi;
@@ -785,16 +787,18 @@ async function pollAndUpdate() {
       const prevGoalKey    = prevGoals[`${homeNor}_${awayNor}`];
 
       if (prevGoalKey && prevGoalKey !== currentGoalKey) {
-        // Nytt mål! Bygg live-event og trigger bot-kommentar (kun ved mål, ikke kort)
+        // Nytt mål! Skriv prevGoals umiddelbart for å unngå duplikat
+        newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
+        await prevGoalsRef.set(newPrevGoals);
         const liveEvent = buildLiveEvent(fixture);
         if (liveEvent?.type === 'goal' && matchId) {
           handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
             console.error('handleGoalEvent feil:', e.message)
           );
         }
+      } else {
+        newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
       }
-
-      newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
 
       // Sjekk nye kort
       const lastCardEvent = [...events].reverse().find(e => e.type === 'Card');
@@ -803,8 +807,16 @@ async function pollAndUpdate() {
         const prevCardKey = newPrevCards[`${homeNor}_${awayNor}`];
         if (cardKey !== prevCardKey) {
           newPrevCards[`${homeNor}_${awayNor}`] = cardKey;
-          const ce = buildLiveEvent(fixture);
-          if (ce?.type === 'card') cardEventThisPoll = ce;
+          // Skriv prevCards umiddelbart for å unngå duplikat-deteksjon i samme invokasjon
+          await prevCardsRef.set(newPrevCards);
+          const ce = buildLiveEvent(fixture, true);
+          if (ce?.type === 'card') {
+            cardEventThisPoll = ce;
+            // Nullstill liveEvent etter 30 sek
+            setTimeout(async () => {
+              try { await db.collection('config').doc('liveEvent').set({ type: null, ts: Date.now() }); } catch(e) {}
+            }, 30000);
+          }
 
           // Oppdater kortstatistikk i config/cards
           try {
