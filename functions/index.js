@@ -16,7 +16,7 @@ const FUNCTION_DURATION = 50000;
 // ── Lagnavn-mapping ──────────────────────────────────────────────────
 const TEAM_NAME_MAP = {
   'Mexico':'Mexico','Sør-Afrika':'South Africa','Sør-Korea':'South Korea',
-  'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina',
+  'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina','Bosnia-Herz2':'Bosnia & Herzegovina',
   'Qatar':'Qatar','Sveits':'Switzerland','Brasil':'Brazil','Marokko':'Morocco',
   'Haiti':'Haiti','Skottland':'Scotland','USA':'USA','Paraguay':'Paraguay',
   'Australia':'Australia','Tyrkia':'Turkey','Tyskland':'Germany','Curacao':'Curacao',
@@ -617,7 +617,7 @@ async function apiFetch(path) {
   return res.json();
 }
 
-function toNor(apiName) { return API_TO_NOR[apiName] || apiName; }
+function toNor(apiName) { if (!apiName) return apiName; return API_TO_NOR[apiName] || API_TO_NOR[apiName.replace('&','and').trim()] || apiName; }
 
 async function getActiveFixtures() {
   const data = await apiFetch(
@@ -820,6 +820,12 @@ async function pollAndUpdate() {
         if (isFirstToFire) {
           const liveEvent = buildLiveEvent(fixture);
           if (liveEvent?.type === 'goal' && matchId) {
+            // Skriv goal-event direkte til liveRef med nåværende ts
+            await liveRef.set({ ...liveEvent, ts: Date.now() });
+            // Nullstill etter 30 sek
+            setTimeout(async () => {
+              try { await liveRef.set({ type: null, ts: Date.now() }); } catch(e) {}
+            }, 30000);
             handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
               console.error('handleGoalEvent feil:', e.message)
             );
@@ -882,9 +888,19 @@ async function pollAndUpdate() {
       }
     }
 
-    const liveEvent = buildLiveEvent(liveFixtures[0]);
-    // Prioriter: nytt kort > live mål/score > ingenting
-    batch.set(liveRef, cardEventThisPoll || liveEvent || finishedEvent || { type: null, ts: Date.now() });
+    // Skriv KUN type:null (live-score uten hendelse) til liveEvent ved vanlig poll
+    // Nye mål/kort skrives separat via transaksjon og nullstilles etter 30 sek
+    if (cardEventThisPoll || finishedEvent) {
+      batch.set(liveRef, cardEventThisPoll || finishedEvent);
+    } else {
+      // Ikke overskriv en aktiv hendelse (mål/kort/slutt) som er nyere enn 30 sek
+      const liveSnap = await liveRef.get();
+      const existing = liveSnap.exists ? liveSnap.data() : {};
+      const age = Date.now() - (existing.ts || 0);
+      if (!existing.type || age > 30000) {
+        batch.set(liveRef, { type: null, ts: Date.now() });
+      }
+    }
   } else {
     batch.set(liveRef, finishedEvent || { type: null, ts: Date.now() });
   }

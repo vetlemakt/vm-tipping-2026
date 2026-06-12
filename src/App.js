@@ -2511,7 +2511,7 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   return (
     <div style={{ ...C.statWidget, flex: mobile ? undefined : 1, width: mobile ? 100 : undefined,
       flexShrink: mobile ? 0 : undefined, padding: mobile ? '12px 8px' : '8px 6px',
-      position: 'relative', cursor: 'pointer' }}
+      position: 'relative', cursor: 'pointer', overflow: 'visible' }}
       onMouseEnter={() => !mobile && setShow(true)}
       onMouseLeave={() => !mobile && setShow(false)}
       onClick={() => mobile && setShow(s => !s)}>
@@ -2520,10 +2520,18 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
       {show && tooltip && (
-        <div style={{ position: 'fixed', bottom: mobile ? 80 : undefined, top: mobile ? undefined : undefined,
-          left: '50%', transform: 'translateX(-50%)',
+        <div ref={el => {
+          if (el) {
+            const rect = el.parentElement?.getBoundingClientRect();
+            if (rect) {
+              el.style.top = Math.max(8, rect.top - el.offsetHeight - 8) + 'px';
+              el.style.left = Math.min(window.innerWidth - el.offsetWidth - 8, Math.max(8, rect.left + rect.width/2 - el.offsetWidth/2)) + 'px';
+            }
+          }
+        }} style={{ position: 'fixed', bottom: mobile ? 80 : undefined,
+          left: mobile ? '50%' : undefined, transform: mobile ? 'translateX(-50%)' : undefined,
           background: 'rgba(10,14,30,0.97)', border: '1px solid rgba(255,215,0,.25)', borderRadius: 10,
-          padding: '10px 14px', zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}
+          padding: '10px 14px', zIndex: 9999, boxShadow: '0 8px 32px rgba(0,0,0,.6)', minWidth: 200 }}
           onClick={e => e.stopPropagation()}>
           {tooltip}
           {mobile && <button onClick={() => setShow(false)} style={{ display:'block', margin:'8px auto 0', background:'none', border:'1px solid rgba(255,255,255,.2)', color:'rgba(255,255,255,.5)', borderRadius:6, padding:'4px 12px', fontSize:11, cursor:'pointer' }}>Lukk</button>}
@@ -2763,7 +2771,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <StatBoxWithTooltip key={key} num={num} label={label} mobile={true} tooltip={
                 <div style={{ minWidth: 200 }}>
                   <div style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>⚽ TOPPSCORERE</div>
-                  {statsCache.scorers?.length > 0 ? statsCache.scorers.slice(0, 8).map((s, i) => (
+                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).slice(0, 8).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{i + 1}. {s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
@@ -2788,7 +2796,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <StatBoxWithTooltip key={key} num={num} label={label} tooltip={
                 <div style={{ minWidth: 180 }}>
                   <div style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>⚽ TOPPSCORERE</div>
-                  {statsCache.scorers?.length > 0 ? statsCache.scorers.slice(0, 8).map((s, i) => (
+                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).slice(0, 8).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{i + 1}. {s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
