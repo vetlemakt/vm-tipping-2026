@@ -2792,7 +2792,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <div>
                   {scorers.filter(s => s.goals > 0).length > 0 ? scorers.filter(s => s.goals > 0).sort((a,b) => b.goals - a.goals).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                      <span style={{ color: 'rgba(255,255,255,.8)' }}>{FLAGS[s.team] || ''} {s.name}</span>
+                      <span style={{ color: 'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:4 }}><Flag team={s.team} size={14} /> {s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
                     </div>
                   )) : <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontStyle: 'italic' }}>Toppscorerliste kommer</div>}
@@ -2819,7 +2819,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <div>
                   {scorers.filter(s => s.goals > 0).length > 0 ? scorers.filter(s => s.goals > 0).sort((a,b) => b.goals - a.goals).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                      <span style={{ color: 'rgba(255,255,255,.8)' }}>{FLAGS[s.team] || ''} {s.name}</span>
+                      <span style={{ color: 'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:4 }}><Flag team={s.team} size={14} /> {s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
                     </div>
                   )) : <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontStyle: 'italic' }}>Toppscorerliste kommer</div>}
