@@ -1406,19 +1406,7 @@ function useChatSound() {
 
   const playSound = useCallback(() => {
     if (!soundOn) return;
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'sine';
-      o.frequency.setValueAtTime(880, ctx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
-      g.gain.setValueAtTime(0.18, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-      o.start(ctx.currentTime);
-      o.stop(ctx.currentTime + 0.25);
-    } catch {}
+    try { new Audio('/chat.wav').play(); } catch {}
   }, [soundOn]);
 
   return { soundOn, toggleSound, playSound };
@@ -2550,7 +2538,7 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
       {show && tooltip && typeof document !== 'undefined' && createPortal(
-        <div style={{...popupStyle, maxHeight: 320, overflowY: 'auto', overflowX: 'hidden'}} onClick={e => e.stopPropagation()}>
+        <div style={{...popupStyle}} onClick={e => e.stopPropagation()}>
           {tooltip}
         </div>,
         document.body
@@ -2798,7 +2786,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <StatBoxWithTooltip key={key} num={num} label={label} mobile={true} tooltip={
                 <div style={{ minWidth: 200 }}>
                   <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
-                  <div>
+                  <div style={{ maxHeight: 240, overflowY: 'auto', overflowX: 'hidden' }}>
                   {scorers.filter(s => s.goals > 0).length > 0 ? scorers.filter(s => s.goals > 0).sort((a,b) => b.goals - a.goals).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:4 }}><Flag team={s.team} size={14} /> {s.name}</span>
@@ -2825,7 +2813,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <StatBoxWithTooltip key={key} num={num} label={label} tooltip={
                 <div style={{ minWidth: 180 }}>
                   <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
-                  <div>
+                  <div style={{ maxHeight: 240, overflowY: 'auto', overflowX: 'hidden' }}>
                   {scorers.filter(s => s.goals > 0).length > 0 ? scorers.filter(s => s.goals > 0).sort((a,b) => b.goals - a.goals).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:4 }}><Flag team={s.team} size={14} /> {s.name}</span>
@@ -5765,17 +5753,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
             setBannerAnim('goal');
             setTimeout(() => { setLiveEvent(null); setBannerAnim(null); }, 30000);
             setTimeout(() => fireGoalConfetti(3), 400);
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              [523, 659, 784, 1047].forEach((f, i) => {
-                const o = ctx.createOscillator(); const g = ctx.createGain();
-                o.connect(g); g.connect(ctx.destination);
-                o.frequency.value = f; o.type = 'sine';
-                g.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
-                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.35);
-                o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.35);
-              });
-            } catch(e) {}
+            try { new Audio('/goal.wav').play(); } catch(e) {}
           } else if (ev.type === 'card') {
             const isRed = ev.cardColor === 'Red';
             setBannerAnim(isRed ? 'red' : 'yellow');
@@ -5783,29 +5761,11 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
             const blinkDuration = isRed ? 10000 : 1500;
             setTimeout(() => setBannerAnim(isRed ? 'red-solid' : 'yellow-solid'), blinkDuration);
             setTimeout(() => { setLiveEvent(null); setBannerAnim(null); }, 30000);
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const o = ctx.createOscillator(); const g = ctx.createGain();
-              o.connect(g); g.connect(ctx.destination);
-              o.frequency.value = ev.cardColor === 'Red' ? 220 : 440; o.type = 'square';
-              g.gain.setValueAtTime(0.1, ctx.currentTime);
-              g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-              o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
-            } catch(e) {}
+            try { new Audio('/whistle.wav').play(); } catch(e) {}
           } else if (ev.type === 'finished') {
             setBannerAnim('finished');
             setTimeout(() => { setLiveEvent(null); setBannerAnim(null); }, 30000);
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              [600, 500, 400].forEach((f, i) => {
-                const o = ctx.createOscillator(); const g = ctx.createGain();
-                o.connect(g); g.connect(ctx.destination);
-                o.frequency.value = f; o.type = 'sine';
-                g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.2);
-                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.3);
-                o.start(ctx.currentTime + i * 0.2); o.stop(ctx.currentTime + i * 0.2 + 0.3);
-              });
-            } catch(e) {}
+            try { new Audio('/whistle.wav').play(); } catch(e) {}
           }
         } else if (evKey === prevEventRef.current) {
           // Samme hendelse — ikke gjør noe (unngår reset av 30-sek timer)
@@ -5845,11 +5805,11 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
       return (
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
           <span style={{ color: YEL, fontWeight:900, letterSpacing:1 }}>MÅL!</span>
-          <Flag team={homeTeam} size={16} />
+          <span style={{ display:'flex', alignItems:'center', gap:3 }}><Flag team={homeTeam} size={14} /><span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.9)', fontSize:11 }}>{homeTeam}</span></span>
           <span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{homeGoals}</span>
           <span style={{ color:'rgba(255,255,255,.4)' }}>–</span>
           <span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{awayGoals}</span>
-          <Flag team={awayTeam} size={16} />
+          <span style={{ display:'flex', alignItems:'center', gap:3 }}><Flag team={awayTeam} size={14} /><span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.9)', fontSize:11 }}>{awayTeam}</span></span>
           <span style={{ color:'rgba(255,255,255,.55)', fontSize:10, marginLeft:2 }}>· {playerName}{suffix} '{minute}</span>
         </div>
       );

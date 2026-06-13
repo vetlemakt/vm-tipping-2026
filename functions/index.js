@@ -18,7 +18,7 @@ const TEAM_NAME_MAP = {
   'Mexico':'Mexico','Sør-Afrika':'South Africa','Sør-Korea':'South Korea',
   'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina','Bosnia-Herz2':'Bosnia & Herzegovina',
   'Qatar':'Qatar','Sveits':'Switzerland','Brasil':'Brazil','Marokko':'Morocco',
-  'Haiti':'Haiti','Skottland':'Scotland','USA':'USA','Paraguay':'Paraguay',
+  'Haiti':'Haiti','Skottland':'Scotland','USA':'USA','USA2':'United States','Paraguay':'Paraguay',
   'Australia':'Australia','Tyrkia':'Turkey','Tyskland':'Germany','Curacao':'Curacao',
   'Elfenbenskysten':'Ivory Coast','Ecuador':'Ecuador','Nederland':'Netherlands',
   'Japan':'Japan','Sverige':'Sweden','Tunisia':'Tunisia','Belgia':'Belgium',
@@ -506,8 +506,8 @@ async function handleGoalEvent(matchId, liveEvent, prevGoalKey) {
 
   // Generer og post kommentar
   const matchContext = {
-    homeTeam:   liveEvent.homeNor,
-    awayTeam:   liveEvent.awayNor,
+    homeTeam:   liveEvent.homeTeam || liveEvent.homeNor,
+    awayTeam:   liveEvent.awayTeam || liveEvent.awayNor,
     homeGoals:  liveEvent.homeGoals,
     awayGoals:  liveEvent.awayGoals,
     minute:     liveEvent.minute,
@@ -617,7 +617,32 @@ async function apiFetch(path) {
   return res.json();
 }
 
-function toNor(apiName) { if (!apiName) return apiName; return API_TO_NOR[apiName] || API_TO_NOR[apiName.replace('&','and').trim()] || apiName; }
+function toNor(apiName) {
+  if (!apiName) return apiName;
+  // Direkte oppslag
+  if (API_TO_NOR[apiName]) return API_TO_NOR[apiName];
+  // & → and
+  const withAnd = apiName.replace('&', 'and').trim();
+  if (API_TO_NOR[withAnd]) return API_TO_NOR[withAnd];
+  // Kjente API-varianter
+  const variants = {
+    'United States': 'USA',
+    'Czech Republic': 'Tsjekkia',
+    'Czechia': 'Tsjekkia',
+    'South Korea': 'Sør-Korea',
+    'Korea Republic': 'Sør-Korea',
+    'South Africa': 'Sør-Afrika',
+    'Ivory Coast': 'Elfenbenskysten',
+    "Cote d'Ivoire": 'Elfenbenskysten',
+    'DR Congo': 'Kongo DR',
+    'Cape Verde': 'Kapp Verde',
+    'Saudi Arabia': 'Saudi-Arabia',
+    'Bosnia and Herzegovina': 'Bosnia-Herz',
+    'Bosnia & Herzegovina': 'Bosnia-Herz',
+    'New Zealand': 'New Zealand',
+  };
+  return variants[apiName] || API_TO_NOR[apiName] || apiName;
+}
 
 async function getActiveFixtures() {
   const data = await apiFetch(
@@ -679,15 +704,18 @@ function buildLiveEvent(fixture, includeCards = false) {
   const isHome    = evTeamApi === homeTeamApi;
   const min       = relevant.time?.elapsed;
   if (relevant.type === 'Goal') {
-    const sm = relevant.detail === 'Own Goal' ? ' (s.m.)' : relevant.detail === 'Penalty' ? ' (str.)' : '';
+    const isOwnGoal = relevant.detail === 'Own Goal';
+    const sm = isOwnGoal ? ' (s.m.)' : relevant.detail === 'Penalty' ? ' (str.)' : '';
     const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
     const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();
+    // Ved selvmål scorer motstanderlaget det faktiske målet
+    const homeScored = isOwnGoal ? !isHome : isHome;
     return {
       type: 'goal', homeTeam: homeNor, awayTeam: awayNor,
       shortHome: shortH, shortAway: shortA,
       homeGoals: hg, awayGoals: ag,
-      homeScored: isHome, playerName: relevant.player?.name || '?',
-      minute: min, suffix: sm, ts: Date.now(),
+      homeScored, playerName: relevant.player?.name || '?',
+      minute: min, suffix: sm, isOwnGoal, ts: Date.now(),
     };
   }
   if (relevant.type === 'Card') {
@@ -1065,13 +1093,26 @@ exports.updateStatsCache = onSchedule(
       );
       const scorersData = await scorersRes.json();
       if (scorersData.response?.length) {
-        const scorers = scorersData.response.slice(0, 50).map(e => ({
+        const apiScorers = scorersData.response.slice(0, 50).map(e => ({
           name: e.player.name,
           team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
           goals: e.statistics?.[0]?.goals?.total ?? 0,
         }));
-        await db.collection('config').doc('statsCache').set({ scorers, updatedAt: Date.now() }, { merge: true });
-        console.log('Toppscorere oppdatert:', scorers.length);
+        // Merge: behold eksisterende scorere, oppdater med API-data (ta høyeste mål-tall)
+        const existingSnap = await db.collection('config').doc('statsCache').get();
+        const existing = existingSnap.exists ? (existingSnap.data().scorers || []) : [];
+        const merged = [...existing];
+        for (const apiS of apiScorers) {
+          const idx = merged.findIndex(s => s.name === apiS.name);
+          if (idx >= 0) {
+            merged[idx] = { ...merged[idx], goals: Math.max(merged[idx].goals || 0, apiS.goals) };
+          } else if (apiS.goals > 0) {
+            merged.push(apiS);
+          }
+        }
+        merged.sort((a, b) => b.goals - a.goals);
+        await db.collection('config').doc('statsCache').set({ scorers: merged, updatedAt: Date.now() }, { merge: true });
+        console.log('Toppscorere oppdatert:', merged.length);
       }
 
       // Kort (topp gule/røde)
