@@ -6,7 +6,7 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage, addReaction,
   subscribePhase, subscribeResults,
-  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeScorers,
+  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -2598,13 +2598,14 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const chatBot = useRef(null);
 
   const [liveEvent, setLiveEvent] = useState(null);
+  const [statsCache, setStatsCache] = useState({ scorers: [] });
   const [scorers, setScorers] = useState([]);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
-  useEffect(() => { const u = subscribeScorers(setScorers); return u; }, []);
+  useEffect(() => { const u = subscribeStatsCache(data => { setStatsCache(data || {}); setScorers(data?.scorers || []); }); return u; }, []);
   const chatBoxRef = useRef(null);
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
