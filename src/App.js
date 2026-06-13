@@ -4062,12 +4062,16 @@ function AdminPanel() {
         const existingUser = await getUser('panel_' + expert.id);
         const existingTips = existingUser?.tips || {};
         const existingSpec = existingUser?.specialTips || {};
-        const tips = await generateExpertTips(expert);
+        const existingGrpO = existingUser?.groupOrders || {};
+        const generated = await generateExpertTips(expert);
+        const tips = generated.tips || generated;
+        const groupOrders = generated.groupOrders || {};
         const newTips = {};
         Object.entries(tips).forEach(([k, v]) => {
           if (force || !existingTips[k]) newTips[k] = v;
         });
         const mergedTips = force ? newTips : { ...existingTips, ...newTips };
+        const mergedGrpO = force ? groupOrders : { ...existingGrpO, ...groupOrders };
         if (Object.keys(mergedTips).length >= 0) {
           // Generate special tips too
           const teamList = ALL_TEAMS.join(', ');
@@ -4090,7 +4094,7 @@ function AdminPanel() {
           specialTips.topscorer = topscorerMap[expert.id] || '';
           const mergedSpec = { ...specialTips, ...existingSpec };
           mergedSpec.topscorer = topscorerMap[expert.id] || '';
-          await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips: mergedTips, specialTips: mergedSpec, displayName: expert.name, password: 'bot' });
+          await setDoc(doc(db, 'users', 'panel_' + expert.id), { tips: mergedTips, specialTips: mergedSpec, groupOrders: mergedGrpO, displayName: expert.name, password: 'bot' });
         }
       }
       alert('Bot-tips generert! ✅');
