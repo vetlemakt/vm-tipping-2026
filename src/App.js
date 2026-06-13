@@ -2964,7 +2964,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             const sum = summaries[m.id];
             const isEditing = editingSummary === m.id;
             return (
-              <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0 }}>
+              <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 12 }}>
                 <div style={C.matchTeams}>
                   <span style={C.matchTeam}><Flag team={m.home} /> {m.home}</span>
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
@@ -3068,7 +3068,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             const botExpert = sum?.botName ? PANEL_EXPERTS.find(e => e.name === sum.botName) : null;
             const botColor = botExpert?.color || 'rgba(255,215,0,.5)';
             return (
-              <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0 }}>
+              <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 12 }}>
                 <div style={C.matchTeams}>
                   <span style={C.matchTeam}><Flag team={m.home} /> {m.home}</span>
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
