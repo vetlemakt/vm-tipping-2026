@@ -3001,8 +3001,21 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 {sum?.botText ? (
                   <div style={{ ...C.botSummaryBox, borderLeft: `3px solid ${PANEL_EXPERTS.find(e => e.name === sum.botName)?.color || 'rgba(255,215,0,.5)'}`, paddingLeft: 10 }}>
                     <div style={C.botSummaryText}>{sum.botText}</div>
-                    <div style={{ ...C.botSummaryAuthor, color: PANEL_EXPERTS.find(e => e.name === sum.botName)?.color || 'rgba(255,215,0,.5)' }}>
-                      {sum.botName}
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div style={{ ...C.botSummaryAuthor, color: PANEL_EXPERTS.find(e => e.name === sum.botName)?.color || 'rgba(255,215,0,.5)' }}>
+                        {sum.botName}
+                      </div>
+                      {me?.isAdmin && (
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button onClick={() => {
+                            const newText = prompt('Rediger bot-referat:', sum.botText);
+                            if (newText !== null) setDoc(doc(db, 'summaries', m.id), { botText: newText }, { merge: true });
+                          }} style={{ background:'none', border:'none', color:'rgba(255,255,255,.3)', fontSize:10, cursor:'pointer' }}>✏️ Rediger</button>
+                          <button onClick={() => {
+                            if (window.confirm('Slett bot-referatet?')) setDoc(doc(db, 'summaries', m.id), { botText: null, botName: null, botId: null }, { merge: true });
+                          }} style={{ background:'none', border:'none', color:'rgba(255,100,100,.4)', fontSize:10, cursor:'pointer' }}>🗑️ Slett</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -3101,7 +3114,20 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 {sum?.botText && (
                   <div style={{ ...C.botSummaryBox, borderLeft:`3px solid ${botColor}`, paddingLeft:10 }}>
                     <div style={C.botSummaryText}>{sum.botText}</div>
-                    <div style={{ ...C.botSummaryAuthor, color:botColor }}>{sum.botName}</div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div style={{ ...C.botSummaryAuthor, color:botColor }}>{sum.botName}</div>
+                      {me?.isAdmin && (
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button onClick={() => {
+                            const newText = prompt('Rediger bot-referat:', sum.botText);
+                            if (newText !== null) setDoc(doc(db, 'summaries', m.id), { botText: newText }, { merge: true });
+                          }} style={{ background:'none', border:'none', color:'rgba(255,255,255,.3)', fontSize:10, cursor:'pointer' }}>✏️ Rediger</button>
+                          <button onClick={() => {
+                            if (window.confirm('Slett bot-referatet?')) setDoc(doc(db, 'summaries', m.id), { botText: null, botName: null, botId: null }, { merge: true });
+                          }} style={{ background:'none', border:'none', color:'rgba(255,100,100,.4)', fontSize:10, cursor:'pointer' }}>🗑️ Slett</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {!sum?.botText && (

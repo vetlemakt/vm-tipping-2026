@@ -178,7 +178,7 @@ function isWithinMatchWindow() {
   const nowMs = now.getTime();
   return MATCH_WINDOWS.some(w => {
     const wDate = new Date(`${w.date}T${String(w.utcHour).padStart(2,'0')}:${String(w.utcMin).padStart(2,'0')}:00Z`);
-    const windowAfterMs = (w.knockout ? 3 : 2) * 60 * 60 * 1000;
+    const windowAfterMs = (w.knockout ? 3 : 2.5) * 60 * 60 * 1000;
     const windowBeforeMs = 10 * 60 * 1000; // 10 min før kampstart
     return nowMs >= wDate.getTime() - windowBeforeMs && nowMs <= wDate.getTime() + windowAfterMs;
   });
@@ -1211,7 +1211,11 @@ Skriv 3-5 setninger om tabellsituasjonen etter kampen. Hvem leder, hvem klatrer,
       if (!text) throw new Error('Ingen tekst fra Anthropic');
 
       console.log('triggerSummary: got text, saving...');
-      await db.collection('summaries').doc(matchId).set({ botText:text, botId:expert.id, botName:expert.name, ts:FieldValue.serverTimestamp() }, { merge:true });
+      // Ikke overskriv eksisterende botText
+      const existingSum = await db.collection('summaries').doc(matchId).get();
+      if (!existingSum.exists || !existingSum.data()?.botText) {
+        await db.collection('summaries').doc(matchId).set({ botText:text, botId:expert.id, botName:expert.name, ts:FieldValue.serverTimestamp() }, { merge:true });
+      }
       console.log('triggerSummary: done, matchId:', matchId);
       res.json({ ok: true, matchId, expert: expert.name });
     } catch (err) {
