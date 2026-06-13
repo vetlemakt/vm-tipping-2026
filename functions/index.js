@@ -820,15 +820,25 @@ async function pollAndUpdate() {
         if (isFirstToFire) {
           const liveEvent = buildLiveEvent(fixture);
           if (liveEvent?.type === 'goal' && matchId) {
-            // Skriv goal-event direkte til liveRef med nåværende ts
             await liveRef.set({ ...liveEvent, ts: Date.now() });
-            // Nullstill etter 30 sek
             setTimeout(async () => {
               try { await liveRef.set({ type: null, ts: Date.now() }); } catch(e) {}
             }, 30000);
             handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
               console.error('handleGoalEvent feil:', e.message)
             );
+            // Oppdater vår egen toppscorerliste
+            if (liveEvent.playerName && liveEvent.playerName !== '?' && !liveEvent.suffix?.includes('s.m.')) {
+              const scorerKey = liveEvent.playerName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_');
+              const scorersRef = db.collection('config').doc('scorers');
+              await db.runTransaction(async tx => {
+                const snap = await tx.get(scorersRef);
+                const data = snap.exists ? snap.data() : {};
+                const current = data[scorerKey] || { name: liveEvent.playerName, team: homeNor, goals: 0 };
+                tx.set(scorersRef, { ...data, [scorerKey]: { ...current, goals: current.goals + 1 } });
+              });
+              console.log(`Toppscorer oppdatert: ${liveEvent.playerName}`);
+            }
           }
         }
       } else {

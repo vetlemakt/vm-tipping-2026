@@ -6,7 +6,7 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage, addReaction,
   subscribePhase, subscribeResults,
-  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache,
+  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache, subscribeScorers,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -2599,12 +2599,14 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
   const [liveEvent, setLiveEvent] = useState(null);
   const [statsCache, setStatsCache] = useState({ scorers: [], cards: [] });
+  const [scorers, setScorers] = useState([]);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
   useEffect(() => { const u = subscribeStatsCache(data => setStatsCache(data || { scorers: [], cards: [] })); return u; }, []);
+  useEffect(() => { const u = subscribeScorers(setScorers); return u; }, []);
   const chatBoxRef = useRef(null);
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
@@ -2790,7 +2792,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 <div style={{ minWidth: 200 }}>
                   <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
                   <div>
-                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).map((s, i) => (
+                  {scorers.filter(s => s.goals > 0).length > 0 ? scorers.filter(s => s.goals > 0).sort((a,b) => b.goals - a.goals).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>
@@ -2817,7 +2819,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 <div style={{ minWidth: 180 }}>
                   <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>TOPPSCORERE</div>
                   <div>
-                  {statsCache.scorers?.filter(s => s.goals > 0).length > 0 ? statsCache.scorers.filter(s => s.goals > 0).map((s, i) => (
+                  {scorers.filter(s => s.goals > 0).length > 0 ? scorers.filter(s => s.goals > 0).sort((a,b) => b.goals - a.goals).map((s, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,.8)' }}>{s.name}</span>
                       <span style={{ color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>{s.goals} mål</span>

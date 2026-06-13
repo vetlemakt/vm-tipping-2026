@@ -147,3 +147,13 @@ export async function addReaction(msgId, emoji, username) {
     [`reactions.${emoji}`]: alreadyReacted ? arrayRemove(username) : arrayUnion(username)
   });
 }
+
+// ── Toppscorere (bygget fra mål-events) ─────────────────────────────
+export function subscribeScorers(callback) {
+  return onSnapshot(doc(db, 'config', 'scorers'), snap => {
+    if (!snap.exists()) { callback([]); return; }
+    const data = snap.data();
+    const list = Object.values(data).filter(s => typeof s === 'object' && s.name);
+    callback(list.sort((a, b) => b.goals - a.goals));
+  });
+}
