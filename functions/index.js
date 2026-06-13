@@ -827,15 +827,21 @@ async function pollAndUpdate() {
             handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
               console.error('handleGoalEvent feil:', e.message)
             );
-            // Oppdater vår egen toppscorerliste
+            // Oppdater statsCache.scorers med ny scorer
             if (liveEvent.playerName && liveEvent.playerName !== '?' && !liveEvent.suffix?.includes('s.m.')) {
-              const scorerKey = liveEvent.playerName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_');
-              const scorersRef = db.collection('config').doc('scorers');
+              const statsCacheRef = db.collection('config').doc('statsCache');
               await db.runTransaction(async tx => {
-                const snap = await tx.get(scorersRef);
+                const snap = await tx.get(statsCacheRef);
                 const data = snap.exists ? snap.data() : {};
-                const current = data[scorerKey] || { name: liveEvent.playerName, team: homeNor, goals: 0 };
-                tx.set(scorersRef, { ...data, [scorerKey]: { ...current, goals: current.goals + 1 } });
+                const scorers = data.scorers || [];
+                const idx = scorers.findIndex(s => s.name === liveEvent.playerName);
+                if (idx >= 0) {
+                  scorers[idx] = { ...scorers[idx], goals: (scorers[idx].goals || 0) + 1 };
+                } else {
+                  scorers.push({ name: liveEvent.playerName, team: homeNor, goals: 1 });
+                }
+                scorers.sort((a, b) => b.goals - a.goals);
+                tx.set(statsCacheRef, { ...data, scorers, updatedAt: Date.now() });
               });
               console.log(`Toppscorer oppdatert: ${liveEvent.playerName}`);
             }
