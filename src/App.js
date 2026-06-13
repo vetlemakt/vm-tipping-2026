@@ -4149,6 +4149,31 @@ function AdminPanel() {
         }}>
           🤖 Kjør auto-fill
         </button>
+        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#67e8f9' }} onClick={async () => {
+          const username = prompt('Brukernavn (Firestore doc ID):');
+          if (!username) return;
+          const expertId = prompt('Expert ID (ragnhild/hendrik/kimlevi/bengt/odd):');
+          if (!expertId) return;
+          const botUser = await getUser('panel_' + expertId);
+          if (!botUser?.groupOrders) { alert('Bot mangler groupOrders'); return; }
+          const u = await getUser(username);
+          if (!u) { alert('Fant ikke bruker'); return; }
+          const expert = PANEL_EXPERTS.find(e => e.id === expertId);
+          const filledBy = { ...(u.botFilledMatches || {}) };
+          Object.keys(GROUPS).forEach(g => {
+            if (!(u.groupOrders?.[g]?.filter(Boolean).length === 4)) {
+              filledBy['grp_' + g] = expertId;
+            }
+          });
+          await updateUser(username, {
+            groupOrders: botUser.groupOrders,
+            botFilledMatches: filledBy,
+            assignedExpert: expertId,
+          });
+          alert('Gruppeplasseringer kopiert til ' + username + ' fra ' + (expert?.name || expertId));
+        }}>
+          📋 Kopier gruppeordre til bruker
+        </button>
         <button style={C.btnDanger} onClick={resetAllResults}>
           🗑️ Nullstill resultater
         </button>
