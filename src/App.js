@@ -4540,8 +4540,21 @@ function LiveAdmin() {
       <button onClick={manualPoll} style={{ background:'rgba(74,222,128,.1)', border:'1px solid rgba(74,222,128,.3)', color:'#4ade80', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
         📡 Kjør manuell poll nå
       </button>
-      <button onClick={triggerSummary} style={{ background:'rgba(147,51,234,.1)', border:'1px solid rgba(147,51,234,.3)', color:'#c084fc', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
-        🤖 Generer tabellreferat manuelt (siste kamp)
+      <button onClick={async () => {
+        const matchId = prompt('Kamp-ID (f.eks. B2, D1, A1):');
+        if (!matchId) return;
+        setLiveStatus('Genererer referat for ' + matchId + '...');
+        try {
+          const res = await fetch(CF_V2('triggersummary'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ matchId: matchId.trim().toUpperCase() }),
+          });
+          const data = await res.json();
+          setLiveStatus(data.ok ? '✅ Referat postet for ' + (data.matchId||matchId) : '❌ ' + (data.error||'ukjent'));
+        } catch(e) { setLiveStatus('❌ ' + e.message); }
+      }} style={{ background:'rgba(147,51,234,.1)', border:'1px solid rgba(147,51,234,.3)', color:'#c084fc', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
+        🤖 Generer tabellreferat for spesifikk kamp
       </button>
       <button onClick={async () => {
         setLiveStatus('Oppdaterer toppscorere...');
