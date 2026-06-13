@@ -989,7 +989,7 @@ exports.pollFootball = onSchedule(
 
 // ── Manuell HTTP-trigger ──────────────────────────────────────────────
 exports.manualPoll = onRequest(
-  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'] },
+  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'], cors: true },
   async (req, res) => {
     try { await pollAndUpdate(); res.json({ ok: true, ts: Date.now() }); }
     catch (err) { console.error('manualPoll feilet:', err); res.status(500).json({ ok: false, error: err.message }); }
@@ -1141,18 +1141,22 @@ exports.triggerSummary = onRequest(
     try {
       const resultsSnap = await db.collection('config').doc('results').get();
       const results = resultsSnap.exists ? resultsSnap.data() : {};
-      console.log('triggerSummary: results keys:', Object.keys(results));
 
-      // Finn kamp-IDer: stort bokstav + tall (A1, B12 osv.)
-      const matchEntries = Object.entries(results)
-        .filter(([id, r]) => /^[A-Z]\d+$/.test(id) && r && typeof r.home === 'number' && typeof r.away === 'number')
-        .sort(([a], [b]) => a.localeCompare(b));
-
-      console.log('triggerSummary: matchEntries:', matchEntries.map(([id]) => id));
-
-      if (!matchEntries.length) { res.json({ ok: false, error: 'Ingen ferdigspilte kamper i results' }); return; }
-
-      const [matchId, result] = matchEntries[matchEntries.length - 1];
+      // Bruk spesifikk matchId fra request body hvis oppgitt
+      let matchId, result;
+      if (req.body?.matchId) {
+        matchId = req.body.matchId;
+        result = results[matchId];
+        if (!result) { res.json({ ok: false, error: `Ingen resultat for kamp ${matchId}` }); return; }
+      } else {
+        // Finn siste kamp alfabetisk
+        const matchEntries = Object.entries(results)
+          .filter(([id, r]) => /^[A-Z]\d+$/.test(id) && r && typeof r.home === 'number' && typeof r.away === 'number')
+          .sort(([a], [b]) => a.localeCompare(b));
+        if (!matchEntries.length) { res.json({ ok: false, error: 'Ingen ferdigspilte kamper' }); return; }
+        [matchId, result] = matchEntries[matchEntries.length - 1];
+      }
+      console.log('triggerSummary: generating for', matchId, result);
       console.log('triggerSummary: generating for', matchId, result);
 
       const lookup = await db.collection('config').doc('fixtureLookup').get();
@@ -1280,7 +1284,7 @@ exports.getTopscorers = onRequest(
 );
 
 // ── Bygg fixture-lookup ───────────────────────────────────────────────
-exports.buildFixtureLookup = onRequest(async (req, res) => {
+exports.buildFixtureLookup = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
   const { matches } = req.body;
   if (!matches || !Array.isArray(matches)) {

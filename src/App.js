@@ -22,7 +22,6 @@ import { C } from './styles';
 
 // ── Cloud Functions base URL (API-nøkkel er trygg på serveren) ────────
 const CF_BASE = 'https://us-central1-vm-tipping-2026.cloudfunctions.net';
-const CF_V2 = (fn) => `https://${fn}-7vpze6vvta-uc.a.run.app`;
 async function cfPost(endpoint, body) {
   const res = await fetch(`${CF_BASE}/${endpoint}`, {
     method: 'POST',
@@ -4502,7 +4501,7 @@ function LiveAdmin() {
     setLiveStatus('Bygger lookup...');
     try {
       const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
-      const res = await fetch(CF_V2('buildFixturelookup'), {
+      const res = await fetch(`${CF_BASE}/buildFixtureLookup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away })) }),
@@ -4514,7 +4513,7 @@ function LiveAdmin() {
   const manualPoll = async () => {
     setLiveStatus('Poller nå...');
     try {
-      const res = await fetch(CF_V2('manualpoll'), { method: 'POST' });
+      const res = await fetch(`${CF_BASE}/manualPoll`, { method: 'POST' });
       const data = await res.json();
       setLiveStatus(data.ok ? '✅ Poll OK – ' + new Date().toLocaleTimeString() : '❌ Feil: ' + data.error);
     } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
@@ -4536,7 +4535,7 @@ function LiveAdmin() {
         if (!matchId) return;
         setLiveStatus('Genererer referat for ' + matchId + '...');
         try {
-          const res = await fetch(CF_V2('triggersummary'), {
+          const res = await fetch(`${CF_BASE}/triggerSummary`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ matchId: matchId.trim().toUpperCase() }),
@@ -4550,7 +4549,7 @@ function LiveAdmin() {
       <button onClick={async () => {
         setLiveStatus('Oppdaterer toppscorere...');
         try {
-          const res = await fetch(CF_V2('refreshstatscache'), { method: 'POST' });
+          const res = await fetch(`${CF_BASE}/refreshStatsCache`, { method: 'POST' });
           const data = await res.json();
           setLiveStatus(data.ok ? '✅ Toppscorere oppdatert!' : '❌ ' + (data.error||'ukjent'));
         } catch(e) { setLiveStatus('❌ ' + e.message); }
