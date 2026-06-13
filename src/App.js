@@ -2598,14 +2598,13 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const chatBot = useRef(null);
 
   const [liveEvent, setLiveEvent] = useState(null);
-  const [statsCache, setStatsCache] = useState({ scorers: [] });
   const [scorers, setScorers] = useState([]);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
-  useEffect(() => { const u = subscribeStatsCache(data => { setStatsCache(data || {}); setScorers(data?.scorers || []); }); return u; }, []);
+  useEffect(() => { const u = subscribeStatsCache(data => setScorers(data?.scorers || [])); return u; }, []);
   const chatBoxRef = useRef(null);
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
