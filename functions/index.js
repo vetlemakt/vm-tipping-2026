@@ -498,11 +498,7 @@ async function handleGoalEvent(matchId, liveEvent, prevGoalKey) {
     matchId, liveEvent, allUsers, currentResults, prevResults, expert
   );
 
-  // Ingen grunner + det er ikke Bengt → ikke kommenter
-  if (reasons.length === 0 && !expert.isBengt) {
-    console.log(`Ingen triggere for ${expert.name}, hopper over`);
-    return;
-  }
+  // Alle eksperter kommenterer alltid (reasons gir kontekst men er ikke påkrevd)
 
   // Generer og post kommentar
   const matchContext = {

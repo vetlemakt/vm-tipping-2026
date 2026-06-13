@@ -4143,6 +4143,12 @@ function AdminPanel() {
         <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#ff9966' }} onClick={() => generateAllBotTips(true)} disabled={generatingBots}>
           🔄 Tving regenerer
         </button>
+        <button style={{ ...C.btnSecondary, padding:'7px 16px', fontSize:11, color:'#a78bfa' }} onClick={async () => {
+          await autoFillMissingTips('group_lock');
+          alert('Auto-fill kjørt!');
+        }}>
+          🤖 Kjør auto-fill
+        </button>
         <button style={C.btnDanger} onClick={resetAllResults}>
           🗑️ Nullstill resultater
         </button>
