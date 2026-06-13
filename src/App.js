@@ -2550,7 +2550,7 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
       {show && tooltip && typeof document !== 'undefined' && createPortal(
-        <div style={{...popupStyle, maxHeight: 300, overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
+        <div style={{...popupStyle, maxHeight: 320, overflowY: 'auto', overflowX: 'hidden'}} onClick={e => e.stopPropagation()}>
           {tooltip}
         </div>,
         document.body
@@ -5751,6 +5751,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   // Lytt på live-hendelser fra Cloud Function via Firestore
   const prevEventRef = useRef(null);
   const mountTimeRef = useRef(Date.now());
+  const [bannerAnim, setBannerAnim] = useState(null); // 'goal'|'yellow'|'red'|'finished'|null
   useEffect(() => {
     const unsub = subscribeLiveEvent(ev => {
       if (ev?.type) {
@@ -5760,8 +5761,9 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
         if (evKey !== prevEventRef.current && isAfterMount) {
           prevEventRef.current = evKey;
           setLiveEvent(ev);
-          setTimeout(() => { setLiveEvent(null); }, 30000);
           if (ev.type === 'goal') {
+            setBannerAnim('goal');
+            setTimeout(() => { setLiveEvent(null); setBannerAnim(null); }, 30000);
             setTimeout(() => fireGoalConfetti(3), 400);
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -5775,6 +5777,12 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
               });
             } catch(e) {}
           } else if (ev.type === 'card') {
+            const isRed = ev.cardColor === 'Red';
+            setBannerAnim(isRed ? 'red' : 'yellow');
+            // Blink 3 ganger (gult) eller 10 sek (rødt), deretter stå med ramme
+            const blinkDuration = isRed ? 10000 : 1500;
+            setTimeout(() => setBannerAnim(isRed ? 'red-solid' : 'yellow-solid'), blinkDuration);
+            setTimeout(() => { setLiveEvent(null); setBannerAnim(null); }, 30000);
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
               const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -5785,6 +5793,8 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
               o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
             } catch(e) {}
           } else if (ev.type === 'finished') {
+            setBannerAnim('finished');
+            setTimeout(() => { setLiveEvent(null); setBannerAnim(null); }, 30000);
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
               [600, 500, 400].forEach((f, i) => {
@@ -5831,18 +5841,19 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   const renderLiveContent = () => {
     if (!liveEvent) return null;
     if (liveEvent.type === 'goal') {
-      const { homeTeam, awayTeam, homeGoals, awayGoals, homeScored, playerName, minute, suffix } = liveEvent;
+      const { homeTeam, awayTeam, homeGoals, awayGoals, homeScored, playerName, minute, suffix, isOwnGoal } = liveEvent;
       const flagH = FLAGS[homeTeam] || '🏳️';
       const flagA = FLAGS[awayTeam] || '🏳️';
+      const scoringTeam = homeScored ? homeTeam : awayTeam;
       return (
-        <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
           <span style={{ color: YEL, fontWeight:900, letterSpacing:1 }}>MÅL!</span>
-          <span>{flagH}</span>
+          <Flag team={homeTeam} size={16} />
           <span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{homeGoals}</span>
           <span style={{ color:'rgba(255,255,255,.4)' }}>–</span>
           <span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{awayGoals}</span>
-          <span>{flagA}</span>
-          <span style={{ color:'rgba(255,255,255,.55)', fontSize:10, marginLeft:2 }}>· {playerName} '{minute}{suffix}</span>
+          <Flag team={awayTeam} size={16} />
+          <span style={{ color:'rgba(255,255,255,.55)', fontSize:10, marginLeft:2 }}>· {playerName}{suffix} '{minute}</span>
         </div>
       );
     }
@@ -5864,7 +5875,17 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
       width: w,
       background: 'rgba(1,23,76,.95)',
       backgroundImage: 'linear-gradient(rgba(255,215,0,.08), rgba(255,215,0,.08))',
-      border: `1px solid ${liveEvent ? 'rgba(74,222,128,.4)' : 'rgba(255,215,0,.25)'}`,
+      border: `1px solid ${
+        bannerAnim === 'goal' ? 'rgba(74,222,128,.7)' :
+        bannerAnim === 'yellow' || bannerAnim === 'yellow-solid' ? 'rgba(255,215,0,.8)' :
+        bannerAnim === 'red' || bannerAnim === 'red-solid' ? 'rgba(220,38,38,.8)' :
+        bannerAnim === 'finished' ? 'rgba(255,255,255,.6)' :
+        liveEvent ? 'rgba(74,222,128,.4)' : 'rgba(255,215,0,.25)'
+      }`,
+      animation: bannerAnim === 'goal' ? 'bannerGoal 1.2s ease-in-out infinite' :
+        bannerAnim === 'yellow' ? 'bannerYellowBlink 0.5s ease-in-out 3' :
+        bannerAnim === 'red' ? 'bannerRedBlink 0.5s ease-in-out infinite' :
+        'none',
       borderRadius: 12,
       boxShadow: '0 4px 20px rgba(0,0,0,.5)',
       padding: '5px 14px',
@@ -6328,6 +6349,18 @@ export default function App() {
         0%   { box-shadow: 0 0 0 0 rgba(255,215,0,0); border-color: rgba(255,255,255,.15); }
         40%  { box-shadow: 0 0 0 4px rgba(255,215,0,.35); border-color: rgba(255,215,0,.8); }
         100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); border-color: rgba(255,255,255,.15); }
+      }
+      @keyframes bannerGoal {
+        0%, 100% { box-shadow: 0 0 8px 2px rgba(74,222,128,.3); border-color: rgba(74,222,128,.7); }
+        50% { box-shadow: 0 0 18px 6px rgba(74,222,128,.6); border-color: rgba(74,222,128,1); }
+      }
+      @keyframes bannerYellowBlink {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); border-color: rgba(255,215,0,.2); }
+        50% { box-shadow: 0 0 16px 5px rgba(255,215,0,.7); border-color: rgba(255,215,0,1); }
+      }
+      @keyframes bannerRedBlink {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); border-color: rgba(220,38,38,.2); }
+        50% { box-shadow: 0 0 16px 5px rgba(220,38,38,.8); border-color: rgba(220,38,38,1); }
       }
     `;
     document.head.appendChild(style);
