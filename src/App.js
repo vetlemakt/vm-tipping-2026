@@ -2654,10 +2654,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 
   const medals = ['🥇', '🥈', '🥉'];
   const myRank = users.findIndex(u => u.id === me.username) + 1;
-  const finishedMatches = GROUP_MATCHES.filter(m => {
+  const finishedMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].filter(m => {
     const r = results[m.id];
     return r && r.home !== undefined && r.away !== undefined;
-  }).slice(-8).reverse();
+  }).sort((a, b) => (results[b.id]?.updatedAt || 0) - (results[a.id]?.updatedAt || 0)).slice(0, 8);
 
   return (
     <>
