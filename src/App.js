@@ -5841,10 +5841,7 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
   const renderLiveContent = () => {
     if (!liveEvent) return null;
     if (liveEvent.type === 'goal') {
-      const { homeTeam, awayTeam, homeGoals, awayGoals, homeScored, playerName, minute, suffix, isOwnGoal } = liveEvent;
-      const flagH = FLAGS[homeTeam] || '🏳️';
-      const flagA = FLAGS[awayTeam] || '🏳️';
-      const scoringTeam = homeScored ? homeTeam : awayTeam;
+      const { homeTeam, awayTeam, homeGoals, awayGoals, homeScored, playerName, minute, suffix } = liveEvent;
       return (
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
           <span style={{ color: YEL, fontWeight:900, letterSpacing:1 }}>MÅL!</span>
