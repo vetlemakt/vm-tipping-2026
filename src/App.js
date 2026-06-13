@@ -2676,18 +2676,27 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     <div>
       {/* Stats widgets */}
       {(() => {
-        const finishedCount = GROUP_MATCHES.filter(m => results[m.id]?.home !== undefined).length;
+        const nowTs = Date.now();
+        const isKickedOff = m => new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime() < nowTs;
+        const finishedCount = GROUP_MATCHES.filter(m => results[m.id]?.home !== undefined && isKickedOff(m)).length;
         const totalGoals = GROUP_MATCHES.reduce((s,m) => {
           const r = results[m.id];
-          return r?.home !== undefined ? s + (r.home||0) + (r.away||0) : s;
+          return r?.home !== undefined && isKickedOff(m) ? s + (r.home||0) + (r.away||0) : s;
         }, 0);
         // const myPts removed – replaced by form table
 
         // ── Formtabell: siste N kamper (N = min(finishedCount, 5)) ──────
         const formN = Math.min(finishedCount, 5);
         const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
+        const now = Date.now();
         const recentMatches = allMatches
-          .filter(m => results[m.id]?.home !== undefined)
+          .filter(m => {
+            const r = results[m.id];
+            if (r?.home === undefined) return false;
+            // Ekskluder kamper som ikke er ferdigspilt ennå
+            const kickoff = new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime();
+            return kickoff < now;
+          })
           .sort((a, b) => (results[b.id]?.updatedAt || 0) - (results[a.id]?.updatedAt || 0))
           .slice(0, formN);
 
