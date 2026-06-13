@@ -3005,7 +3005,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <div style={{ ...C.botSummaryBox, borderLeft: `3px solid ${PANEL_EXPERTS.find(e => e.name === sum.botName)?.color || 'rgba(255,215,0,.5)'}`, paddingLeft: 10 }}>
                     <div style={C.botSummaryText}>{sum.botText}</div>
                     <div style={{ ...C.botSummaryAuthor, color: PANEL_EXPERTS.find(e => e.name === sum.botName)?.color || 'rgba(255,215,0,.5)' }}>
-                      {PANEL_EXPERTS.find(e => e.name === sum.botName)?.emoji || '🤖'} {sum.botName}
+                      {sum.botName}
                     </div>
                   </div>
                 ) : (
@@ -3104,7 +3104,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 {sum?.botText && (
                   <div style={{ ...C.botSummaryBox, borderLeft:`3px solid ${botColor}`, paddingLeft:10 }}>
                     <div style={C.botSummaryText}>{sum.botText}</div>
-                    <div style={{ ...C.botSummaryAuthor, color:botColor }}>{botExpert?.emoji || '🤖'} {sum.botName}</div>
+                    <div style={{ ...C.botSummaryAuthor, color:botColor }}>{sum.botName}</div>
                   </div>
                 )}
                 {!sum?.botText && (
