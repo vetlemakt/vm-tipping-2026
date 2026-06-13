@@ -4519,16 +4519,7 @@ function LiveAdmin() {
       setLiveStatus(data.ok ? '✅ Poll OK – ' + new Date().toLocaleTimeString() : '❌ Feil: ' + data.error);
     } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
   };
-  const triggerSummary = async () => {
-    setLiveStatus('Genererer tabellreferat...');
-    try {
-      const res = await fetch(CF_V2('triggersummary'), { method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}) });
-      const data = await res.json();
-      setLiveStatus(data.ok ? '✅ Tabellreferat postet!' : '❌ Feil: ' + (data.error||'ukjent'));
-    } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
-  };
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
       <div style={{ fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:4 }}>
