@@ -4542,13 +4542,17 @@ function LiveAdmin() {
     setLiveStatus('Bygger lookup...');
     try {
       const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
-      const res = await fetch(CF_V2('buildFixturelookup'), {
+      const res = await fetch(`${CF_BASE}/buildFixtureLookup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away })) }),
+        body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away, date: m.date })) }),
       });
       const data = await res.json();
-      setLiveStatus(`✅ Lookup bygget: ${data.entries} oppføringer`);
+      if (data.ok) {
+        setLiveStatus(`✅ Lookup bygget: ${data.matched} kamper matchet${data.unmatched > 0 ? `, ⚠️ ${data.unmatched} ikke matchet: ${(data.unmatchedList||[]).join(', ')}` : ''}`);
+      } else {
+        setLiveStatus('❌ Feil: ' + (data.error || 'Ukjent feil'));
+      }
     } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
   };
   const manualPoll = async () => {
