@@ -21,10 +21,9 @@ import {
 import { C } from './styles';
 
 // ── Cloud Functions base URL (API-nøkkel er trygg på serveren) ────────
-const CF_BASE = 'https://us-central1-vm-tipping-2026.cloudfunctions.net';
 const CF_V2 = (fn) => `https://${fn}-7vpze6vvta-uc.a.run.app`;
 async function cfPost(endpoint, body) {
-  const res = await fetch(`${CF_BASE}/${endpoint}`, {
+  const res = await fetch(CF_V2(endpoint), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -4542,7 +4541,7 @@ function LiveAdmin() {
     setLiveStatus('Bygger lookup...');
     try {
       const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
-      const res = await fetch(`${CF_BASE}/buildFixtureLookup`, {
+      const res = await fetch(CF_V2('buildfixturelookup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away, date: m.date })) }),
