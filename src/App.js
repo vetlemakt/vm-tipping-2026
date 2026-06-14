@@ -22,6 +22,7 @@ import { C } from './styles';
 
 // ── Cloud Functions base URL (API-nøkkel er trygg på serveren) ────────
 const CF_BASE = 'https://us-central1-vm-tipping-2026.cloudfunctions.net';
+const CF_V2 = (fn) => `https://${fn}-7vpze6vvta-uc.a.run.app`;
 async function cfPost(endpoint, body) {
   const res = await fetch(`${CF_BASE}/${endpoint}`, {
     method: 'POST',
@@ -662,6 +663,8 @@ const REACTION_EMOJIS = ['👍','😂','😮','❤️','🔥','👏'];
 
 function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
   const [showPicker, setShowPicker] = useState(false);
+  const [reactionTooltip, setReactionTooltip] = useState(null); // emoji key or null
+  const isMobile = useIsMobile();
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
   const isAdminMsg = m.user === 'Admin';
@@ -711,17 +714,48 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
         }
       </span>
       {/* Reaksjoner */}
+      {reactionTooltip && isMobile && (
+        <div
+          onClick={() => setReactionTooltip(null)}
+          onTouchEnd={() => setReactionTooltip(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+        />
+      )}
       {hasReactions && (
         <div style={{ display:'flex', flexWrap:'wrap', gap:3, marginTop:3, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
           {Object.entries(reactions).filter(([,u]) => u.length > 0).map(([emoji, users]) => (
-            <button key={emoji} onClick={() => m.id && addReaction(m.id, emoji, username)} style={{
-              background: users.includes(username) ? 'rgba(255,215,0,.15)' : 'rgba(255,255,255,.06)',
-              border: `1px solid ${users.includes(username) ? 'rgba(255,215,0,.4)' : 'rgba(255,255,255,.12)'}`,
-              borderRadius: 10, padding:'1px 6px', cursor:'pointer', fontSize:12,
-              color:'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:3,
-            }}>
-              {emoji} <span style={{ fontSize:10, color:'rgba(255,255,255,.5)' }}>{users.length}</span>
-            </button>
+            <div key={emoji} style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                onClick={() => {
+                  if (isMobile) {
+                    setReactionTooltip(r => r === emoji ? null : emoji);
+                  } else {
+                    m.id && addReaction(m.id, emoji, username);
+                  }
+                }}
+                onMouseEnter={() => !isMobile && setReactionTooltip(emoji)}
+                onMouseLeave={() => !isMobile && setReactionTooltip(null)}
+                style={{
+                  background: users.includes(username) ? 'rgba(255,215,0,.15)' : 'rgba(255,255,255,.06)',
+                  border: `1px solid ${users.includes(username) ? 'rgba(255,215,0,.4)' : 'rgba(255,255,255,.12)'}`,
+                  borderRadius: 10, padding:'1px 6px', cursor:'pointer', fontSize:12,
+                  color:'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:3,
+                }}>
+                {emoji} <span style={{ fontSize:10, color:'rgba(255,255,255,.5)' }}>{users.length}</span>
+              </button>
+              {reactionTooltip === emoji && (
+                <div style={{
+                  position: 'absolute', bottom: '100%', left: mine ? 'auto' : 0, right: mine ? 0 : 'auto',
+                  marginBottom: 4, background: 'rgba(10,14,30,.97)',
+                  border: '1px solid rgba(255,215,0,.2)', borderRadius: 8,
+                  padding: '5px 10px', zIndex: 200, whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 16px rgba(0,0,0,.5)', fontSize: 11,
+                  color: 'rgba(255,255,255,.8)',
+                }}>
+                  {users.join(', ')}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -2537,9 +2571,16 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
         {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
       </div>
       {show && tooltip && typeof document !== 'undefined' && createPortal(
-        <div style={{...popupStyle}} onClick={e => e.stopPropagation()}>
-          {tooltip}
-        </div>,
+        <>
+          <div
+            onClick={() => setShow(false)}
+            onTouchEnd={() => setShow(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 99998 }}
+          />
+          <div style={{...popupStyle}} onClick={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
+            {tooltip}
+          </div>
+        </>,
         document.body
       )}
     </div>
@@ -2656,7 +2697,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const finishedMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].filter(m => {
     const r = results[m.id];
     return r && r.home !== undefined && r.away !== undefined;
-  }).sort((a, b) => (results[b.id]?.updatedAt || 0) - (results[a.id]?.updatedAt || 0)).slice(0, 8);
+  }).sort((a, b) => { const kA = new Date(a.date + "T" + (a.time||"00:00") + ":00+02:00").getTime(); const kB = new Date(b.date + "T" + (b.time||"00:00") + ":00+02:00").getTime(); return kB - kA; }).slice(0, 8);
 
   return (
     <>
@@ -2684,7 +2725,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             const kickoff = new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime();
             return kickoff < now;
           })
-          .sort((a, b) => (results[b.id]?.updatedAt || 0) - (results[a.id]?.updatedAt || 0))
+          .sort((a, b) => { const kA = new Date(a.date + "T" + (a.time||"00:00") + ":00+02:00").getTime(); const kB = new Date(b.date + "T" + (b.time||"00:00") + ":00+02:00").getTime(); return kB - kA; })
           .slice(0, formN);
 
         const realUsers = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
@@ -4501,7 +4542,7 @@ function LiveAdmin() {
     setLiveStatus('Bygger lookup...');
     try {
       const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
-      const res = await fetch(`${CF_BASE}/buildFixtureLookup`, {
+      const res = await fetch(CF_V2('buildFixturelookup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away })) }),
@@ -4513,7 +4554,7 @@ function LiveAdmin() {
   const manualPoll = async () => {
     setLiveStatus('Poller nå...');
     try {
-      const res = await fetch(`${CF_BASE}/manualPoll`, { method: 'POST' });
+      const res = await fetch(CF_V2('manualpoll'), { method: 'POST' });
       const data = await res.json();
       setLiveStatus(data.ok ? '✅ Poll OK – ' + new Date().toLocaleTimeString() : '❌ Feil: ' + data.error);
     } catch(e) { setLiveStatus('❌ Feil: ' + e.message); }
@@ -4535,7 +4576,7 @@ function LiveAdmin() {
         if (!matchId) return;
         setLiveStatus('Genererer referat for ' + matchId + '...');
         try {
-          const res = await fetch(`${CF_BASE}/triggerSummary`, {
+          const res = await fetch(CF_V2('triggersummary'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ matchId: matchId.trim().toUpperCase() }),
@@ -4549,7 +4590,7 @@ function LiveAdmin() {
       <button onClick={async () => {
         setLiveStatus('Oppdaterer toppscorere...');
         try {
-          const res = await fetch(`${CF_BASE}/refreshStatsCache`, { method: 'POST' });
+          const res = await fetch(CF_V2('refreshstatscache'), { method: 'POST' });
           const data = await res.json();
           setLiveStatus(data.ok ? '✅ Toppscorere oppdatert!' : '❌ ' + (data.error||'ukjent'));
         } catch(e) { setLiveStatus('❌ ' + e.message); }

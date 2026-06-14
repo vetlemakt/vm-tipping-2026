@@ -59,115 +59,192 @@ const NOR_TO_SHORT = {
 // ── Kampprogram: når skal vi polle? (UTC-tider) ──────────────────────
 // Bare poll 90 min rundt kampstart for å spare API-kvoter
 const MATCH_WINDOWS = [
-  // Gruppe A
-  { date: '2026-06-11', utcHour: 19, utcMin: 0 },   // Mexico-Sør-Afrika 21:00 CEST
-  { date: '2026-06-12', utcHour: 2,  utcMin: 0 },   // Sør-Korea-Tsjekkia
-  { date: '2026-06-12', utcHour: 19, utcMin: 0 },   // Canada-Bosnia
-  { date: '2026-06-13', utcHour: 1,  utcMin: 0 },   // USA-Paraguay
-  { date: '2026-06-13', utcHour: 19, utcMin: 0 },   // Qatar-Sveits
+  // ── Gruppespill ──────────────────────────────────────────────────────
+  // A1: Mexico-Sør-Afrika          21:00 CEST 11.jun = 19:00 UTC
+  { date: '2026-06-11', utcHour: 19, utcMin: 0 },
+  // A2: Sør-Korea-Tsjekkia         04:00 CEST 12.jun = 02:00 UTC
+  { date: '2026-06-12', utcHour: 2,  utcMin: 0 },
+  // B1: Canada-Bosnia              21:00 CEST 12.jun = 19:00 UTC
+  { date: '2026-06-12', utcHour: 19, utcMin: 0 },
+  // D1: USA-Paraguay               03:00 CEST 13.jun = 01:00 UTC
+  { date: '2026-06-13', utcHour: 1,  utcMin: 0 },
+  // B2: Qatar-Sveits               21:00 CEST 13.jun = 19:00 UTC
+  { date: '2026-06-13', utcHour: 19, utcMin: 0 },
+  // C1: Brasil-Marokko             00:00 CEST 14.jun = 22:00 UTC 13.jun
+  { date: '2026-06-13', utcHour: 22, utcMin: 0 },
+  // C2: Haiti-Skottland            03:00 CEST 14.jun = 01:00 UTC
+  { date: '2026-06-14', utcHour: 1,  utcMin: 0 },
+  // D2: Australia-Tyrkia           06:00 CEST 14.jun = 04:00 UTC
   { date: '2026-06-14', utcHour: 4,  utcMin: 0 },
+  // E1: Tyskland-Curacao           19:00 CEST 14.jun = 17:00 UTC
   { date: '2026-06-14', utcHour: 17, utcMin: 0 },
+  // F1: Nederland-Japan            22:00 CEST 14.jun = 20:00 UTC
   { date: '2026-06-14', utcHour: 20, utcMin: 0 },
-  { date: '2026-06-14', utcHour: 22, utcMin: 0 },
-  { date: '2026-06-15', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-15', utcHour: 3,  utcMin: 0 },
+  // E2: Elfenbenskysten-Ecuador    01:00 CEST 15.jun = 23:00 UTC 14.jun
+  { date: '2026-06-14', utcHour: 23, utcMin: 0 },
+  // F2: Sverige-Tunisia            04:00 CEST 15.jun = 02:00 UTC
+  { date: '2026-06-15', utcHour: 2,  utcMin: 0 },
+  // H1: Spania-Kapp Verde          18:00 CEST 15.jun = 16:00 UTC
   { date: '2026-06-15', utcHour: 16, utcMin: 0 },
+  // G1: Belgia-Egypt               21:00 CEST 15.jun = 19:00 UTC
   { date: '2026-06-15', utcHour: 19, utcMin: 0 },
+  // H2: Saudi-Arabia-Uruguay       00:00 CEST 16.jun = 22:00 UTC 15.jun
   { date: '2026-06-15', utcHour: 22, utcMin: 0 },
-  { date: '2026-06-16', utcHour: 0,  utcMin: 0 },
+  // G2: Iran-New Zealand           03:00 CEST 16.jun = 01:00 UTC
   { date: '2026-06-16', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-16', utcHour: 3,  utcMin: 0 },
+  // I1: Frankrike-Senegal          21:00 CEST 16.jun = 19:00 UTC
   { date: '2026-06-16', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-17', utcHour: 0,  utcMin: 0 },
+  // I2: Irak-Norge                 00:00 CEST 17.jun = 22:00 UTC 16.jun
+  { date: '2026-06-16', utcHour: 22, utcMin: 0 },
+  // K1: Portugal-Kongo DR          19:00 CEST 17.jun = 17:00 UTC
+  { date: '2026-06-17', utcHour: 17, utcMin: 0 },
+  // L1: England-Kroatia            22:00 CEST 17.jun = 20:00 UTC
+  { date: '2026-06-17', utcHour: 20, utcMin: 0 },
+  // J1: Argentina-Algerie          03:00 CEST 17.jun = 01:00 UTC
   { date: '2026-06-17', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-17', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-18', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-18', utcHour: 4,  utcMin: 0 },
+  // L2: Ghana-Panama               01:00 CEST 18.jun = 23:00 UTC 17.jun
+  { date: '2026-06-17', utcHour: 23, utcMin: 0 },
+  // A3: Tsjekkia-Sør-Afrika        18:00 CEST 18.jun = 16:00 UTC
   { date: '2026-06-18', utcHour: 16, utcMin: 0 },
+  // B3: Sveits-Bosnia              21:00 CEST 18.jun = 19:00 UTC
   { date: '2026-06-18', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-19', utcHour: 0,  utcMin: 0 },
+  // B4: Canada-Qatar               00:00 CEST 19.jun = 22:00 UTC 18.jun
+  { date: '2026-06-18', utcHour: 22, utcMin: 0 },
+  // K2: Usbekistan-Colombia        04:00 CEST 18.jun = 02:00 UTC
+  { date: '2026-06-18', utcHour: 2,  utcMin: 0 },
+  // J2: Østerrike-Jordan           06:00 CEST 18.jun = 04:00 UTC
+  { date: '2026-06-18', utcHour: 4,  utcMin: 0 },
+  // A4: Mexico-Sør-Korea           03:00 CEST 19.jun = 01:00 UTC
   { date: '2026-06-19', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-19', utcHour: 3,  utcMin: 0 },
+  // D3: USA-Australia              21:00 CEST 19.jun = 19:00 UTC
   { date: '2026-06-19', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-20', utcHour: 0,  utcMin: 0 },
+  // C3: Skottland-Marokko          00:00 CEST 20.jun = 22:00 UTC 19.jun
+  { date: '2026-06-19', utcHour: 22, utcMin: 0 },
+  // C4: Brasil-Haiti               02:30 CEST 20.jun = 00:30 UTC
   { date: '2026-06-20', utcHour: 0,  utcMin: 30 },
+  // D4: Tyrkia-Paraguay            05:00 CEST 20.jun = 03:00 UTC
   { date: '2026-06-20', utcHour: 3,  utcMin: 0 },
+  // F3: Nederland-Sverige          19:00 CEST 20.jun = 17:00 UTC
   { date: '2026-06-20', utcHour: 17, utcMin: 0 },
-  { date: '2026-06-20', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-21', utcHour: 0,  utcMin: 0 },
+  // H3: Spania-Saudi-Arabia        18:00 CEST 21.jun = 16:00 UTC
   { date: '2026-06-21', utcHour: 16, utcMin: 0 },
+  // G3: Belgia-Iran                21:00 CEST 21.jun = 19:00 UTC
   { date: '2026-06-21', utcHour: 19, utcMin: 0 },
+  // E3: Tyskland-Elfenbenskysten   22:00 CEST 21.jun = 20:00 UTC
   { date: '2026-06-21', utcHour: 20, utcMin: 0 },
-  { date: '2026-06-22', utcHour: 0,  utcMin: 0 },
+  // E4: Ecuador-Curacao            02:00 CEST 21.jun = 00:00 UTC
+  { date: '2026-06-21', utcHour: 0,  utcMin: 0 },
+  // H4: Uruguay-Kapp Verde         00:00 CEST 22.jun = 22:00 UTC 21.jun
+  { date: '2026-06-21', utcHour: 22, utcMin: 0 },
+  // G4: New Zealand-Egypt          03:00 CEST 22.jun = 01:00 UTC
   { date: '2026-06-22', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-22', utcHour: 3,  utcMin: 0 },
+  // F4: Tunisia-Japan              06:00 CEST 22.jun = 04:00 UTC
   { date: '2026-06-22', utcHour: 4,  utcMin: 0 },
+  // J3: Argentina-Østerrike        19:00 CEST 22.jun = 17:00 UTC
   { date: '2026-06-22', utcHour: 17, utcMin: 0 },
+  // I3: Frankrike-Irak             23:00 CEST 22.jun = 21:00 UTC
   { date: '2026-06-22', utcHour: 21, utcMin: 0 },
+  // I4: Norge-Senegal              02:00 CEST 23.jun = 00:00 UTC
   { date: '2026-06-23', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-23', utcHour: 2,  utcMin: 0 },
+  // K3: Portugal-Usbekistan        19:00 CEST 23.jun = 17:00 UTC
+  { date: '2026-06-23', utcHour: 17, utcMin: 0 },
+  // L3: England-Ghana              22:00 CEST 23.jun = 20:00 UTC
+  { date: '2026-06-23', utcHour: 20, utcMin: 0 },
+  // J4: Jordan-Algerie             05:00 CEST 23.jun = 03:00 UTC
   { date: '2026-06-23', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-23', utcHour: 5,  utcMin: 0 },
-  { date: '2026-06-24', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-24', utcHour: 3,  utcMin: 0 },
-  // Siste gruppekamper (parallelle)
-  { date: '2026-06-25', utcHour: 0,  utcMin: 0 },
+  // L4: Panama-Kroatia             01:00 CEST 24.jun = 23:00 UTC 23.jun
+  { date: '2026-06-23', utcHour: 23, utcMin: 0 },
+  // K4: Colombia-Kongo DR          04:00 CEST 24.jun = 02:00 UTC
+  { date: '2026-06-24', utcHour: 2,  utcMin: 0 },
+  // C5+C6: Skottland-Brasil / Marokko-Haiti  00:00 CEST 25.jun = 22:00 UTC 24.jun
+  { date: '2026-06-24', utcHour: 22, utcMin: 0 },
+  // A5+A6: Tsjekkia-Mexico / Sør-Afrika-Sør-Korea  03:00 CEST 25.jun = 01:00 UTC
   { date: '2026-06-25', utcHour: 1,  utcMin: 0 },
+  // B5+B6: Sveits-Canada / Bosnia-Qatar  21:00 CEST 25.jun = 19:00 UTC
   { date: '2026-06-25', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-25', utcHour: 21, utcMin: 0 },
-  { date: '2026-06-26', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-26', utcHour: 1,  utcMin: 0 },
+  // D5+D6: Tyrkia-USA / Paraguay-Australia  04:00 CEST 26.jun = 02:00 UTC
   { date: '2026-06-26', utcHour: 2,  utcMin: 0 },
+  // F5+F6: Japan-Sverige / Tunisia-Nederland  01:00 CEST 26.jun = 23:00 UTC 25.jun
+  { date: '2026-06-25', utcHour: 23, utcMin: 0 },
+  // E5+E6: Curacao-ELF / Ecuador-Tyskland  22:00 CEST 26.jun = 20:00 UTC
   { date: '2026-06-26', utcHour: 20, utcMin: 0 },
-  { date: '2026-06-26', utcHour: 22, utcMin: 0 },
-  { date: '2026-06-27', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-27', utcHour: 2,  utcMin: 0 },
+  // H5+H6: Kapp Verde-Saudi / Uruguay-Spania  02:00 CEST 27.jun = 00:00 UTC
+  { date: '2026-06-27', utcHour: 0,  utcMin: 0 },
+  // K5+K6: Colombia-Portugal / Kongo-Usb  01:30 CEST 28.jun = 23:30 UTC 27.jun
+  { date: '2026-06-27', utcHour: 23, utcMin: 30 },
+  // G5+G6: Egypt-Iran / NZ-Belgia  05:00 CEST 27.jun = 03:00 UTC
   { date: '2026-06-27', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-27', utcHour: 5,  utcMin: 0 },
+  // I5+I6: Norge-Frankrike / Senegal-Irak  21:00 CEST 27.jun = 19:00 UTC
   { date: '2026-06-27', utcHour: 19, utcMin: 0 },
+  // L5+L6: Panama-England / Kroatia-Ghana  23:00 CEST 27.jun = 21:00 UTC
   { date: '2026-06-27', utcHour: 21, utcMin: 0 },
+  // J5+J6: Jordan-Argentina / Algerie-Østerrike  04:00 CEST 28.jun = 02:00 UTC
   { date: '2026-06-28', utcHour: 2,  utcMin: 0, knockout: true },
-  { date: '2026-06-28', utcHour: 4,  utcMin: 0, knockout: true },
-  // Sluttspill – legg til etter hvert
+  // ── Sluttspill ───────────────────────────────────────────────────────
+  // r32_1: Toer A-Toer B            21:00 CEST 28.jun = 19:00 UTC
   { date: '2026-06-28', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-06-28', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-06-29', utcHour: 1,  utcMin: 0, knockout: true },
-  { date: '2026-06-29', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-06-29', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-06-30', utcHour: 1,  utcMin: 0, knockout: true },
+  // r32_4: Vinner C-Toer F          19:00 CEST 29.jun = 17:00 UTC
+  { date: '2026-06-29', utcHour: 17, utcMin: 0, knockout: true },
+  // r32_2: Vinner E-3er             22:30 CEST 29.jun = 20:30 UTC
+  { date: '2026-06-29', utcHour: 20, utcMin: 30, knockout: true },
+  // r32_5: Vinner I-3er             23:00 CEST 30.jun = 21:00 UTC
+  { date: '2026-06-30', utcHour: 17, utcMin: 0, knockout: true },
+  // r32_6: Toer E-Toer I            19:00 CEST 30.jun = 17:00 UTC
   { date: '2026-06-30', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-06-30', utcHour: 22, utcMin: 0, knockout: true },
+  // r32_3: Vinner F-Toer C          03:00 CEST 30.jun = 01:00 UTC
+  { date: '2026-06-30', utcHour: 1,  utcMin: 0, knockout: true },
+  // r32_7: Vinner A-3er             03:00 CEST 01.jul = 01:00 UTC
   { date: '2026-07-01', utcHour: 1,  utcMin: 0, knockout: true },
-  { date: '2026-07-01', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-07-01', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-07-02', utcHour: 1,  utcMin: 0, knockout: true },
+  // r32_8: Vinner L-3er             18:00 CEST 01.jul = 16:00 UTC
+  { date: '2026-07-01', utcHour: 16, utcMin: 0, knockout: true },
+  // r32_10: Vinner G-3er            22:00 CEST 01.jul = 20:00 UTC
+  { date: '2026-07-01', utcHour: 20, utcMin: 0, knockout: true },
+  // r32_9: Vinner D-3er             02:00 CEST 02.jul = 00:00 UTC
+  { date: '2026-07-02', utcHour: 0,  utcMin: 0, knockout: true },
+  // r32_12: Vinner H-Toer J         21:00 CEST 02.jul = 19:00 UTC
   { date: '2026-07-02', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-07-02', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-07-03', utcHour: 1,  utcMin: 0, knockout: true },
+  // r32_11: Toer K-Toer L           01:00 CEST 03.jul = 23:00 UTC 02.jul
+  { date: '2026-07-02', utcHour: 23, utcMin: 0, knockout: true },
+  // r32_16: Toer D-Toer G           20:00 CEST 03.jul = 18:00 UTC
+  { date: '2026-07-03', utcHour: 18, utcMin: 0, knockout: true },
+  // r32_13: Vinner B-3er            05:00 CEST 03.jul = 03:00 UTC
+  { date: '2026-07-03', utcHour: 3,  utcMin: 0, knockout: true },
+  // r32_14: Vinner J-Toer H         00:00 CEST 04.jul = 22:00 UTC 03.jul
+  { date: '2026-07-03', utcHour: 22, utcMin: 0, knockout: true },
+  // r32_15: Vinner K-3er            03:30 CEST 04.jul = 01:30 UTC
+  { date: '2026-07-04', utcHour: 1,  utcMin: 30, knockout: true },
+  // r16_2: kamp 73-75               19:00 CEST 04.jul = 17:00 UTC
   { date: '2026-07-04', utcHour: 17, utcMin: 0, knockout: true },
+  // r16_1: kamp 74-77               23:00 CEST 04.jul = 21:00 UTC
   { date: '2026-07-04', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-05', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-05', utcHour: 17, utcMin: 0, knockout: true },
-  { date: '2026-07-05', utcHour: 21, utcMin: 0, knockout: true },
+  // r16_3: kamp 76-78               22:00 CEST 05.jul = 20:00 UTC
+  { date: '2026-07-05', utcHour: 20, utcMin: 0, knockout: true },
+  // r16_4: kamp 79-80               02:00 CEST 06.jul = 00:00 UTC
   { date: '2026-07-06', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-07', utcHour: 17, utcMin: 0, knockout: true },
-  { date: '2026-07-07', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-08', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-08', utcHour: 17, utcMin: 0, knockout: true },
-  { date: '2026-07-08', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-09', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-10', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-11', utcHour: 0,  utcMin: 0, knockout: true },
+  // r16_5: kamp 83-84               21:00 CEST 06.jul = 19:00 UTC
+  { date: '2026-07-06', utcHour: 19, utcMin: 0, knockout: true },
+  // r16_6: kamp 81-82               02:00 CEST 07.jul = 00:00 UTC
+  { date: '2026-07-07', utcHour: 0,  utcMin: 0, knockout: true },
+  // r16_7: kamp 86-88               18:00 CEST 07.jul = 16:00 UTC
+  { date: '2026-07-07', utcHour: 16, utcMin: 0, knockout: true },
+  // r16_8: kamp 85-87               22:00 CEST 07.jul = 20:00 UTC
+  { date: '2026-07-07', utcHour: 20, utcMin: 0, knockout: true },
+  // qf_1: kamp 89-90                22:00 CEST 09.jul = 20:00 UTC
+  { date: '2026-07-09', utcHour: 20, utcMin: 0, knockout: true },
+  // qf_2: kamp 93-94                21:00 CEST 10.jul = 19:00 UTC
+  { date: '2026-07-10', utcHour: 19, utcMin: 0, knockout: true },
+  // qf_3: kamp 91-92                23:00 CEST 11.jul = 21:00 UTC
   { date: '2026-07-11', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-12', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-14', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-15', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-15', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-16', utcHour: 0,  utcMin: 0, knockout: true },
+  // qf_4: kamp 95-96                03:00 CEST 12.jul = 01:00 UTC
+  { date: '2026-07-12', utcHour: 1,  utcMin: 0, knockout: true },
+  // sf_1: kamp 97-98                21:00 CEST 14.jul = 19:00 UTC
+  { date: '2026-07-14', utcHour: 19, utcMin: 0, knockout: true },
+  // sf_2: kamp 99-100               21:00 CEST 15.jul = 19:00 UTC
+  { date: '2026-07-15', utcHour: 19, utcMin: 0, knockout: true },
+  // bronze: kamp 103                23:00 CEST 18.jul = 21:00 UTC
   { date: '2026-07-18', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-19', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-19', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-20', utcHour: 0,  utcMin: 0, knockout: true },
+  // final: kamp 104                 21:00 CEST 19.jul = 19:00 UTC
+  { date: '2026-07-19', utcHour: 19, utcMin: 0, knockout: true },
 ];
 
 // Sjekk om vi er innenfor et kampvindu
@@ -178,7 +255,7 @@ function isWithinMatchWindow() {
   const nowMs = now.getTime();
   return MATCH_WINDOWS.some(w => {
     const wDate = new Date(`${w.date}T${String(w.utcHour).padStart(2,'0')}:${String(w.utcMin).padStart(2,'0')}:00Z`);
-    const windowAfterMs = (w.knockout ? 3 : 2.5) * 60 * 60 * 1000;
+    const windowAfterMs = (w.knockout ? 4 : 3) * 60 * 60 * 1000;
     const windowBeforeMs = 10 * 60 * 1000; // 10 min før kampstart
     return nowMs >= wDate.getTime() - windowBeforeMs && nowMs <= wDate.getTime() + windowAfterMs;
   });
@@ -989,7 +1066,7 @@ exports.pollFootball = onSchedule(
 
 // ── Manuell HTTP-trigger ──────────────────────────────────────────────
 exports.manualPoll = onRequest(
-  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'], cors: true },
+  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'] },
   async (req, res) => {
     try { await pollAndUpdate(); res.json({ ok: true, ts: Date.now() }); }
     catch (err) { console.error('manualPoll feilet:', err); res.status(500).json({ ok: false, error: err.message }); }
@@ -1284,7 +1361,7 @@ exports.getTopscorers = onRequest(
 );
 
 // ── Bygg fixture-lookup ───────────────────────────────────────────────
-exports.buildFixtureLookup = onRequest({ cors: true }, async (req, res) => {
+exports.buildFixtureLookup = onRequest(async (req, res) => {
   if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
   const { matches } = req.body;
   if (!matches || !Array.isArray(matches)) {
