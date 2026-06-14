@@ -4544,7 +4544,7 @@ function LiveAdmin() {
       const res = await fetch(CF_V2('buildfixturelookup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away, date: m.date })) }),
+        body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away, date: m.date, time: m.time, phase: m.phase })) }),
       });
       const data = await res.json();
       if (data.ok) {

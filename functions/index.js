@@ -16,17 +16,17 @@ const FUNCTION_DURATION = 50000;
 // ── Lagnavn-mapping ──────────────────────────────────────────────────
 const TEAM_NAME_MAP = {
   'Mexico':'Mexico','Sør-Afrika':'South Africa','Sør-Korea':'South Korea',
-  'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina','Bosnia-Herz2':'Bosnia & Herzegovina',
+  'Tsjekkia':'Czechia','Canada':'Canada','Bosnia-Herz':'Bosnia & Herzegovina',
   'Qatar':'Qatar','Sveits':'Switzerland','Brasil':'Brazil','Marokko':'Morocco',
-  'Haiti':'Haiti','Skottland':'Scotland','USA':'USA','USA2':'United States','Paraguay':'Paraguay',
-  'Australia':'Australia','Tyrkia':'Turkey','Tyskland':'Germany','Curacao':'Curacao',
+  'Haiti':'Haiti','Skottland':'Scotland','USA':'United States','Paraguay':'Paraguay',
+  'Australia':'Australia','Tyrkia':'Türkiye','Tyskland':'Germany','Curacao':'Curaçao',
   'Elfenbenskysten':'Ivory Coast','Ecuador':'Ecuador','Nederland':'Netherlands',
   'Japan':'Japan','Sverige':'Sweden','Tunisia':'Tunisia','Belgia':'Belgium',
   'Egypt':'Egypt','Iran':'Iran','New Zealand':'New Zealand','Spania':'Spain',
-  'Kapp Verde':'Cape Verde','Saudi-Arabia':'Saudi Arabia','Uruguay':'Uruguay',
+  'Kapp Verde':'Cape Verde Islands','Saudi-Arabia':'Saudi Arabia','Uruguay':'Uruguay',
   'Frankrike':'France','Senegal':'Senegal','Irak':'Iraq','Norge':'Norway',
   'Argentina':'Argentina','Algerie':'Algeria','Østerrike':'Austria','Jordan':'Jordan',
-  'Portugal':'Portugal','Kongo DR':'DR Congo','Usbekistan':'Uzbekistan',
+  'Portugal':'Portugal','Kongo DR':'Congo DR','Usbekistan':'Uzbekistan',
   'Colombia':'Colombia','England':'England','Kroatia':'Croatia','Ghana':'Ghana',
   'Panama':'Panama',
 };
@@ -1287,7 +1287,6 @@ exports.buildFixtureLookup = onRequest(
   async (req, res) => {
     if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
 
-    // Hent alle VM-kamper fra API-Football
     let allFixtures = [];
     try {
       const data = await apiFetch(`fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}`);
@@ -1302,15 +1301,12 @@ exports.buildFixtureLookup = onRequest(
       return;
     }
 
-    // Bygg lookup: "HomeApiName_AwayApiName" -> matchId
-    // Matcher på dato + norsk lagnavn via TEAM_NAME_MAP
     const { matches } = req.body || {};
     if (!matches || !Array.isArray(matches)) {
       res.status(400).json({ error: 'Body må inneholde matches: [{id, home, away, date}]' });
       return;
     }
 
-    // Bygg reverse map: engelsk API-navn -> norsk navn (fra TEAM_NAME_MAP)
     const engToNor = {};
     for (const [nor, eng] of Object.entries(TEAM_NAME_MAP)) {
       engToNor[eng] = nor;
@@ -1318,34 +1314,57 @@ exports.buildFixtureLookup = onRequest(
 
     const lookup = {};
     let matched = 0;
-    let unmatched = [];
+    const unmatched = [];
 
     for (const fixture of allFixtures) {
       const apiHome = fixture.teams?.home?.name;
       const apiAway = fixture.teams?.away?.name;
-      const apiDate = fixture.fixture?.date?.slice(0, 10); // "2026-06-14"
+      const apiDate = fixture.fixture?.date?.slice(0, 10);
       if (!apiHome || !apiAway || !apiDate) continue;
 
-      // Finn tilsvarende kamp i vår liste basert på dato + lagnavn
+      // API-Football bruker UTC-datoer, constants.js bruker CEST (UTC+2).
+      // En kamp kl. 01:00 CEST = 23:00 UTC dagen før — så vi tillater ±1 dag.
+      const apiDateObj = new Date(apiDate + 'T00:00:00Z');
+      const apiDateMinus1 = new Date(apiDateObj - 86400000).toISOString().slice(0, 10);
+      const apiDatePlus1  = new Date(apiDateObj + 86400000).toISOString().slice(0, 10);
+      const allowedDates  = new Set([apiDate, apiDateMinus1, apiDatePlus1]);
+
+      // Konverter API-Footballs UTC-klokkeslett til CEST-dato+tid for matching
+      const apiKickoffUTC = fixture.fixture?.date; // "2026-06-28T19:00:00+00:00"
+      const apiKickoffCEST = apiKickoffUTC
+        ? new Date(new Date(apiKickoffUTC).getTime() + 2*3600000) // UTC+2
+        : null;
+      const apiTimeCEST = apiKickoffCEST
+        ? String(apiKickoffCEST.getUTCHours()).padStart(2,'0') + ':' + String(apiKickoffCEST.getUTCMinutes()).padStart(2,'0')
+        : null;
+      const apiDateCEST = apiKickoffCEST ? apiKickoffCEST.toISOString().slice(0,10) : null;
+
       const appMatch = matches.find(m => {
-        if (m.date !== apiDate) return false;
         const norHome = engToNor[apiHome] || apiHome;
         const norAway = engToNor[apiAway] || apiAway;
-        return (norHome === m.home && norAway === m.away) ||
-               (apiHome === m.home && apiAway === m.away);
+        const isKnockout = ['r32','r16','qf','sf','bronze','final'].includes(m.phase);
+
+        if (isKnockout) {
+          // Sluttspill: match på CEST-dato og CEST-tid
+          return apiDateCEST === m.date && apiTimeCEST === m.time;
+        } else {
+          // Gruppespill: match på lagnavn + dato (±1 dag)
+          if (!allowedDates.has(m.date)) return false;
+          return (norHome === m.home && norAway === m.away) ||
+                 (apiHome === m.home && apiAway === m.away);
+        }
       });
 
       if (appMatch) {
-        // Lagre med API-Footballs eksakte navn som nøkkel
-        lookup[\`\${apiHome}_\${apiAway}\`] = appMatch.id;
+        lookup[apiHome + '_' + apiAway] = appMatch.id;
         matched++;
       } else {
-        unmatched.push(\`\${apiHome} vs \${apiAway} (\${apiDate})\`);
+        unmatched.push(apiHome + ' vs ' + apiAway + ' (' + apiDate + ')');
       }
     }
 
     await db.collection('config').doc('fixtureLookup').set(lookup);
-    console.log(\`fixtureLookup bygget: \${matched} kamper matchet, \${unmatched.length} ikke matchet\`);
+    console.log('fixtureLookup bygget: ' + matched + ' kamper matchet, ' + unmatched.length + ' ikke matchet');
     if (unmatched.length > 0) console.warn('Ikke matchet:', unmatched.slice(0, 20).join(', '));
 
     res.json({ ok: true, matched, unmatched: unmatched.length, unmatchedList: unmatched.slice(0, 20) });
