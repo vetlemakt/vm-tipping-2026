@@ -3249,19 +3249,17 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 // ══════════════════════════════════════════════════════════════════════
 //  PLAYER TIPS POPUP (hover/tap in leaderboard)
 // ══════════════════════════════════════════════════════════════════════
-function PlayerTipsPopup({ user, results, onClose, onShowTips, anchorRef }) {
+function PlayerTipsPopup({ user, results, onClose, onShowTips, pos }) {
   const now = new Date();
   const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
 
-  // Find live match (started within last 3h)
   const liveMatch = allMatches.find(m => {
-    if (!results[m.id]) return false; // not finished
+    if (!results[m.id]) return false;
     const kick = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
     const minsAgo = (now - kick) / 60000;
     return minsAgo >= 0 && minsAgo < 180 && !results[m.id]?.status?.includes('FT');
   });
 
-  // Upcoming matches (not yet started, not in results)
   const upcoming = allMatches.filter(m => {
     const kick = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
     return kick > now && !results[m.id];
@@ -3271,19 +3269,7 @@ function PlayerTipsPopup({ user, results, onClose, onShowTips, anchorRef }) {
     return kA - kB;
   });
 
-  const showMatches = liveMatch
-    ? [liveMatch, ...upcoming.slice(0, 2)]
-    : upcoming.slice(0, 3);
-
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  useEffect(() => {
-    if (anchorRef?.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      const left = Math.min(rect.right + 8, window.innerWidth - 240);
-      const top = Math.max(rect.top - 10, 10);
-      setPos({ top, left });
-    }
-  }, []); // eslint-disable-line
+  const showMatches = liveMatch ? [liveMatch, ...upcoming.slice(0, 2)] : upcoming.slice(0, 3);
 
   const fmtTip = (matchId) => {
     const t = user.tips?.[matchId];
@@ -3291,10 +3277,10 @@ function PlayerTipsPopup({ user, results, onClose, onShowTips, anchorRef }) {
     return `${t.home} – ${t.away}`;
   };
 
-  const fmtKick = (m) => {
-    const d = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
-    return d.toLocaleDateString('nb-NO', { weekday:'short', day:'numeric', month:'short' }) + ' ' + (m.time||'');
-  };
+  // Clamp position so popup stays on screen
+  const popW = 230, popH = 220;
+  const left = Math.min(Math.max(pos.x, 8), window.innerWidth - popW - 8);
+  const top  = Math.min(Math.max(pos.y - 10, 8), window.innerHeight - popH - 8);
 
   return createPortal(
     <>
@@ -3303,10 +3289,11 @@ function PlayerTipsPopup({ user, results, onClose, onShowTips, anchorRef }) {
         onClick={e => e.stopPropagation()}
         onMouseLeave={onClose}
         style={{
-          position:'fixed', top: pos.top, left: pos.left, zIndex:900,
-          background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.2)',
-          borderRadius:12, padding:'12px 14px', minWidth:210, maxWidth:240,
-          boxShadow:'0 8px 32px rgba(0,0,0,.6)',
+          position:'fixed', top, left, zIndex:900,
+          background:'#0e1628', border:'1px solid rgba(255,215,0,.25)',
+          borderRadius:12, padding:'12px 14px', width: popW,
+          boxShadow:'0 8px 32px rgba(0,0,0,.8)',
+          pointerEvents:'auto',
         }}
       >
         <div style={{ fontSize:12, fontWeight:700, color:'#FFD700', marginBottom:10, letterSpacing:1 }}>
@@ -3315,35 +3302,38 @@ function PlayerTipsPopup({ user, results, onClose, onShowTips, anchorRef }) {
         {showMatches.length === 0 && (
           <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>Ingen kommende kamper</div>
         )}
-        {showMatches.map((m, idx) => (
-          <div key={m.id} style={{
-            marginBottom: idx < showMatches.length - 1 ? 10 : 0,
-            paddingBottom: idx < showMatches.length - 1 ? 10 : 0,
-            borderBottom: idx < showMatches.length - 1 ? '1px solid rgba(255,255,255,.06)' : 'none',
-          }}>
-            <div style={{ fontSize: idx === 0 ? 12 : 10, color:'rgba(255,255,255,.5)', marginBottom:3 }}>
-              {idx === 0 && liveMatch ? '🔴 LIVE · ' : ''}{fmtKick(m)}
+        {showMatches.map((m, idx) => {
+          const tip = fmtTip(m.id);
+          const isLive = idx === 0 && liveMatch;
+          return (
+            <div key={m.id} style={{
+              marginBottom: idx < showMatches.length - 1 ? 8 : 0,
+              paddingBottom: idx < showMatches.length - 1 ? 8 : 0,
+              borderBottom: idx < showMatches.length - 1 ? '1px solid rgba(255,255,255,.07)' : 'none',
+            }}>
+              {isLive && <div style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:2 }}>🔴 LIVE</div>}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
+                <span style={{ fontSize: idx === 0 ? 13 : 11, color:'#e8edf8', fontWeight: idx === 0 ? 600 : 400, display:'flex', alignItems:'center', gap:3 }}>
+                  {m.home} <Flag team={m.home} size={idx===0?13:11} />
+                  <span style={{color:'rgba(255,255,255,.3)', margin:'0 2px'}}>–</span>
+                  <Flag team={m.away} size={idx===0?13:11} /> {m.away}
+                </span>
+                <span style={{
+                  fontSize: idx === 0 ? 14 : 12, fontWeight:700, flexShrink:0,
+                  color: tip === '–' ? 'rgba(255,255,255,.2)' : '#FFD700',
+                }}>
+                  {tip}
+                </span>
+              </div>
             </div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
-              <span style={{ fontSize: idx === 0 ? 13 : 11, color:'#e8edf8', fontWeight: idx === 0 ? 600 : 400 }}>
-                <Flag team={m.home} size={12} /> {TEAM_SHORT[m.home]||m.home} – {TEAM_SHORT[m.away]||m.away} <Flag team={m.away} size={12} />
-              </span>
-              <span style={{
-                fontSize: idx === 0 ? 14 : 11, fontWeight:700,
-                color: fmtTip(m.id) === '–' ? 'rgba(255,255,255,.25)' : '#FFD700',
-                flexShrink:0,
-              }}>
-                {fmtTip(m.id)}
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         <button
           onClick={() => { onClose(); onShowTips(user); }}
           style={{
             marginTop:12, width:'100%', padding:'7px 0', borderRadius:8,
-            background:'rgba(255,215,0,.1)', border:'1px solid rgba(255,215,0,.25)',
-            color:'#FFD700', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:0.5,
+            background:'rgba(255,215,0,.12)', border:'1px solid rgba(255,215,0,.3)',
+            color:'#FFD700', fontSize:11, fontWeight:700, cursor:'pointer',
           }}
         >
           Fullt skjema →
@@ -3359,7 +3349,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   const [results, setResultsState] = useState({});
   const [selected, setSelected] = useState(initialSelected || null);
   const [hoveredUser, setHoveredUser] = useState(null);
-  const [anchorRef, setAnchorRef] = useState(null);
+  const [popupPos, setPopupPos] = useState({ x:0, y:0 });
   const isMobile = useIsMobile();
   const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
@@ -3388,9 +3378,9 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             <span
               ref={el => { if (el && hoveredUser?.id === r.id) {} }}
               style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
-              onMouseEnter={e => { if (!isMobile) { setHoveredUser(r); setAnchorRef({ current: e.currentTarget }); } }}
+              onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setPopupPos({ x: rect.right + 8, y: rect.top }); setHoveredUser(r); } }}
               onMouseLeave={() => { if (!isMobile) setHoveredUser(null); }}
-              onClick={e => { e.stopPropagation(); if (isMobile) { setHoveredUser(r); setAnchorRef({ current: e.currentTarget }); } else if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
+              onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setPopupPos({ x: rect.left, y: rect.bottom + 4 }); setHoveredUser(r); } else if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
             >
               {r.displayName}
               {!canView && <span style={C.lbLockIcon}>🔒</span>}
@@ -3412,7 +3402,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
           results={results}
           onClose={() => setHoveredUser(null)}
           onShowTips={u => { setHoveredUser(null); onShowTips ? onShowTips(u) : setSelected(u); }}
-          anchorRef={anchorRef}
+          pos={popupPos}
         />
       )}
     </div>
