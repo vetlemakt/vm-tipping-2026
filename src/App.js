@@ -827,7 +827,7 @@ function OnlineBar({ onlineUsers }) {
   };
 
   return (
-    <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center', gap:'2px 6px', flex:1 }}>
+    <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center', gap:'2px 6px', padding:'3px 10px', borderTop:'1px solid rgba(255,255,255,.06)', background:'rgba(0,0,0,.15)' }}>
       {sorted.map((u, i) => {
         const short = ONLINE_SHORT[u.name] || u.name;
         const dur = fmtDuration(u.ts);
