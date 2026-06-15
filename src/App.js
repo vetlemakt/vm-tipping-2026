@@ -3382,7 +3382,6 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   const openLbPopup = (r, x, y) => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } setLbPopup({ user: r, x, y }); };
   const closeLbPopup = () => { lbCloseTimer.current = setTimeout(() => setLbPopup(null), 150); };
   const cancelLbClose = () => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } };
-  const isMobile = useIsMobile();
   const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
