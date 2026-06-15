@@ -2990,14 +2990,16 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
               onClick={() => canView && onShowTips && onShowTips(r)}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
-              <span
-                style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6 }}
-                onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 6, rect.top); }}
-                onMouseLeave={closeDashPopup}
-                onClick={e => { e.stopPropagation(); if (canView) { onShowTips && onShowTips(r); } }}
-              >
-                {r.displayName}
-                {!canView && <span style={C.lbLockIcon}>🔒</span>}
+              <span style={{ ...C.lbName }}>
+                <span
+                  style={{ textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6, display:'inline-block' }}
+                  onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 6, rect.top); }}
+                  onMouseLeave={closeDashPopup}
+                  onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 6, rect.top); }}
+                >
+                  {r.displayName}
+                  {!canView && <span style={C.lbLockIcon}>🔒</span>}
+                </span>
               </span>
               <div style={{display:'flex',alignItems:'center',gap:6}}>
                 {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
@@ -3411,15 +3413,16 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
           <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
             onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
-            <span
-              
-              style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6 }}
-              onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 6, rect.top); }}
-              onMouseLeave={closeLbPopup}
-              onClick={e => { e.stopPropagation(); if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
-            >
-              {r.displayName}
-              {!canView && <span style={C.lbLockIcon}>🔒</span>}
+            <span style={{ ...C.lbName }}>
+              <span
+                style={{ textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6, display:'inline-block' }}
+                onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 6, rect.top); }}
+                onMouseLeave={closeLbPopup}
+                onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 6, rect.top); }}
+              >
+                {r.displayName}
+                {!canView && <span style={C.lbLockIcon}>🔒</span>}
+              </span>
             </span>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
