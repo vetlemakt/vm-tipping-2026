@@ -857,7 +857,8 @@ async function pollAndUpdate() {
       // Sjekk nye kort
       const lastCardEvent = [...events].reverse().find(e => e.type === 'Card');
       if (lastCardEvent) {
-        const cardKey = `${matchId}_${lastCardEvent.player?.name}_${lastCardEvent.time?.elapsed}_${lastCardEvent.detail}`;
+        // Bruk minutt+detalj+lag som nøkkel (ikke spillernavn - API kan returnere ulike varianter)
+        const cardKey = `${matchId}_${lastCardEvent.team?.name}_${lastCardEvent.time?.elapsed}_${lastCardEvent.detail}`;
         const prevCardKey = newPrevCards[matchId];
         let cardIsNew = false;
         if (cardKey !== prevCardKey) {
@@ -872,7 +873,25 @@ async function pollAndUpdate() {
           newPrevCards[matchId] = cardKey;
         }
         if (cardIsNew) {
-          const ce = buildLiveEvent(fixture, true);
+          // Bygg kort-event direkte fra lastCardEvent (ikke buildLiveEvent som kan returnere feil event)
+          const cardTeamApiDirect = lastCardEvent.team?.name;
+          const isHomeDirect = cardTeamApiDirect === fixture.teams?.home?.name;
+          const isYellowDirect = lastCardEvent.detail?.includes('Yellow');
+          const hg = fixture.goals?.home ?? 0;
+          const ag = fixture.goals?.away ?? 0;
+          const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
+          const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();
+          const ce = {
+            type: 'card',
+            cardColor: isYellowDirect ? 'Yellow' : 'Red',
+            text: `${isYellowDirect ? '🟨' : '🟥'} ${lastCardEvent.player?.name || '?'} '${lastCardEvent.time?.elapsed} (${isHomeDirect ? shortH : shortA})`,
+            playerName: lastCardEvent.player?.name || '?',
+            minute: lastCardEvent.time?.elapsed,
+            teamNor: isHomeDirect ? homeNor : awayNor,
+            shortHome: shortH, shortAway: shortA,
+            homeGoals: hg, awayGoals: ag,
+            ts: Date.now(),
+          };
           if (ce?.type === 'card') {
             cardEventThisPoll = ce;
             setTimeout(async () => {

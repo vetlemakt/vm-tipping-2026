@@ -4544,7 +4544,7 @@ function LiveAdmin() {
       const res = await fetch(CF_V2('buildfixturelookup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away, date: m.date, time: m.time, phase: m.phase })) }),
+        body: JSON.stringify({ matches: allMatches.map(m => ({ id: m.id, home: m.home, away: m.away, date: m.date })) }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -4599,16 +4599,6 @@ function LiveAdmin() {
         } catch(e) { setLiveStatus('❌ ' + e.message); }
       }} style={{ background:'rgba(251,146,60,.1)', border:'1px solid rgba(251,146,60,.3)', color:'#fb923c', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
         ⚽ Oppdater toppscorerliste manuelt
-      </button>
-      <button onClick={async () => {
-        setLiveStatus('Oppdaterer kortstatistikk...');
-        try {
-          const res = await fetch(CF_V2('refreshcardstats'), { method: 'POST' });
-          const data = await res.json();
-          setLiveStatus(data.ok ? `✅ Kortstatistikk oppdatert for ${data.teams} lag!` : '❌ ' + (data.error||'ukjent'));
-        } catch(e) { setLiveStatus('❌ ' + e.message); }
-      }} style={{ background:'rgba(251,146,60,.1)', border:'1px solid rgba(251,146,60,.3)', color:'#fb923c', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
-        🟨 Oppdater kortstatistikk manuelt
       </button>
       {liveStatus && <div style={{ fontSize:11, color:'#4ade80', fontFamily:"'Fira Code',monospace", marginTop:4 }}>{liveStatus}</div>}
     </div>
@@ -5923,11 +5913,11 @@ function VMCountdownBanner({ adminMessage, onAdminMessageClick, isMobile, banner
       return (
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:700, whiteSpace:'nowrap', justifyContent:'center' }}>
           <span style={{ color: YEL, fontWeight:900, letterSpacing:1 }}>MÅL!</span>
-          <span style={{ display:'flex', alignItems:'center', gap:3 }}><Flag team={homeTeam} size={14} /><span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.9)', fontSize:11 }}>{homeTeam}</span></span>
+          <span style={{ display:'flex', alignItems:'center', gap:3 }}><Flag team={homeTeam} size={14} /><span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.9)', fontSize:11 }}>{TEAM_SHORT[homeTeam] || homeTeam.slice(0,3).toUpperCase()}</span></span>
           <span style={{ color: homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{homeGoals}</span>
           <span style={{ color:'rgba(255,255,255,.4)' }}>–</span>
           <span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.9)' }}>{awayGoals}</span>
-          <span style={{ display:'flex', alignItems:'center', gap:3 }}><Flag team={awayTeam} size={14} /><span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.9)', fontSize:11 }}>{awayTeam}</span></span>
+          <span style={{ display:'flex', alignItems:'center', gap:3 }}><Flag team={awayTeam} size={14} /><span style={{ color: !homeScored ? YEL : 'rgba(255,255,255,.9)', fontSize:11 }}>{TEAM_SHORT[awayTeam] || awayTeam.slice(0,3).toUpperCase()}</span></span>
           <span style={{ color:'rgba(255,255,255,.55)', fontSize:10, marginLeft:2 }}>· {playerName}{suffix} '{minute}</span>
         </div>
       );
