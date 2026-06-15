@@ -109,7 +109,8 @@ export function subscribeOnlineUsers(callback) {
     const now = Date.now();
     const active = snap.docs
       .filter(d => now - (d.data().ts || 0) < 60000)
-      .map(d => d.data().displayName || d.id);
+      .map(d => ({ displayName: d.data().displayName || d.id, ts: d.data().ts || 0 }))
+      .sort((a, b) => b.ts - a.ts);
     callback(active);
   });
 }

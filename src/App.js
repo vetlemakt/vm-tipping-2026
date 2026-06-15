@@ -791,46 +791,71 @@ function renderFulltreff(count) {
 }
 
 // Online users popup indicator
-function OnlineIndicator({ onlineUsers, compact = false }) {
-  const [show, setShow] = useState(false);
+const ONLINE_SHORT = {
+  'Morten Almås': 'Morten',
+  'To-En-Jenny': 'Jenny',
+  'To-en-Jenny': 'Jenny',
+  'Magnus Golf Skokrem': 'Magnus',
+  'Østby Lottos': 'Østby',
+  'Thomas Hollandinho': 'Thomas',
+  'Frank Sæther': 'Frank',
+  'Alf Roar Nusser': 'Alf Roar',
+  'Lars "Fasiten" Gaustad': 'Lars',
+  'Tord Holan': 'Tord',
+  'Erik Dreier': 'Erik',
+  'Frode Kommode': 'Frode',
+};
+
+function OnlineBar({ onlineUsers }) {
+  // onlineUsers is array of {displayName, ts} or just strings
+  const users = onlineUsers.map(u => typeof u === 'string' ? { name: u, ts: null } : { name: u.displayName || u, ts: u.ts || null });
+  // Sort: most recent first (right to left = reversed in flex-row)
+  const sorted = [...users].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const [hoveredName, setHoveredName] = useState(null);
+  const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const isMobile = useIsMobile();
+
+  if (sorted.length === 0) return null;
+
+  const fmtDuration = (ts) => {
+    if (!ts) return null;
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return 'Akkurat nå';
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs}t ${mins % 60}min`;
+  };
+
   return (
-    <div style={{ position:'relative', flexShrink: 0 }}
-      onMouseEnter={() => !isMobile && setShow(true)}
-      onMouseLeave={() => !isMobile && setShow(false)}
-      onClick={() => isMobile && setShow(s => !s)}>
-      <span style={{ fontSize: compact ? 11 : 12, color:'#4ade80', fontFamily:"'Fira Code',monospace", display:'flex', alignItems:'center', gap:4, cursor:'pointer', whiteSpace:'nowrap' }}>
-        <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80', flexShrink:0 }}/>
-        {compact ? onlineUsers.length : `${onlineUsers.length} online`}
-      </span>
-      {show && (
-        <>
-          <div
-            onClick={e => { e.stopPropagation(); setShow(false); }}
-            onTouchEnd={e => { e.stopPropagation(); setShow(false); }}
-            style={{ position:'fixed', inset:0, zIndex:998 }}
-          />
-          <div
-            onClick={e => e.stopPropagation()}
-            onTouchEnd={e => e.stopPropagation()}
-            style={{
-              position:'absolute', top:'100%', right:0, zIndex:999,
-              background:'rgba(10,14,26,.97)', border:'1px solid rgba(74,222,128,.3)',
-              borderRadius:10, padding:'10px 14px', minWidth:160, marginTop:6,
-              boxShadow:'0 8px 24px rgba(0,0,0,.5)',
-            }}>
-            <div style={{ fontSize:10, color:'rgba(255,255,255,.4)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>Pålogget nå</div>
-            {onlineUsers.length === 0
-              ? <div style={{ fontSize:12, color:'rgba(255,255,255,.4)' }}>Ingen</div>
-              : onlineUsers.map(name => (
-                <div key={name} style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 0', fontSize:13, color:'#e8edf8' }}>
-                  <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', display:'inline-block' }}/>
-                  {name}
-                </div>
-              ))
-            }
-          </div>
-        </>
+    <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center', gap:'2px 6px', flex:1 }}>
+      {sorted.map((u, i) => {
+        const short = ONLINE_SHORT[u.name] || u.name;
+        const dur = fmtDuration(u.ts);
+        return (
+          <span key={u.name} style={{ display:'inline-flex', alignItems:'center', gap:3 }}>
+            {i > 0 && <span style={{ color:'rgba(74,222,128,.4)', fontSize:10 }}>·</span>}
+            <span
+              style={{ fontSize:11, color:'#4ade80', cursor: dur ? 'default' : 'default', whiteSpace:'nowrap' }}
+              onMouseEnter={e => { if (!isMobile && dur) { setHoveredName(u.name); setHoverPos({ x: e.clientX, y: e.clientY }); } }}
+              onMouseLeave={() => setHoveredName(null)}
+            >
+              {short}
+            </span>
+          </span>
+        );
+      })}
+      {hoveredName && createPortal(
+        <div style={{
+          position:'fixed', top: hoverPos.y - 36, left: hoverPos.x,
+          transform:'translateX(-50%)',
+          background:'rgba(10,14,30,.97)', border:'1px solid rgba(74,222,128,.3)',
+          borderRadius:7, padding:'4px 10px', fontSize:11, color:'#4ade80',
+          zIndex:9999, pointerEvents:'none', whiteSpace:'nowrap',
+          boxShadow:'0 4px 12px rgba(0,0,0,.5)',
+        }}>
+          {hoveredName} · {fmtDuration(users.find(u => u.name === hoveredName)?.ts)}
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -3012,11 +3037,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
           <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6 }} onClick={e => e.stopPropagation()}>
 
-            <OnlineIndicator onlineUsers={onlineUsers} compact={isMobile} />
             <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
             <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }} title="Fullskjerm">⛶</button>
           </div>
         </div>
+        <OnlineBar onlineUsers={onlineUsers} />
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => (
@@ -5756,11 +5781,10 @@ function ChatPage({ me }) {
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat</span>
         <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6 }}>
-          <VideoButton compact={isMobile} />
-          <OnlineIndicator onlineUsers={onlineUsers} compact={isMobile} />
           <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
         </div>
       </div>
+      <OnlineBar onlineUsers={onlineUsers} />
       <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => (
