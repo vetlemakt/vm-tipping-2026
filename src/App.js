@@ -3089,7 +3089,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             const isEditing = editingSummary === m.id;
             return (
               <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 24, marginTop: 8 }}>
-                {(() => { const LIVE_SET = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']); const isLive = r && LIVE_SET.has(r.status); return isLive ? (
+                {(() => { const LIVE_SET = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']); const FINISHED_SET = new Set(['FT','AET','PEN','AWD','WO']); const kickoff = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00').getTime(); const minsAgo = (Date.now() - kickoff) / 60000; const maxMins = m.phase === 'group' ? 180 : 240; const isLive = r && LIVE_SET.has(r.status) && !FINISHED_SET.has(r.status) && minsAgo >= 0 && minsAgo < maxMins; return isLive ? (
                   <div style={{ textAlign:'center', marginBottom:4 }}>
                     <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, letterSpacing:1 }}>🔴 LIVE</span>
                   </div>
@@ -3213,7 +3213,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             const botColor = botExpert?.color || 'rgba(255,215,0,.5)';
             return (
               <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 24, marginTop: 8 }}>
-                {(() => { const LIVE_SET = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']); const isLive = r && LIVE_SET.has(r.status); return isLive ? (
+                {(() => { const LIVE_SET = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']); const FINISHED_SET = new Set(['FT','AET','PEN','AWD','WO']); const kickoff = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00').getTime(); const minsAgo = (Date.now() - kickoff) / 60000; const maxMins = m.phase === 'group' ? 180 : 240; const isLive = r && LIVE_SET.has(r.status) && !FINISHED_SET.has(r.status) && minsAgo >= 0 && minsAgo < maxMins; return isLive ? (
                   <div style={{ textAlign:'center', marginBottom:4 }}>
                     <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, letterSpacing:1 }}>🔴 LIVE</span>
                   </div>
