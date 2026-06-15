@@ -2569,16 +2569,22 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
   const [show, setShow] = useState(false);
   const boxRef = useRef(null);
   const [rect, setRect] = useState(null);
+  const closeTimer = useRef(null);
 
   const openTooltip = () => {
+    if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; }
     if (boxRef.current) {
       const r = boxRef.current.getBoundingClientRect();
-      // Bruk absolutt posisjon (pageY) så popup ikke beveger seg ved scrolling
       setRect({ top: r.top + window.scrollY, left: r.left + window.scrollX, width: r.width, height: r.height });
     }
     setShow(true);
   };
-  const closeTooltip = () => setShow(false);
+  const closeTooltip = () => {
+    closeTimer.current = setTimeout(() => setShow(false), 120);
+  };
+  const cancelClose = () => {
+    if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; }
+  };
   const toggle = (e) => {
     e.stopPropagation();
     if (mobile) {
@@ -2618,7 +2624,8 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
             onTouchEnd={() => setShow(false)}
             style={{ position: 'fixed', inset: 0, zIndex: 99998 }}
           />
-          <div style={{...popupStyle}} onClick={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
+          <div style={{...popupStyle}} onClick={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}
+            onMouseEnter={cancelClose} onMouseLeave={closeTooltip}>
             {tooltip}
           </div>
         </>,
