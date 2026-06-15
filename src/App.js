@@ -2991,7 +2991,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               onClick={() => canView && onShowTips && onShowTips(r)}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span
-                style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
+                style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 8px', margin:'-4px -8px', borderRadius:6 }}
                 onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 8, rect.top); }}
                 onMouseLeave={closeDashPopup}
                 onClick={e => { e.stopPropagation(); if (canView) { onShowTips && onShowTips(r); } }}
@@ -3408,7 +3408,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
             <span
               
-              style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
+              style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 8px', margin:'-4px -8px', borderRadius:6 }}
               onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 8, rect.top); }}
               onMouseLeave={closeLbPopup}
               onClick={e => { e.stopPropagation(); if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
