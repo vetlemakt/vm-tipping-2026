@@ -2991,8 +2991,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               onClick={() => canView && onShowTips && onShowTips(r)}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span
-                style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 8px', margin:'-4px -8px', borderRadius:6 }}
-                onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 8, rect.top); }}
+                style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6 }}
+                onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 6, rect.top); }}
                 onMouseLeave={closeDashPopup}
                 onClick={e => { e.stopPropagation(); if (canView) { onShowTips && onShowTips(r); } }}
               >
@@ -3341,17 +3341,22 @@ function PlayerTipsPopup({ user, results, onClose, onShowTips, pos, onMouseEnter
               borderBottom: idx < showMatches.length - 1 ? '1px solid rgba(255,255,255,.07)' : 'none',
             }}>
               {isLive && <div style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:2 }}>🔴 LIVE</div>}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
-                <span style={{ fontSize: idx === 0 ? 13 : 11, color:'#e8edf8', fontWeight: idx === 0 ? 600 : 400, display:'flex', alignItems:'center', gap:3 }}>
-                  {m.home} <Flag team={m.home} size={idx===0?13:11} />
-                  <span style={{color:'rgba(255,255,255,.3)', margin:'0 2px'}}>–</span>
-                  <Flag team={m.away} size={idx===0?13:11} /> {m.away}
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <span style={{ flex:1, textAlign:'right', fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:'#e8edf8', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}>
+                  {m.home} <Flag team={m.home} size={idx===0?14:12} />
                 </span>
                 <span style={{
-                  fontSize: idx === 0 ? 14 : 12, fontWeight:700, flexShrink:0,
-                  color: tip === '–' ? 'rgba(255,255,255,.2)' : '#FFD700',
+                  flexShrink:0, minWidth:idx===0?38:32, textAlign:'center',
+                  fontSize:idx===0?14:12, fontWeight:800,
+                  color: tip==='–' ? 'rgba(255,255,255,.25)' : '#FFD700',
+                  background:'rgba(0,0,0,.3)', borderRadius:6,
+                  padding:idx===0?'3px 7px':'2px 5px',
+                  border:'1px solid rgba(255,255,255,.08)',
                 }}>
                   {tip}
+                </span>
+                <span style={{ flex:1, fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:'#e8edf8', display:'flex', alignItems:'center', gap:4 }}>
+                  <Flag team={m.away} size={idx===0?14:12} /> {m.away}
                 </span>
               </div>
             </div>
@@ -3408,8 +3413,8 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
             <span
               
-              style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 8px', margin:'-4px -8px', borderRadius:6 }}
-              onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 8, rect.top); }}
+              style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6 }}
+              onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 6, rect.top); }}
               onMouseLeave={closeLbPopup}
               onClick={e => { e.stopPropagation(); if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
             >
