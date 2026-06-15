@@ -2648,7 +2648,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [summaryText, setSummaryText] = useState('');
   const [dashPopup, setDashPopup] = useState(null); // {user, x, y}
   const dashCloseTimer = useRef(null);
-  const openDashPopup = (r, x, y) => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } setDashPopup({ user: r, x, y }); };
+  const openDashPopup = (r, x, y) => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } setDashPopup(prev => prev?.user?.id === r.id ? prev : { user: r, x, y }); };
   const closeDashPopup = () => { dashCloseTimer.current = setTimeout(() => setDashPopup(null), 150); };
   const cancelDashClose = () => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } };
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -3386,7 +3386,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   const [selected, setSelected] = useState(initialSelected || null);
   const [lbPopup, setLbPopup] = useState(null); // {user, x, y}
   const lbCloseTimer = useRef(null);
-  const openLbPopup = (r, x, y) => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } setLbPopup({ user: r, x, y }); };
+  const openLbPopup = (r, x, y) => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } setLbPopup(prev => prev?.user?.id === r.id ? prev : { user: r, x, y }); };
   const closeLbPopup = () => { lbCloseTimer.current = setTimeout(() => setLbPopup(null), 150); };
   const cancelLbClose = () => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } };
   const tipsLocked = !OPEN_PHASES.has(phase);
