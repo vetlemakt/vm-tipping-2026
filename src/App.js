@@ -3245,10 +3245,122 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 // ══════════════════════════════════════════════════════════════════════
 //  LEADERBOARD
 // ══════════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════
+//  PLAYER TIPS POPUP (hover/tap in leaderboard)
+// ══════════════════════════════════════════════════════════════════════
+function PlayerTipsPopup({ user, results, onClose, onShowTips, anchorRef }) {
+  const now = new Date();
+  const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
+
+  // Find live match (started within last 3h)
+  const liveMatch = allMatches.find(m => {
+    if (!results[m.id]) return false; // not finished
+    const kick = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
+    const minsAgo = (now - kick) / 60000;
+    return minsAgo >= 0 && minsAgo < 180 && !results[m.id]?.status?.includes('FT');
+  });
+
+  // Upcoming matches (not yet started, not in results)
+  const upcoming = allMatches.filter(m => {
+    const kick = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
+    return kick > now && !results[m.id];
+  }).sort((a, b) => {
+    const kA = new Date(a.date + 'T' + (a.time||'00:00') + ':00+02:00');
+    const kB = new Date(b.date + 'T' + (b.time||'00:00') + ':00+02:00');
+    return kA - kB;
+  });
+
+  const showMatches = liveMatch
+    ? [liveMatch, ...upcoming.slice(0, 2)]
+    : upcoming.slice(0, 3);
+
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    if (anchorRef?.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const left = Math.min(rect.right + 8, window.innerWidth - 240);
+      const top = Math.max(rect.top - 10, 10);
+      setPos({ top, left });
+    }
+  }, []); // eslint-disable-line
+
+  const fmtTip = (matchId) => {
+    const t = user.tips?.[matchId];
+    if (!t || t.home === undefined || t.away === undefined) return '–';
+    return `${t.home} – ${t.away}`;
+  };
+
+  const fmtKick = (m) => {
+    const d = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
+    return d.toLocaleDateString('nb-NO', { weekday:'short', day:'numeric', month:'short' }) + ' ' + (m.time||'');
+  };
+
+  return createPortal(
+    <>
+      <div onClick={onClose} onTouchEnd={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
+      <div
+        onClick={e => e.stopPropagation()}
+        onMouseLeave={onClose}
+        style={{
+          position:'fixed', top: pos.top, left: pos.left, zIndex:900,
+          background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.2)',
+          borderRadius:12, padding:'12px 14px', minWidth:210, maxWidth:240,
+          boxShadow:'0 8px 32px rgba(0,0,0,.6)',
+        }}
+      >
+        <div style={{ fontSize:12, fontWeight:700, color:'#FFD700', marginBottom:10, letterSpacing:1 }}>
+          {user.displayName || user.id}
+        </div>
+        {showMatches.length === 0 && (
+          <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>Ingen kommende kamper</div>
+        )}
+        {showMatches.map((m, idx) => (
+          <div key={m.id} style={{
+            marginBottom: idx < showMatches.length - 1 ? 10 : 0,
+            paddingBottom: idx < showMatches.length - 1 ? 10 : 0,
+            borderBottom: idx < showMatches.length - 1 ? '1px solid rgba(255,255,255,.06)' : 'none',
+          }}>
+            <div style={{ fontSize: idx === 0 ? 12 : 10, color:'rgba(255,255,255,.5)', marginBottom:3 }}>
+              {idx === 0 && liveMatch ? '🔴 LIVE · ' : ''}{fmtKick(m)}
+            </div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
+              <span style={{ fontSize: idx === 0 ? 13 : 11, color:'#e8edf8', fontWeight: idx === 0 ? 600 : 400 }}>
+                <Flag team={m.home} size={12} /> {TEAM_SHORT[m.home]||m.home} – {TEAM_SHORT[m.away]||m.away} <Flag team={m.away} size={12} />
+              </span>
+              <span style={{
+                fontSize: idx === 0 ? 14 : 11, fontWeight:700,
+                color: fmtTip(m.id) === '–' ? 'rgba(255,255,255,.25)' : '#FFD700',
+                flexShrink:0,
+              }}>
+                {fmtTip(m.id)}
+              </span>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => { onClose(); onShowTips(user); }}
+          style={{
+            marginTop:12, width:'100%', padding:'7px 0', borderRadius:8,
+            background:'rgba(255,215,0,.1)', border:'1px solid rgba(255,215,0,.25)',
+            color:'#FFD700', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:0.5,
+          }}
+        >
+          Fullt skjema →
+        </button>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }) {
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
   const [selected, setSelected] = useState(initialSelected || null);
+  const [hoveredUser, setHoveredUser] = useState(null);
+  const [anchorRef, setAnchorRef] = useState(null);
+  const isMobile = useIsMobile();
   const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
@@ -3273,7 +3385,13 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
           <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
             onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
-            <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
+            <span
+              ref={el => { if (el && hoveredUser?.id === r.id) {} }}
+              style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
+              onMouseEnter={e => { if (!isMobile) { setHoveredUser(r); setAnchorRef({ current: e.currentTarget }); } }}
+              onMouseLeave={() => { if (!isMobile) setHoveredUser(null); }}
+              onClick={e => { e.stopPropagation(); if (isMobile) { setHoveredUser(r); setAnchorRef({ current: e.currentTarget }); } else if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
+            >
               {r.displayName}
               {!canView && <span style={C.lbLockIcon}>🔒</span>}
             </span>
@@ -3288,6 +3406,15 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
           );
         })}
       </div>
+      {hoveredUser && (
+        <PlayerTipsPopup
+          user={hoveredUser}
+          results={results}
+          onClose={() => setHoveredUser(null)}
+          onShowTips={u => { setHoveredUser(null); onShowTips ? onShowTips(u) : setSelected(u); }}
+          anchorRef={anchorRef}
+        />
+      )}
     </div>
   );
 }
