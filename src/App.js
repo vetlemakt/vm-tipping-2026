@@ -3116,7 +3116,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                     </div>
                   </div>
                 ) : (
-                  <div style={{textAlign:'center'}}><BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} /></div>
+                  <div style={{display:'flex',justifyContent:'center'}}><BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} /></div>
                 )}
               </div>
             );
@@ -3206,7 +3206,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                     </div>
                   </div>
                 ) : (
-                  <div style={{textAlign:'center'}}><button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>✍️ Skriv kampreferat</button></div>
+                  <div style={{display:'flex',justifyContent:'center'}}><button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>✍️ Skriv kampreferat</button></div>
                 )}
                 {sum?.botText && (
                   <div style={{ ...C.botSummaryBox, borderLeft:`3px solid ${botColor}`, paddingLeft:10 }}>
@@ -3228,7 +3228,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   </div>
                 )}
                 {!sum?.botText && (
-                  <div style={{textAlign:'center'}}><BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} /></div>
+                  <div style={{display:'flex',justifyContent:'center'}}><BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} /></div>
                 )}
               </div>
             );
