@@ -3408,7 +3408,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
             <span
-              ref={el => { if (el && hoveredUser?.id === r.id) {} }}
+              
               style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
               onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 8, rect.top); }}
               onMouseLeave={closeLbPopup}
