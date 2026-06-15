@@ -2646,11 +2646,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [summaries, setSummaries] = useState({});
   const [editingSummary, setEditingSummary] = useState(null);
   const [summaryText, setSummaryText] = useState('');
-  const [dashHoveredUser, setDashHoveredUser] = useState(null);
-  const [dashPopupPos, setDashPopupPos] = useState({ x:0, y:0 });
+  const [dashPopup, setDashPopup] = useState(null); // {user, x, y}
   const dashCloseTimer = useRef(null);
-  const openDashPopup = (r, x, y) => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } setDashPopupPos({ x, y }); setDashHoveredUser(r); };
-  const closeDashPopup = () => { dashCloseTimer.current = setTimeout(() => setDashHoveredUser(null), 150); };
+  const openDashPopup = (r, x, y) => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } setDashPopup({ user: r, x, y }); };
+  const closeDashPopup = () => { dashCloseTimer.current = setTimeout(() => setDashPopup(null), 150); };
   const cancelDashClose = () => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } };
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
@@ -2993,9 +2992,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span
                 style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
-                onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 8, rect.top); } }}
-                onMouseLeave={() => { if (!isMobile) closeDashPopup(); }}
-                onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.left, rect.bottom + 4); } else if (canView) { onShowTips && onShowTips(r); } }}
+                onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 8, rect.top); }}
+                onMouseLeave={closeDashPopup}
+                onClick={e => { e.stopPropagation(); if (canView) { onShowTips && onShowTips(r); } }}
               >
                 {r.displayName}
                 {!canView && <span style={C.lbLockIcon}>🔒</span>}
@@ -3012,13 +3011,13 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           })}
         </div>
       </div>
-      {dashHoveredUser && (
+      {dashPopup && (
         <PlayerTipsPopup
-          user={dashHoveredUser}
+          user={dashPopup.user}
           results={results}
-          onClose={() => setDashHoveredUser(null)}
-          onShowTips={u => { setDashHoveredUser(null); onShowTips && onShowTips(u); }}
-          pos={dashPopupPos}
+          onClose={() => setDashPopup(null)}
+          onShowTips={u => { setDashPopup(null); onShowTips && onShowTips(u); }}
+          pos={{ x: dashPopup.x, y: dashPopup.y }}
           onMouseEnter={cancelDashClose}
           onMouseLeave={closeDashPopup}
         />
@@ -3378,11 +3377,10 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
   const [selected, setSelected] = useState(initialSelected || null);
-  const [hoveredUser, setHoveredUser] = useState(null);
-  const [popupPos, setPopupPos] = useState({ x:0, y:0 });
+  const [lbPopup, setLbPopup] = useState(null); // {user, x, y}
   const lbCloseTimer = useRef(null);
-  const openLbPopup = (r, x, y) => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } setPopupPos({ x, y }); setHoveredUser(r); };
-  const closeLbPopup = () => { lbCloseTimer.current = setTimeout(() => setHoveredUser(null), 150); };
+  const openLbPopup = (r, x, y) => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } setLbPopup({ user: r, x, y }); };
+  const closeLbPopup = () => { lbCloseTimer.current = setTimeout(() => setLbPopup(null), 150); };
   const cancelLbClose = () => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } };
   const isMobile = useIsMobile();
   const tipsLocked = !OPEN_PHASES.has(phase);
@@ -3412,9 +3410,9 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             <span
               ref={el => { if (el && hoveredUser?.id === r.id) {} }}
               style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
-              onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 8, rect.top); } }}
-              onMouseLeave={() => { if (!isMobile) closeLbPopup(); }}
-              onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.left, rect.bottom + 4); } else if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
+              onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 8, rect.top); }}
+              onMouseLeave={closeLbPopup}
+              onClick={e => { e.stopPropagation(); if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
             >
               {r.displayName}
               {!canView && <span style={C.lbLockIcon}>🔒</span>}
@@ -3430,13 +3428,13 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
           );
         })}
       </div>
-      {hoveredUser && (
+      {lbPopup && (
         <PlayerTipsPopup
-          user={hoveredUser}
+          user={lbPopup.user}
           results={results}
-          onClose={() => setHoveredUser(null)}
-          onShowTips={u => { setHoveredUser(null); onShowTips ? onShowTips(u) : setSelected(u); }}
-          pos={popupPos}
+          onClose={() => setLbPopup(null)}
+          onShowTips={u => { setLbPopup(null); onShowTips ? onShowTips(u) : setSelected(u); }}
+          pos={{ x: lbPopup.x, y: lbPopup.y }}
           onMouseEnter={cancelLbClose}
           onMouseLeave={closeLbPopup}
         />
