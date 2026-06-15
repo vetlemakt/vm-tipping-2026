@@ -3322,18 +3322,42 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
             onMouseLeave={() => !isMobile && leave()}
             style={{ position:"fixed", top, left, zIndex:900, width:popW, background:"#0e1628", border:"1px solid rgba(255,215,0,.25)", borderRadius:12, padding:"12px 14px", boxShadow:"0 8px 32px rgba(0,0,0,.8)", pointerEvents:"auto" }}
           >
-            <div style={{ fontSize:12, fontWeight:700, color:"#FFD700", marginBottom:10 }}>{user.displayName || user.id}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#FFD700", marginBottom:10, textAlign:"center" }}>{user.displayName || user.id}</div>
             {showMatches.length === 0 && <div style={{ fontSize:11, color:"rgba(255,255,255,.4)" }}>Ingen kommende kamper</div>}
             {showMatches.map((m, idx) => {
               const tip = fmtTip(m.id);
               const isLive = idx === 0 && liveMatch;
+              const r = results[m.id];
+              const tipParts = tip !== "–" ? tip.split(" – ") : null;
+              const tipH = tipParts ? parseInt(tipParts[0]) : null;
+              const tipA = tipParts ? parseInt(tipParts[1]) : null;
+              const actH = r ? parseInt(r.home) : null;
+              const actA = r ? parseInt(r.away) : null;
+              // Color logic for live: yellow if correct goals or correct outcome
+              const homeClr = isLive && tipH !== null && actH !== null
+                ? (tipH === actH ? "#FFD700" : "rgba(255,255,255,.9)") : "rgba(255,255,255,.9)";
+              const awayClr = isLive && tipA !== null && actA !== null
+                ? (tipA === actA ? "#FFD700" : "rgba(255,255,255,.9)") : "rgba(255,255,255,.9)";
+              const outcome = (h, a) => h > a ? "H" : h < a ? "A" : "D";
+              const dashClr = isLive && tipH !== null && actH !== null
+                ? (outcome(tipH, tipA) === outcome(actH, actA) ? "#FFD700" : "rgba(255,255,255,.9)") : "rgba(255,255,255,.9)";
+              const shortH = TEAM_SHORT[m.home] || m.home.slice(0,3).toUpperCase();
+              const shortA = TEAM_SHORT[m.away] || m.away.slice(0,3).toUpperCase();
               return (
                 <div key={m.id} style={{ marginBottom:idx<showMatches.length-1?8:0, paddingBottom:idx<showMatches.length-1?8:0, borderBottom:idx<showMatches.length-1?"1px solid rgba(255,255,255,.07)":"none" }}>
                   {isLive && <div style={{ fontSize:10, color:"#ef4444", fontWeight:700, marginBottom:2 }}>🔴 LIVE</div>}
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                    <span style={{ flex:1, textAlign:"right", fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>{m.home} <Flag team={m.home} size={idx===0?14:12} /></span>
-                    <span style={{ flexShrink:0, minWidth:idx===0?38:32, textAlign:"center", fontSize:idx===0?14:12, fontWeight:800, color:tip==="–"?"rgba(255,255,255,.25)":"#FFD700", background:"rgba(0,0,0,.3)", borderRadius:6, padding:idx===0?"3px 7px":"2px 5px", border:"1px solid rgba(255,255,255,.08)" }}>{tip}</span>
-                    <span style={{ flex:1, fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", gap:4 }}><Flag team={m.away} size={idx===0?14:12} /> {m.away}</span>
+                    <span style={{ flex:1, textAlign:"right", fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>{shortH} <Flag team={m.home} size={idx===0?14:12} /></span>
+                    <span style={{ flexShrink:0, minWidth:idx===0?44:36, textAlign:"center", fontSize:idx===0?14:12, fontWeight:800, background:"rgba(0,0,0,.3)", borderRadius:6, padding:idx===0?"3px 7px":"2px 5px", border:"1px solid rgba(255,255,255,.08)", color:"rgba(255,255,255,.15)" }}>
+                      {tip === "–" ? <span style={{color:"rgba(255,255,255,.2)"}}>–</span> : (
+                        <span>
+                          <span style={{color:homeClr}}>{tipH}</span>
+                          <span style={{color:dashClr, margin:"0 2px"}}>-</span>
+                          <span style={{color:awayClr}}>{tipA}</span>
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ flex:1, fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", gap:4 }}><Flag team={m.away} size={idx===0?14:12} /> {shortA}</span>
                   </div>
                 </div>
               );
