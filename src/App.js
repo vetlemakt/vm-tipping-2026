@@ -2696,7 +2696,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const finishedMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].filter(m => {
     const r = results[m.id];
     return r && r.home !== undefined && r.away !== undefined;
-  }).sort((a, b) => { const kA = new Date(a.date + "T" + (a.time||"00:00") + ":00+02:00").getTime(); const kB = new Date(b.date + "T" + (b.time||"00:00") + ":00+02:00").getTime(); return kB - kA; }).slice(0, 8);
+  }).sort((a, b) => { const kA = new Date(a.date + "T" + (a.time||"00:00") + ":00+02:00").getTime(); const kB = new Date(b.date + "T" + (b.time||"00:00") + ":00+02:00").getTime(); return kB - kA; });
 
   return (
     <>
