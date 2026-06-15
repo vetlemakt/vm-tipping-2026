@@ -5322,9 +5322,13 @@ function buildCompetitionContext(users, results, liveEvent) {
   const now = Date.now();
   const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
 
+  const FINISHED = new Set(['FT','AET','PEN','AWD','WO']);
   const liveMatches = allMatches.filter(m => {
     const ms = new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime();
-    return ms <= now && now - ms < 3 * 60 * 60 * 1000 && !results[m.id];
+    if (ms > now || now - ms > 3 * 60 * 60 * 1000) return false;
+    const r = results[m.id];
+    if (!r) return true; // ikke startet ennå men innenfor vindu
+    return !FINISHED.has(r.status); // ikke ferdig
   });
 
   const upcomingMatches = allMatches
@@ -5348,16 +5352,16 @@ function buildCompetitionContext(users, results, liveEvent) {
   };
 
   if (liveMatches.length > 0) {
-    ctx += `\n\nKAMP SOM SPILLES NÅ:`;
+    ctx += `\n\nKAMP SOM SPILLES NÅ (ikke ferdigspilt ennå):`;
     liveMatches.forEach(m => {
-      const res = results[m.id];
-      const score = res ? ` – Stilling: ${res.home}-${res.away}` : '';
-      ctx += `\n${fmtMatchWithTips(m, '🔴 LIVE')}${score}`;
+      ctx += `\n${fmtMatchWithTips(m, '🔴 LIVE')}`;
     });
+  } else {
+    ctx += `\n\nDet er ingen kamp som spilles akkurat nå.`;
   }
 
   if (upcomingMatches.length > 0) {
-    ctx += `\n\nNESTE KAMPER:`;
+    ctx += `\n\nNESTE KAMPER (ikke påbegynt ennå):`;
     upcomingMatches.forEach((m, i) => {
       ctx += `\n${fmtMatchWithTips(m, i === 0 ? 'Neste kamp' : `Kamp ${i + 1}`)}`;
     });
