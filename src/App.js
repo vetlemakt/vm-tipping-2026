@@ -3089,7 +3089,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             const isEditing = editingSummary === m.id;
             return (
               <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 24, marginTop: 8 }}>
-                {(() => { const DONE = new Set(['FT','AET','PEN','AWD','WO']); const isLive = r && r.status && !DONE.has(r.status); return isLive ? (
+                {(() => { const LIVE_SET = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']); const isLive = r && LIVE_SET.has(r.status); return isLive ? (
                   <div style={{ textAlign:'center', marginBottom:4 }}>
                     <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, letterSpacing:1 }}>🔴 LIVE</span>
                   </div>
@@ -3213,7 +3213,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             const botColor = botExpert?.color || 'rgba(255,215,0,.5)';
             return (
               <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 24, marginTop: 8 }}>
-                {(() => { const DONE = new Set(['FT','AET','PEN','AWD','WO']); const isLive = r && r.status && !DONE.has(r.status); return isLive ? (
+                {(() => { const LIVE_SET = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']); const isLive = r && LIVE_SET.has(r.status); return isLive ? (
                   <div style={{ textAlign:'center', marginBottom:4 }}>
                     <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, letterSpacing:1 }}>🔴 LIVE</span>
                   </div>
