@@ -827,7 +827,7 @@ function OnlineBar({ onlineUsers }) {
   };
 
   return (
-    <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center', gap:'2px 6px', padding:'3px 10px', borderTop:'1px solid rgba(255,255,255,.06)', background:'rgba(0,0,0,.15)' }}>
+    <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center', gap:'2px 6px', flex:1 }}>
       {sorted.map((u, i) => {
         const short = ONLINE_SHORT[u.name] || u.name;
         const dur = fmtDuration(u.ts);
@@ -3035,13 +3035,12 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       <div style={{ ...C.card, ...(isMobile ? C.dashCardFixedMobile : C.dashCardFixed), ...(isMobile ? { order: 1 } : {}) }}>
         <div style={{ ...C.cardHeader, cursor:'pointer' }} onClick={() => setTab('chat')}>
           <span style={C.cardTitle}><CardIcon src="/chat.png" /> Chat</span>
-          <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6 }} onClick={e => e.stopPropagation()}>
-
+          <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6, flex:1 }} onClick={e => e.stopPropagation()}>
+            <OnlineBar onlineUsers={onlineUsers} />
             <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
             <button onClick={e => { e.stopPropagation(); chatFullscreen ? setChatFullscreen(false) : openChatFullscreen(); }} style={{ background:'rgba(255,180,0,.12)', border:'1px solid rgba(255,180,0,.35)', color:'#FFB700', borderRadius:6, width:26, height:26, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }} title="Fullskjerm">⛶</button>
           </div>
         </div>
-        <OnlineBar onlineUsers={onlineUsers} />
         <div style={C.dashCardFixedChat} ref={chatBoxRef}>
           {msgs.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Si hei! 👋</p>}
           {msgs.map((m, i) => (
@@ -5767,11 +5766,11 @@ function ChatPage({ me }) {
     <div style={C.card}>
       <div style={C.cardHeader}>
         <span style={C.cardTitle}><span style={C.cardTitleDot}/> Chat</span>
-        <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6 }}>
+        <div style={{ ...C.cardHeaderActions, gap: isMobile ? 4 : 6, flex:1 }}>
+          <OnlineBar onlineUsers={onlineUsers} />
           <SoundToggle soundOn={soundOn} onToggle={toggleSound} />
         </div>
       </div>
-      <OnlineBar onlineUsers={onlineUsers} />
       <div ref={chatBoxRef} style={{ height:'calc(100vh - 280px)', minHeight:400, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:'12px 16px', background:'rgba(0,0,0,.15)' }}>
         {msgs.length === 0 && <p style={{ color:'rgba(255,255,255,.3)', textAlign:'center', marginTop:60, fontSize:13 }}>Si hei! 👋</p>}
         {msgs.map((m, i) => (
