@@ -4247,20 +4247,7 @@ const DiscordIcon = ({ size = 14 }) => (
   </svg>
 );
 
-function VideoButton({ compact = false }) {
-  return (
-    <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" title="Bli med i Discord-videochat" style={{
-      display: 'flex', alignItems: 'center', gap: compact ? 3 : 5,
-      background: 'rgba(88,101,242,.2)', border: '1px solid rgba(88,101,242,.5)',
-      color: '#8891f2', borderRadius: 6, padding: compact ? '0 5px' : '0 8px', height: 26,
-      cursor: 'pointer', fontSize: compact ? 10 : 11,
-      fontFamily: "'Inter',sans-serif", fontWeight: 600,
-      textDecoration: 'none', flexShrink: 0,
-    }}>
-      <DiscordIcon size={13} />{!compact && ' Discord'}
-    </a>
-  );
-}
+
 
 function VideoChat({ me }) {
   return (
