@@ -2648,6 +2648,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [summaryText, setSummaryText] = useState('');
   const [dashHoveredUser, setDashHoveredUser] = useState(null);
   const [dashPopupPos, setDashPopupPos] = useState({ x:0, y:0 });
+  const dashCloseTimer = useRef(null);
+  const openDashPopup = (r, x, y) => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } setDashPopupPos({ x, y }); setDashHoveredUser(r); };
+  const closeDashPopup = () => { dashCloseTimer.current = setTimeout(() => setDashHoveredUser(null), 150); };
+  const cancelDashClose = () => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } };
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
@@ -2989,9 +2993,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span
                 style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
-                onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setDashPopupPos({ x: rect.right + 8, y: rect.top }); setDashHoveredUser(r); } }}
-                onMouseLeave={() => { if (!isMobile) setDashHoveredUser(null); }}
-                onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setDashPopupPos({ x: rect.left, y: rect.bottom + 4 }); setDashHoveredUser(r); } else if (canView) { onShowTips && onShowTips(r); } }}
+                onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 8, rect.top); } }}
+                onMouseLeave={() => { if (!isMobile) closeDashPopup(); }}
+                onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.left, rect.bottom + 4); } else if (canView) { onShowTips && onShowTips(r); } }}
               >
                 {r.displayName}
                 {!canView && <span style={C.lbLockIcon}>🔒</span>}
@@ -3015,6 +3019,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           onClose={() => setDashHoveredUser(null)}
           onShowTips={u => { setDashHoveredUser(null); onShowTips && onShowTips(u); }}
           pos={dashPopupPos}
+          onMouseEnter={cancelDashClose}
+          onMouseLeave={closeDashPopup}
         />
       )}
 
@@ -3272,7 +3278,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 // ══════════════════════════════════════════════════════════════════════
 //  PLAYER TIPS POPUP (hover/tap in leaderboard)
 // ══════════════════════════════════════════════════════════════════════
-function PlayerTipsPopup({ user, results, onClose, onShowTips, pos }) {
+function PlayerTipsPopup({ user, results, onClose, onShowTips, pos, onMouseEnter, onMouseLeave }) {
   const now = new Date();
   const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
 
@@ -3310,7 +3316,8 @@ function PlayerTipsPopup({ user, results, onClose, onShowTips, pos }) {
       <div onClick={onClose} onTouchEnd={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
       <div
         onClick={e => e.stopPropagation()}
-        onMouseLeave={onClose}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave || onClose}
         style={{
           position:'fixed', top, left, zIndex:900,
           background:'#0e1628', border:'1px solid rgba(255,215,0,.25)',
@@ -3373,6 +3380,10 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   const [selected, setSelected] = useState(initialSelected || null);
   const [hoveredUser, setHoveredUser] = useState(null);
   const [popupPos, setPopupPos] = useState({ x:0, y:0 });
+  const lbCloseTimer = useRef(null);
+  const openLbPopup = (r, x, y) => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } setPopupPos({ x, y }); setHoveredUser(r); };
+  const closeLbPopup = () => { lbCloseTimer.current = setTimeout(() => setHoveredUser(null), 150); };
+  const cancelLbClose = () => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } };
   const isMobile = useIsMobile();
   const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
@@ -3401,9 +3412,9 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             <span
               ref={el => { if (el && hoveredUser?.id === r.id) {} }}
               style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
-              onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setPopupPos({ x: rect.right + 8, y: rect.top }); setHoveredUser(r); } }}
-              onMouseLeave={() => { if (!isMobile) setHoveredUser(null); }}
-              onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setPopupPos({ x: rect.left, y: rect.bottom + 4 }); setHoveredUser(r); } else if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
+              onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 8, rect.top); } }}
+              onMouseLeave={() => { if (!isMobile) closeLbPopup(); }}
+              onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.left, rect.bottom + 4); } else if (canView) { onShowTips ? onShowTips(r) : setSelected(r); } }}
             >
               {r.displayName}
               {!canView && <span style={C.lbLockIcon}>🔒</span>}
@@ -3426,6 +3437,8 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
           onClose={() => setHoveredUser(null)}
           onShowTips={u => { setHoveredUser(null); onShowTips ? onShowTips(u) : setSelected(u); }}
           pos={popupPos}
+          onMouseEnter={cancelLbClose}
+          onMouseLeave={closeLbPopup}
         />
       )}
     </div>
