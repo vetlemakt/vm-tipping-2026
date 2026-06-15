@@ -329,8 +329,8 @@ export const C = {
     background: 'rgba(255,255,255,.02)',
     transition: 'background .15s',
   },
-  matchTeams: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 },
-  matchTeam: { flex: 1, fontSize: 13, fontWeight: 600, color: '#e8edf8' },
+  matchTeams: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 4 },
+  matchTeam: { fontSize: 13, fontWeight: 600, color: '#e8edf8', textAlign: 'center' },
   matchScore: {
     fontFamily: "'Fira Code',monospace",
     fontSize: 18,
@@ -342,7 +342,7 @@ export const C = {
     borderRadius: 8,
     textShadow: '0 0 10px rgba(0,229,255,.4)',
   },
-  matchScorers: { fontSize: 12, color: 'rgba(255,255,255,.6)', marginTop: 2 },
+  matchScorers: { fontSize: 12, color: 'rgba(255,255,255,.6)', marginTop: 2, textAlign: 'center' },
   matchSummaryBtn: {
     marginTop: 7, fontSize: 12, color: '#FFD700',
     background: 'transparent', border: '1px solid rgba(255,215,0,.2)',

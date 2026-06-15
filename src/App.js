@@ -904,6 +904,48 @@ Skriv som deg selv – med din personlighet og dialekt. Hold deg til tippekonkur
   }
 }
 
+function FulltreffBadge({ matchId, results, users }) {
+  const [show, setShow] = React.useState(false);
+  const isMobile = useIsMobile();
+  const act = results[matchId];
+  if (!act || act.home === undefined || act.away === undefined) return null;
+
+  const winners = users.filter(u => {
+    if (u.id === 'admin' || u.id?.startsWith('panel_')) return false;
+    const tip = u.tips?.[matchId];
+    if (!tip) return false;
+    return parseInt(tip.home) === parseInt(act.home) && parseInt(tip.away) === parseInt(act.away);
+  }).map(u => u.displayName || u.id);
+
+  if (winners.length === 0) return <span style={{ fontSize:11, color:'rgba(255,255,255,.3)', marginLeft:6 }}>⚡ 0</span>;
+
+  return (
+    <span style={{ position:'relative', display:'inline-block', marginLeft:6 }}>
+      {show && isMobile && (
+        <div onClick={() => setShow(false)} onTouchEnd={() => setShow(false)}
+          style={{ position:'fixed', inset:0, zIndex:199 }} />
+      )}
+      <span
+        style={{ fontSize:11, color:'#FFD700', cursor:'pointer', fontWeight:700 }}
+        onClick={() => isMobile && setShow(s => !s)}
+        onMouseEnter={() => !isMobile && setShow(true)}
+        onMouseLeave={() => !isMobile && setShow(false)}
+      >⚡ {winners.length}</span>
+      {show && (
+        <div style={{
+          position:'absolute', bottom:'calc(100% + 4px)', left:'50%', transform:'translateX(-50%)',
+          background:'rgba(10,14,30,.97)', border:'1px solid rgba(255,215,0,.25)',
+          borderRadius:8, padding:'6px 10px', zIndex:200, whiteSpace:'nowrap',
+          boxShadow:'0 4px 16px rgba(0,0,0,.5)', fontSize:11, color:'rgba(255,255,255,.85)',
+          minWidth:80, textAlign:'center',
+        }}>
+          {winners.join(', ')}
+        </div>
+      )}
+    </span>
+  );
+}
+
 function BotSummaryTrigger({ matchId, match, results, users, summaries }) {
   const [loading, setLoading] = useState(false);
   const handleGenerate = async () => {
@@ -2837,6 +2879,14 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               } />
             );
           }
+          if (key === 'rank') {
+            return (
+              <div key={key} style={{ ...C.statWidget, width: 100, flexShrink: 0, padding: '12px 8px', cursor:'pointer' }} onClick={() => setTab('tips')}>
+                <div style={{ ...C.statNum, fontSize: 32 }}>{num}</div>
+                <div style={{ ...C.statLabel, fontSize: 10, letterSpacing: 1.5 }}>{label}</div>
+              </div>
+            );
+          }
           return (
             <div key={key} style={{ ...C.statWidget, width: 100, flexShrink: 0, padding: '12px 8px' }}>
               <div style={{ ...C.statNum, fontSize: 32 }}>{num}</div>
@@ -2862,6 +2912,14 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   </div>
                 </div>
               } />
+            );
+          }
+          if (key === 'rank') {
+            return (
+              <div key={key} style={{ ...C.statWidget, flex: 1, padding: '8px 6px', cursor:'pointer' }} onClick={() => setTab('tips')}>
+                <div style={{ ...C.statNum, fontSize: 28 }}>{num}</div>
+                <div style={{ ...C.statLabel, fontSize: 9, letterSpacing: 1.5 }}>{label}</div>
+              </div>
             );
           }
           return (
@@ -3006,7 +3064,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
                   <span style={{ ...C.matchTeam, textAlign:'left', flex:1 }}><Flag team={m.away} /> {m.away}</span>
                 </div>
-                <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
+                <div style={{ ...C.matchScorers, textAlign:'center' }}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}<FulltreffBadge matchId={m.id} results={results} users={users} /></div>
                 {/* Spillers kampreferat */}
                 {sum?.text && !isEditing ? (
                   <div style={{ marginTop:6 }}>
@@ -3058,7 +3116,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                     </div>
                   </div>
                 ) : (
-                  <BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} />
+                  <div style={{textAlign:'center'}}><BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} /></div>
                 )}
               </div>
             );
@@ -3123,7 +3181,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
                   <span style={{ ...C.matchTeam, textAlign:'left', flex:1 }}><Flag team={m.away} /> {m.away}</span>
                 </div>
-                <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
+                <div style={{ ...C.matchScorers, textAlign:'center' }}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}<FulltreffBadge matchId={m.id} results={results} users={users} /></div>
                 {sum?.text && !isEditing ? (
                   <div style={{ marginTop:6 }}>
                     <div style={C.matchSummaryText}>{sum.text}</div>
@@ -3148,7 +3206,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                     </div>
                   </div>
                 ) : (
-                  <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>✍️ Skriv kampreferat</button>
+                  <div style={{textAlign:'center'}}><button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>✍️ Skriv kampreferat</button></div>
                 )}
                 {sum?.botText && (
                   <div style={{ ...C.botSummaryBox, borderLeft:`3px solid ${botColor}`, paddingLeft:10 }}>
@@ -3170,7 +3228,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   </div>
                 )}
                 {!sum?.botText && (
-                  <BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} />
+                  <div style={{textAlign:'center'}}><BotSummaryTrigger matchId={m.id} match={m} results={results} users={users} summaries={summaries} /></div>
                 )}
               </div>
             );
