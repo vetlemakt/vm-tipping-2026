@@ -3345,19 +3345,19 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
               const shortA = TEAM_SHORT[m.away] || m.away.slice(0,3).toUpperCase();
               return (
                 <div key={m.id} style={{ marginBottom:idx<showMatches.length-1?8:0, paddingBottom:idx<showMatches.length-1?8:0, borderBottom:idx<showMatches.length-1?"1px solid rgba(255,255,255,.07)":"none" }}>
-                  {isLive && <div style={{ fontSize:10, color:"#ef4444", fontWeight:700, marginBottom:2 }}>🔴 LIVE</div>}
+                  {isLive && <div style={{ fontSize:10, color:"#ef4444", fontWeight:700, textAlign:"center", marginBottom:2, letterSpacing:1 }}>🔴 LIVE</div>}
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                    <span style={{ flex:1, textAlign:"right", fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>{shortH} <Flag team={m.home} size={idx===0?14:12} /></span>
-                    <span style={{ flexShrink:0, minWidth:idx===0?44:36, textAlign:"center", fontSize:idx===0?14:12, fontWeight:800, background:"rgba(0,0,0,.3)", borderRadius:6, padding:idx===0?"3px 7px":"2px 5px", border:"1px solid rgba(255,255,255,.08)", color:"rgba(255,255,255,.15)" }}>
+                    <span style={{ flex:1, textAlign:"right", fontSize:11, fontWeight:400, color:"#e8edf8", display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>{shortH} <Flag team={m.home} size={12} /></span>
+                    <span style={{ flexShrink:0, minWidth:36, textAlign:"center", fontFamily:"'Fira Code',monospace", fontSize:13, fontWeight:700, background: isLive ? "rgba(0,229,255,.08)" : "rgba(0,0,0,.25)", borderRadius:6, padding:"2px 7px", border: isLive ? "1px solid rgba(0,229,255,.2)" : "1px solid rgba(255,255,255,.08)" }}>
                       {tip === "–" ? <span style={{color:"rgba(255,255,255,.2)"}}>–</span> : (
                         <span>
-                          <span style={{color:homeClr}}>{tipH}</span>
-                          <span style={{color:dashClr, margin:"0 2px"}}>-</span>
-                          <span style={{color:awayClr}}>{tipA}</span>
+                          <span style={{color: isLive ? homeClr : "rgba(255,255,255,.85)"}}>{tipH}</span>
+                          <span style={{color: isLive ? dashClr : "rgba(255,255,255,.85)", margin:"0 2px"}}>–</span>
+                          <span style={{color: isLive ? awayClr : "rgba(255,255,255,.85)"}}>{tipA}</span>
                         </span>
                       )}
                     </span>
-                    <span style={{ flex:1, fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", gap:4 }}><Flag team={m.away} size={idx===0?14:12} /> {shortA}</span>
+                    <span style={{ flex:1, fontSize:11, fontWeight:400, color:"#e8edf8", display:"flex", alignItems:"center", gap:4 }}><Flag team={m.away} size={12} /> {shortA}</span>
                   </div>
                 </div>
               );
