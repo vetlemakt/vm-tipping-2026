@@ -3090,9 +3090,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                     </div>
                   </div>
                 ) : (
-                  <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>
-                    ✍️ Skriv kampreferat
-                  </button>
+                  <div style={{display:'flex',justifyContent:'center'}}>
+                    <button style={C.matchSummaryBtn} onClick={() => { setEditingSummary(m.id); setSummaryText(''); }}>
+                      ✍️ Skriv kampreferat
+                    </button>
+                  </div>
                 )}
                 {/* Bot-sammendrag */}
                 {sum?.botText ? (
