@@ -5318,25 +5318,48 @@ function buildCompetitionContext(users, results, liveEvent) {
   ).join('\n');
   ctx += `\n\nAKTUELL STILLINGSTABELL I TIPPEKONKURRANSEN:\n${lines}`;
 
-  // Kommende og pågående kamper med tips
+  // Pågående og kommende kamper med tips
   const now = Date.now();
-  const upcoming = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES]
+  const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
+
+  const liveMatches = allMatches.filter(m => {
+    const ms = new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime();
+    return ms <= now && now - ms < 3 * 60 * 60 * 1000 && !results[m.id];
+  });
+
+  const upcomingMatches = allMatches
     .filter(m => {
       const ms = new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime();
-      const isUpcoming = ms > now;
-      const isLive = ms <= now && now - ms < 3 * 60 * 60 * 1000 && !results[m.id];
-      return isUpcoming || isLive;
+      return ms > now && !results[m.id];
     })
-    .slice(0, 5);
+    .sort((a, b) => {
+      const msA = new Date(a.date + 'T' + (a.time || '00:00') + ':00+02:00').getTime();
+      const msB = new Date(b.date + 'T' + (b.time || '00:00') + ':00+02:00').getTime();
+      return msA - msB;
+    })
+    .slice(0, 3);
 
-  if (upcoming.length > 0) {
-    ctx += `\n\nKOMMENDE OG PÅGÅENDE KAMPER MED TIPS:`;
-    upcoming.forEach(m => {
-      const tipLines = realUsers
-        .filter(u => u.tips?.[m.id]?.home !== undefined)
-        .map(u => `  ${u.displayName}: ${u.tips[m.id].home}-${u.tips[m.id].away}`)
-        .join('\n');
-      ctx += `\n${m.home} vs ${m.away} (${m.date} ${m.time || ''}):\n${tipLines || '  (ingen tips ennå)'}`;
+  const fmtMatchWithTips = (m, label) => {
+    const tipLines = realUsers
+      .filter(u => u.tips?.[m.id]?.home !== undefined)
+      .map(u => `  ${u.displayName}: ${u.tips[m.id].home}-${u.tips[m.id].away}`)
+      .join('\n');
+    return `${label}: ${m.home} vs ${m.away} (${m.date} kl. ${m.time || '?'})\nTips:\n${tipLines || '  (ingen tips)'}`;
+  };
+
+  if (liveMatches.length > 0) {
+    ctx += `\n\nKAMP SOM SPILLES NÅ:`;
+    liveMatches.forEach(m => {
+      const res = results[m.id];
+      const score = res ? ` – Stilling: ${res.home}-${res.away}` : '';
+      ctx += `\n${fmtMatchWithTips(m, '🔴 LIVE')}${score}`;
+    });
+  }
+
+  if (upcomingMatches.length > 0) {
+    ctx += `\n\nNESTE KAMPER:`;
+    upcomingMatches.forEach((m, i) => {
+      ctx += `\n${fmtMatchWithTips(m, i === 0 ? 'Neste kamp' : `Kamp ${i + 1}`)}`;
     });
   }
 
