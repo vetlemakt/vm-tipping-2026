@@ -905,7 +905,7 @@ Skriv som deg selv – med din personlighet og dialekt. Hold deg til tippekonkur
 }
 
 function FulltreffBadge({ matchId, results, users }) {
-  const [show, setShow] = React.useState(false);
+  const [show, setShow] = useState(false);
   const isMobile = useIsMobile();
   const act = results[matchId];
   if (!act || act.home === undefined || act.away === undefined) return null;
