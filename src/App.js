@@ -2646,6 +2646,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [summaries, setSummaries] = useState({});
   const [editingSummary, setEditingSummary] = useState(null);
   const [summaryText, setSummaryText] = useState('');
+  const [dashHoveredUser, setDashHoveredUser] = useState(null);
+  const [dashPopupPos, setDashPopupPos] = useState({ x:0, y:0 });
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
@@ -2985,7 +2987,12 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
               onClick={() => canView && onShowTips && onShowTips(r)}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
-              <span style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)' }}>
+              <span
+                style={{ ...C.lbName, textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer' }}
+                onMouseEnter={e => { if (!isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setDashPopupPos({ x: rect.right + 8, y: rect.top }); setDashHoveredUser(r); } }}
+                onMouseLeave={() => { if (!isMobile) setDashHoveredUser(null); }}
+                onClick={e => { e.stopPropagation(); if (isMobile) { const rect = e.currentTarget.getBoundingClientRect(); setDashPopupPos({ x: rect.left, y: rect.bottom + 4 }); setDashHoveredUser(r); } else if (canView) { onShowTips && onShowTips(r); } }}
+              >
                 {r.displayName}
                 {!canView && <span style={C.lbLockIcon}>🔒</span>}
               </span>
@@ -3001,6 +3008,15 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           })}
         </div>
       </div>
+      {dashHoveredUser && (
+        <PlayerTipsPopup
+          user={dashHoveredUser}
+          results={results}
+          onClose={() => setDashHoveredUser(null)}
+          onShowTips={u => { setDashHoveredUser(null); onShowTips && onShowTips(u); }}
+          pos={dashPopupPos}
+        />
+      )}
 
       {/* Chat */}
       <div style={{ ...C.card, ...(isMobile ? C.dashCardFixedMobile : C.dashCardFixed), ...(isMobile ? { order: 1 } : {}) }}>
