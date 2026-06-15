@@ -3002,9 +3002,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             return (
               <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 24, marginTop: 8 }}>
                 <div style={C.matchTeams}>
-                  <span style={C.matchTeam}><Flag team={m.home} /> {m.home}</span>
+                  <span style={C.matchTeam}>{m.home} <Flag team={m.home} /></span>
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
-                  <span style={{ ...C.matchTeam, textAlign: 'right' }}>{m.away} <Flag team={m.away} /></span>
+                  <span style={{ ...C.matchTeam, textAlign: 'left' }}><Flag team={m.away} /> {m.away}</span>
                 </div>
                 <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
                 {/* Spillers kampreferat */}
@@ -3119,9 +3119,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
             return (
               <div key={m.id} style={{ ...C.matchCard, borderBottom:'1px solid rgba(255,255,255,.06)', marginBottom:0, paddingTop: 24, marginTop: 8 }}>
                 <div style={C.matchTeams}>
-                  <span style={C.matchTeam}><Flag team={m.home} /> {m.home}</span>
+                  <span style={C.matchTeam}>{m.home} <Flag team={m.home} /></span>
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
-                  <span style={{ ...C.matchTeam, textAlign:'right' }}>{m.away} <Flag team={m.away} /></span>
+                  <span style={{ ...C.matchTeam, textAlign:'left' }}><Flag team={m.away} /> {m.away}</span>
                 </div>
                 <div style={C.matchScorers}>Gruppe {m.group} · {fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}</div>
                 {sum?.text && !isEditing ? (
