@@ -823,22 +823,21 @@ async function pollAndUpdate() {
       fixture.events = events; // legg på fixture-objektet for buildLiveEvent
 
       // Sjekk om det er scoret et nytt mål siden forrige poll
-      const currentGoalKey = `${homeNor}_${awayNor}_${fixture.goals?.home}_${fixture.goals?.away}`;
-      const prevGoalKey    = prevGoals[`${homeNor}_${awayNor}`];
+      const currentGoalKey = `${matchId}_${fixture.goals?.home}_${fixture.goals?.away}`;
+      const prevGoalKey    = prevGoals[matchId];
 
       if (prevGoalKey && prevGoalKey !== currentGoalKey) {
         // Nytt mål – bruk transaksjon for å unngå duplikat på tvers av instanser
-        const teamKey = `${homeNor}_${awayNor}`;
         let isFirstToFire = false;
         await db.runTransaction(async tx => {
           const snap = await tx.get(prevGoalsRef);
           const data = snap.exists ? snap.data() : {};
-          if (data[teamKey] !== currentGoalKey) {
-            tx.set(prevGoalsRef, { ...data, [teamKey]: currentGoalKey });
+          if (data[matchId] !== currentGoalKey) {
+            tx.set(prevGoalsRef, { ...data, [matchId]: currentGoalKey });
             isFirstToFire = true;
           }
         });
-        newPrevGoals[teamKey] = currentGoalKey;
+        newPrevGoals[matchId] = currentGoalKey;
         if (isFirstToFire) {
           const liveEvent = buildLiveEvent(fixture);
           if (liveEvent?.type === 'goal' && matchId) {
@@ -849,46 +848,28 @@ async function pollAndUpdate() {
             handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
               console.error('handleGoalEvent feil:', e.message)
             );
-            // Oppdater statsCache.scorers med ny scorer
-            if (liveEvent.playerName && liveEvent.playerName !== '?' && !liveEvent.suffix?.includes('s.m.')) {
-              const statsCacheRef = db.collection('config').doc('statsCache');
-              await db.runTransaction(async tx => {
-                const snap = await tx.get(statsCacheRef);
-                const data = snap.exists ? snap.data() : {};
-                const scorers = data.scorers || [];
-                const idx = scorers.findIndex(s => s.name === liveEvent.playerName);
-                if (idx >= 0) {
-                  scorers[idx] = { ...scorers[idx], goals: (scorers[idx].goals || 0) + 1 };
-                } else {
-                  scorers.push({ name: liveEvent.playerName, team: homeNor, goals: 1 });
-                }
-                scorers.sort((a, b) => b.goals - a.goals);
-                tx.set(statsCacheRef, { ...data, scorers, updatedAt: Date.now() });
-              });
-              console.log(`Toppscorer oppdatert: ${liveEvent.playerName}`);
-            }
           }
         }
       } else {
-        newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
+        newPrevGoals[matchId] = currentGoalKey;
       }
 
       // Sjekk nye kort
       const lastCardEvent = [...events].reverse().find(e => e.type === 'Card');
       if (lastCardEvent) {
-        const cardKey = `${homeNor}_${awayNor}_${lastCardEvent.player?.name}_${lastCardEvent.time?.elapsed}_${lastCardEvent.detail}`;
-        const prevCardKey = newPrevCards[`${homeNor}_${awayNor}`];
+        const cardKey = `${matchId}_${lastCardEvent.player?.name}_${lastCardEvent.time?.elapsed}_${lastCardEvent.detail}`;
+        const prevCardKey = newPrevCards[matchId];
         let cardIsNew = false;
         if (cardKey !== prevCardKey) {
           await db.runTransaction(async tx => {
             const snap = await tx.get(prevCardsRef);
             const data = snap.exists ? snap.data() : {};
-            if (data[`${homeNor}_${awayNor}`] !== cardKey) {
-              tx.set(prevCardsRef, { ...data, [`${homeNor}_${awayNor}`]: cardKey });
+            if (data[matchId] !== cardKey) {
+              tx.set(prevCardsRef, { ...data, [matchId]: cardKey });
               cardIsNew = true;
             }
           });
-          newPrevCards[`${homeNor}_${awayNor}`] = cardKey;
+          newPrevCards[matchId] = cardKey;
         }
         if (cardIsNew) {
           const ce = buildLiveEvent(fixture, true);
@@ -1070,6 +1051,52 @@ exports.quizComment = onRequest(
 // ── getTopscorers – toppscorerliste fra API-Football ─────────────────
 
 // ── Oppdater toppscorere og kort (kjøres hvert 30. min) ──────────────
+// ── Beregn kort per lag fra alle ferdige VM-kamper ──────────────────
+async function updateCardStatsFromApi() {
+  if (!API_KEY) return;
+  try {
+    const data = await apiFetch(`fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&status=FT-AET-PEN`);
+    const fixtures = data.response || [];
+    if (!fixtures.length) return;
+
+    const yellowPerTeam = {};
+    const redPerTeam = {};
+
+    for (const fixture of fixtures) {
+      const statsRes = await apiFetch(`fixtures/statistics?fixture=${fixture.fixture.id}`);
+      const stats = statsRes.response || [];
+      for (const teamStat of stats) {
+        const apiTeamName = teamStat.team?.name;
+        const norTeam = Object.keys(TEAM_NAME_MAP).find(nor => TEAM_NAME_MAP[nor] === apiTeamName) || apiTeamName;
+        for (const s of (teamStat.statistics || [])) {
+          if (s.type === 'Yellow Cards') {
+            yellowPerTeam[norTeam] = (yellowPerTeam[norTeam] || 0) + (parseInt(s.value) || 0);
+          }
+          if (s.type === 'Red Cards') {
+            redPerTeam[norTeam] = (redPerTeam[norTeam] || 0) + (parseInt(s.value) || 0);
+          }
+        }
+      }
+    }
+
+    const cardData = {};
+    const allTeams = new Set([...Object.keys(yellowPerTeam), ...Object.keys(redPerTeam)]);
+    for (const team of allTeams) {
+      const y = yellowPerTeam[team] || 0;
+      const r = redPerTeam[team] || 0;
+      cardData['_y_' + team] = y;
+      cardData['_r_' + team] = r;
+      cardData[team] = y + r * 3;
+    }
+
+    await db.collection('config').doc('cards').set(cardData);
+    console.log('Kortstatistikk oppdatert for', allTeams.size, 'lag');
+    return { teams: allTeams.size };
+  } catch(e) {
+    console.error('updateCardStatsFromApi feilet:', e.message);
+  }
+}
+
 exports.updateStatsCache = onSchedule(
   {
     schedule: 'every 30 minutes',
@@ -1077,7 +1104,6 @@ exports.updateStatsCache = onSchedule(
     secrets: ['FOOTBALL_API_KEY'],
   },
   async () => {
-    if (!isWithinMatchWindow()) return;
     if (!API_KEY) return;
     try {
       // Toppscorere
@@ -1087,44 +1113,21 @@ exports.updateStatsCache = onSchedule(
       );
       const scorersData = await scorersRes.json();
       if (scorersData.response?.length) {
-        const apiScorers = scorersData.response.slice(0, 50).map(e => ({
-          name: e.player.name,
-          team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
-          goals: e.statistics?.[0]?.goals?.total ?? 0,
-        }));
-        // Merge: behold eksisterende scorere, oppdater med API-data (ta høyeste mål-tall)
-        const existingSnap = await db.collection('config').doc('statsCache').get();
-        const existing = existingSnap.exists ? (existingSnap.data().scorers || []) : [];
-        const merged = [...existing];
-        for (const apiS of apiScorers) {
-          const idx = merged.findIndex(s => s.name === apiS.name);
-          if (idx >= 0) {
-            merged[idx] = { ...merged[idx], goals: Math.max(merged[idx].goals || 0, apiS.goals) };
-          } else if (apiS.goals > 0) {
-            merged.push(apiS);
-          }
-        }
-        merged.sort((a, b) => b.goals - a.goals);
-        await db.collection('config').doc('statsCache').set({ scorers: merged, updatedAt: Date.now() }, { merge: true });
-        console.log('Toppscorere oppdatert:', merged.length);
+        const scorers = scorersData.response
+          .slice(0, 50)
+          .map(e => ({
+            name: e.player.name,
+            team: Object.keys(TEAM_NAME_MAP).find(nor => TEAM_NAME_MAP[nor] === e.statistics?.[0]?.team?.name) || e.statistics?.[0]?.team?.name || '–',
+            goals: e.statistics?.[0]?.goals?.total ?? 0,
+          }))
+          .filter(s => s.goals > 0);
+        scorers.sort((a, b) => b.goals - a.goals);
+        await db.collection('config').doc('statsCache').set({ scorers, updatedAt: Date.now() }, { merge: true });
+        console.log('Toppscorere oppdatert:', scorers.length);
       }
 
-      // Kort (topp gule/røde)
-      const cardsRes = await fetch(
-        `https://v3.football.api-sports.io/players/topcards?league=${WC_LEAGUE}&season=${WC_SEASON}`,
-        { headers: { 'x-apisports-key': API_KEY } }
-      );
-      const cardsData = await cardsRes.json();
-      if (cardsData.response?.length) {
-        const cards = cardsData.response.slice(0, 10).map(e => ({
-          name: e.player.name,
-          team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
-          yellow: e.statistics?.[0]?.cards?.yellow ?? 0,
-          red: (e.statistics?.[0]?.cards?.red ?? 0) + (e.statistics?.[0]?.cards?.yellowred ?? 0),
-        }));
-        await db.collection('config').doc('statsCache').set({ cards, updatedAt: Date.now() }, { merge: true });
-        console.log('Kortliste oppdatert:', cards.length);
-      }
+      // Kort per lag fra alle ferdige kamper
+      await updateCardStatsFromApi();
     } catch (err) {
       console.error('updateStatsCache feilet:', err.message);
     }
@@ -1240,17 +1243,34 @@ exports.refreshStatsCache = onRequest(
       );
       const scorersData = await scorersRes.json();
       if (!scorersData.response?.length) { res.json({ ok: false, error: 'Ingen data fra API' }); return; }
-      const scorers = scorersData.response.slice(0, 50).map(e => ({
-        name: e.player.name,
-        team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
-        goals: e.statistics?.[0]?.goals?.total ?? 0,
-      }));
+      const scorers = scorersData.response
+        .slice(0, 50)
+        .map(e => ({
+          name: e.player.name,
+          team: Object.keys(TEAM_NAME_MAP).find(nor => TEAM_NAME_MAP[nor] === e.statistics?.[0]?.team?.name) || e.statistics?.[0]?.team?.name || '–',
+          goals: e.statistics?.[0]?.goals?.total ?? 0,
+        }))
+        .filter(s => s.goals > 0)
+        .sort((a, b) => b.goals - a.goals);
       await db.collection('config').doc('statsCache').set({ scorers, updatedAt: Date.now() }, { merge: true });
       console.log('updatestatscache: oppdatert', scorers.length, 'scorers');
       res.json({ ok: true, count: scorers.length });
     } catch (err) {
       console.error('updatestatscache feilet:', err);
       res.status(500).json({ ok: false, error: err.message });
+    }
+  }
+);
+
+exports.refreshCardStats = onRequest(
+  { secrets: ['FOOTBALL_API_KEY'], cors: true },
+  async (req, res) => {
+    if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
+    const result = await updateCardStatsFromApi();
+    if (result) {
+      res.json({ ok: true, teams: result.teams });
+    } else {
+      res.status(500).json({ ok: false, error: 'Feil ved oppdatering' });
     }
   }
 );
@@ -1267,7 +1287,7 @@ exports.getTopscorers = onRequest(
       const data = await response.json();
       if (!data.response?.length) { res.json({ scorers: [] }); return; }
 
-      const scorers = data.response.slice(0, 10).map(entry => ({
+      const scorers = data.response.slice(0, 20).map(entry => ({
         name: entry.player.name,
         team: API_TO_NOR[entry.statistics?.[0]?.team?.name] || entry.statistics?.[0]?.team?.name || '–',
         goals: entry.statistics?.[0]?.goals?.total ?? 0,
@@ -1325,8 +1345,8 @@ exports.buildFixtureLookup = onRequest(
       // API-Football bruker UTC-datoer, constants.js bruker CEST (UTC+2).
       // En kamp kl. 01:00 CEST = 23:00 UTC dagen før — så vi tillater ±1 dag.
       const apiDateObj = new Date(apiDate + 'T00:00:00Z');
-      const apiDateMinus1 = new Date(apiDateObj - 86400000).toISOString().slice(0, 10);
-      const apiDatePlus1  = new Date(apiDateObj + 86400000).toISOString().slice(0, 10);
+      const apiDateMinus1 = new Date(apiDateObj.getTime() - 86400000).toISOString().slice(0, 10);
+      const apiDatePlus1  = new Date(apiDateObj.getTime() + 86400000).toISOString().slice(0, 10);
       const allowedDates  = new Set([apiDate, apiDateMinus1, apiDatePlus1]);
 
       // Konverter API-Footballs UTC-klokkeslett til CEST-dato+tid for matching
@@ -1359,7 +1379,10 @@ exports.buildFixtureLookup = onRequest(
         lookup[apiHome + '_' + apiAway] = appMatch.id;
         matched++;
       } else {
-        unmatched.push(apiHome + ' vs ' + apiAway + ' (' + apiDate + ')');
+        const norHome = engToNor[apiHome] || apiHome;
+        const norAway = engToNor[apiAway] || apiAway;
+        const debugInfo = apiHome + ' vs ' + apiAway + ' (' + apiDate + ') norHome=' + norHome + ' norAway=' + norAway + ' allowed=[' + Array.from(allowedDates).join(',') + '] apiDateCEST=' + apiDateCEST + ' apiTimeCEST=' + apiTimeCEST;
+        unmatched.push(debugInfo);
       }
     }
 

@@ -4600,6 +4600,16 @@ function LiveAdmin() {
       }} style={{ background:'rgba(251,146,60,.1)', border:'1px solid rgba(251,146,60,.3)', color:'#fb923c', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
         ⚽ Oppdater toppscorerliste manuelt
       </button>
+      <button onClick={async () => {
+        setLiveStatus('Oppdaterer kortstatistikk...');
+        try {
+          const res = await fetch(CF_V2('refreshcardstats'), { method: 'POST' });
+          const data = await res.json();
+          setLiveStatus(data.ok ? `✅ Kortstatistikk oppdatert for ${data.teams} lag!` : '❌ ' + (data.error||'ukjent'));
+        } catch(e) { setLiveStatus('❌ ' + e.message); }
+      }} style={{ background:'rgba(251,146,60,.1)', border:'1px solid rgba(251,146,60,.3)', color:'#fb923c', borderRadius:8, padding:'8px 14px', cursor:'pointer', textAlign:'left', fontSize:12 }}>
+        🟨 Oppdater kortstatistikk manuelt
+      </button>
       {liveStatus && <div style={{ fontSize:11, color:'#4ade80', fontFamily:"'Fira Code',monospace", marginTop:4 }}>{liveStatus}</div>}
     </div>
   );
