@@ -178,7 +178,7 @@ function isWithinMatchWindow() {
   const nowMs = now.getTime();
   return MATCH_WINDOWS.some(w => {
     const wDate = new Date(`${w.date}T${String(w.utcHour).padStart(2,'0')}:${String(w.utcMin).padStart(2,'0')}:00Z`);
-    const windowAfterMs = (w.knockout ? 3 : 2.5) * 60 * 60 * 1000;
+    const windowAfterMs = (w.knockout ? 4 : 3) * 60 * 60 * 1000;
     const windowBeforeMs = 10 * 60 * 1000; // 10 min før kampstart
     return nowMs >= wDate.getTime() - windowBeforeMs && nowMs <= wDate.getTime() + windowAfterMs;
   });
@@ -520,6 +520,13 @@ async function handleGoalEvent(matchId, liveEvent, prevGoalKey) {
 async function handleMatchFinished(matchId, homeNor, awayNor, homeGoals, awayGoals, updatedResults) {
   if (!ANTHROPIC_KEY) return;
 
+  // Ikke skriv nytt referat hvis det allerede finnes et
+  const existingSum = await db.collection('summaries').doc(matchId).get();
+  if (existingSum.exists && existingSum.data()?.botText) {
+    console.log(`Referat for ${matchId} finnes allerede, hopper over.`);
+    return;
+  }
+
   // Hent alle brukere
   const usersSnap = await db.collection('users').get();
   const allUsers = usersSnap.docs
@@ -769,6 +776,7 @@ async function pollAndUpdate() {
 
   const updatedResults = { ...currentResults };
   let   resultsChanged = false;
+  let   finishedEvent  = null;
   const batch          = db.batch();
 
   // Oppdater ferdigspilte kamper
@@ -784,8 +792,9 @@ async function pollAndUpdate() {
     if (isNew) {
       updatedResults[matchId] = result;
       resultsChanged = true;
-      // Trigger tabellreferat kun når et resultat skrives for første gang (kamp nettopp ferdig)
-      if (!existing) {
+      // Trigger tabellreferat når kamp er ferdig (FT) og ikke allerede trigget
+      const justFinished = FINISHED_STATUSES.has(result.status) && (!existing || !FINISHED_STATUSES.has(existing.status));
+      if (justFinished) {
         handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
           .catch(e => console.error('handleMatchFinished feil:', e.message));
         // Lagre finished-event – sendes til klienten etter live-loop
@@ -803,7 +812,6 @@ async function pollAndUpdate() {
   }
 
   // Live-kamper: oppdater score + sjekk nye mål
-  let finishedEvent = null;
   let cardEventThisPoll = null;
   const newPrevGoals = { ...prevGoals };
   const newPrevCards = { ...prevCards };

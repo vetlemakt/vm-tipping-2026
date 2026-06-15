@@ -2649,7 +2649,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [dashPopup, setDashPopup] = useState(null); // {user, x, y}
   const dashCloseTimer = useRef(null);
   const openDashPopup = (r, x, y) => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } setDashPopup(prev => prev?.user?.id === r.id ? prev : { user: r, x, y }); };
-  const closeDashPopup = () => { dashCloseTimer.current = setTimeout(() => setDashPopup(null), 150); };
+  const closeDashPopup = () => { dashCloseTimer.current = setTimeout(() => setDashPopup(null), 300); };
   const cancelDashClose = () => { if (dashCloseTimer.current) { clearTimeout(dashCloseTimer.current); dashCloseTimer.current = null; } };
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chatFullscreen, setChatFullscreen] = useState(false);
@@ -2991,15 +2991,10 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
               onClick={() => canView && onShowTips && onShowTips(r)}>
               <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
               <span style={{ ...C.lbName }}>
-                <span
-                  style={{ textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6, display:'inline-block' }}
-                  onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 6, rect.top); }}
-                  onMouseLeave={closeDashPopup}
-                  onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); openDashPopup(r, rect.right + 6, rect.top); }}
-                >
-                  {r.displayName}
-                  {!canView && <span style={C.lbLockIcon}>🔒</span>}
-                </span>
+                {canView
+                  ? <PlayerTipsTooltip user={r} results={results} onShowTips={u => onShowTips && onShowTips(u)} />
+                  : <span>{r.displayName}<span style={C.lbLockIcon}>🔒</span></span>
+                }
               </span>
               <div style={{display:'flex',alignItems:'center',gap:6}}>
                 {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
@@ -3013,17 +3008,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           })}
         </div>
       </div>
-      {dashPopup && (
-        <PlayerTipsPopup
-          user={dashPopup.user}
-          results={results}
-          onClose={() => setDashPopup(null)}
-          onShowTips={u => { setDashPopup(null); onShowTips && onShowTips(u); }}
-          pos={{ x: dashPopup.x, y: dashPopup.y }}
-          onMouseEnter={cancelDashClose}
-          onMouseLeave={closeDashPopup}
-        />
-      )}
+
 
       {/* Chat */}
       <div style={{ ...C.card, ...(isMobile ? C.dashCardFixedMobile : C.dashCardFixed), ...(isMobile ? { order: 1 } : {}) }}>
@@ -3289,104 +3274,80 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
 // ══════════════════════════════════════════════════════════════════════
 //  PLAYER TIPS POPUP (hover/tap in leaderboard)
 // ══════════════════════════════════════════════════════════════════════
-function PlayerTipsPopup({ user, results, onClose, onShowTips, pos, onMouseEnter, onMouseLeave }) {
-  const now = new Date();
+function PlayerTipsTooltip({ user, results, onShowTips }) {
+  const [show, setShow] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const isMobile = useIsMobile();
+  const hideTimer = useRef(null);
+  const spanRef = useRef(null);
+
+  const enter = () => { clearTimeout(hideTimer.current); setShow(true); };
+  const leave = () => { hideTimer.current = setTimeout(() => setShow(false), 300); };
+  const calcCoords = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, left: r.right + 4 }; };
+  const handleMouseEnter = () => { if (spanRef.current) setCoords(calcCoords(spanRef.current)); enter(); };
+  const handleClick = (e) => { e.stopPropagation(); if (!show && spanRef.current) setCoords(calcCoords(spanRef.current)); setShow(s => !s); };
+
+  const FINISHED_S = new Set(["FT","AET","PEN","AWD","WO"]);
+  const LIVE_S = new Set(["1H","HT","2H","ET","BT","P","INT","LIVE"]);
+  const now = Date.now();
   const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
-
   const liveMatch = allMatches.find(m => {
-    if (!results[m.id]) return false;
-    const kick = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
-    const minsAgo = (now - kick) / 60000;
-    return minsAgo >= 0 && minsAgo < 180 && !results[m.id]?.status?.includes('FT');
+    const ms = new Date(m.date + "T" + (m.time||"00:00") + ":00+02:00").getTime();
+    const r = results[m.id];
+    return (now-ms)>=0 && (now-ms)<180*60000 && r && LIVE_S.has(r.status) && !FINISHED_S.has(r.status);
   });
-
   const upcoming = allMatches.filter(m => {
-    const kick = new Date(m.date + 'T' + (m.time||'00:00') + ':00+02:00');
-    return kick > now && !results[m.id];
-  }).sort((a, b) => {
-    const kA = new Date(a.date + 'T' + (a.time||'00:00') + ':00+02:00');
-    const kB = new Date(b.date + 'T' + (b.time||'00:00') + ':00+02:00');
-    return kA - kB;
-  });
+    const ms = new Date(m.date+"T"+(m.time||"00:00")+":00+02:00").getTime();
+    return ms > now && !results[m.id];
+  }).sort((a,b) => new Date(a.date+"T"+(a.time||"00:00")+":00+02:00") - new Date(b.date+"T"+(b.time||"00:00")+":00+02:00"));
+  const showMatches = liveMatch ? [liveMatch, ...upcoming.slice(0,2)] : upcoming.slice(0,3);
+  const fmtTip = (matchId) => { const t = user.tips?.[matchId]; if (!t||t.home===undefined||t.away===undefined) return "–"; return t.home+" – "+t.away; };
 
-  const showMatches = liveMatch ? [liveMatch, ...upcoming.slice(0, 2)] : upcoming.slice(0, 3);
+  const popW = 240;
+  const left = Math.min(coords.left, window.innerWidth - popW - 8);
+  const top = Math.min(Math.max(coords.top - 10, 8), window.innerHeight - 260);
 
-  const fmtTip = (matchId) => {
-    const t = user.tips?.[matchId];
-    if (!t || t.home === undefined || t.away === undefined) return '–';
-    return `${t.home} – ${t.away}`;
-  };
-
-  // Clamp position so popup stays on screen
-  const popW = 230, popH = 220;
-  const left = Math.min(Math.max(pos.x, 8), window.innerWidth - popW - 8);
-  const top  = Math.min(Math.max(pos.y - 10, 8), window.innerHeight - popH - 8);
-
-  return createPortal(
+  return (
     <>
-      <div onClick={onClose} onTouchEnd={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
-      <div
-        onClick={e => e.stopPropagation()}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave || onClose}
-        style={{
-          position:'fixed', top, left, zIndex:900,
-          background:'#0e1628', border:'1px solid rgba(255,215,0,.25)',
-          borderRadius:12, padding:'12px 14px', width: popW,
-          boxShadow:'0 8px 32px rgba(0,0,0,.8)',
-          pointerEvents:'auto',
-        }}
+      <span
+        ref={spanRef}
+        style={{ textDecoration:"underline", textDecorationColor:"rgba(255,215,0,.3)", cursor:"pointer", padding:"4px 6px", borderRadius:6, display:"inline-block" }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => !isMobile && leave()}
+        onClick={handleClick}
       >
-        <div style={{ fontSize:12, fontWeight:700, color:'#FFD700', marginBottom:10, letterSpacing:1 }}>
-          {user.displayName || user.id}
-        </div>
-        {showMatches.length === 0 && (
-          <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>Ingen kommende kamper</div>
-        )}
-        {showMatches.map((m, idx) => {
-          const tip = fmtTip(m.id);
-          const isLive = idx === 0 && liveMatch;
-          return (
-            <div key={m.id} style={{
-              marginBottom: idx < showMatches.length - 1 ? 8 : 0,
-              paddingBottom: idx < showMatches.length - 1 ? 8 : 0,
-              borderBottom: idx < showMatches.length - 1 ? '1px solid rgba(255,255,255,.07)' : 'none',
-            }}>
-              {isLive && <div style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:2 }}>🔴 LIVE</div>}
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <span style={{ flex:1, textAlign:'right', fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:'#e8edf8', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}>
-                  {m.home} <Flag team={m.home} size={idx===0?14:12} />
-                </span>
-                <span style={{
-                  flexShrink:0, minWidth:idx===0?38:32, textAlign:'center',
-                  fontSize:idx===0?14:12, fontWeight:800,
-                  color: tip==='–' ? 'rgba(255,255,255,.25)' : '#FFD700',
-                  background:'rgba(0,0,0,.3)', borderRadius:6,
-                  padding:idx===0?'3px 7px':'2px 5px',
-                  border:'1px solid rgba(255,255,255,.08)',
-                }}>
-                  {tip}
-                </span>
-                <span style={{ flex:1, fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:'#e8edf8', display:'flex', alignItems:'center', gap:4 }}>
-                  <Flag team={m.away} size={idx===0?14:12} /> {m.away}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        <button
-          onClick={() => { onClose(); onShowTips(user); }}
-          style={{
-            marginTop:12, width:'100%', padding:'7px 0', borderRadius:8,
-            background:'rgba(255,215,0,.12)', border:'1px solid rgba(255,215,0,.3)',
-            color:'#FFD700', fontSize:11, fontWeight:700, cursor:'pointer',
-          }}
-        >
-          Fullt skjema →
-        </button>
-      </div>
-    </>,
-    document.body
+        {user.displayName || user.id}
+      </span>
+      {show && createPortal(
+        <>
+          {isMobile && <div onClick={() => setShow(false)} onTouchEnd={() => setShow(false)} style={{ position:"fixed", inset:0, zIndex:899 }} />}
+          <div
+            onMouseEnter={() => !isMobile && enter()}
+            onMouseLeave={() => !isMobile && leave()}
+            style={{ position:"fixed", top, left, zIndex:900, width:popW, background:"#0e1628", border:"1px solid rgba(255,215,0,.25)", borderRadius:12, padding:"12px 14px", boxShadow:"0 8px 32px rgba(0,0,0,.8)", pointerEvents:"auto" }}
+          >
+            <div style={{ fontSize:12, fontWeight:700, color:"#FFD700", marginBottom:10 }}>{user.displayName || user.id}</div>
+            {showMatches.length === 0 && <div style={{ fontSize:11, color:"rgba(255,255,255,.4)" }}>Ingen kommende kamper</div>}
+            {showMatches.map((m, idx) => {
+              const tip = fmtTip(m.id);
+              const isLive = idx === 0 && liveMatch;
+              return (
+                <div key={m.id} style={{ marginBottom:idx<showMatches.length-1?8:0, paddingBottom:idx<showMatches.length-1?8:0, borderBottom:idx<showMatches.length-1?"1px solid rgba(255,255,255,.07)":"none" }}>
+                  {isLive && <div style={{ fontSize:10, color:"#ef4444", fontWeight:700, marginBottom:2 }}>🔴 LIVE</div>}
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <span style={{ flex:1, textAlign:"right", fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>{m.home} <Flag team={m.home} size={idx===0?14:12} /></span>
+                    <span style={{ flexShrink:0, minWidth:idx===0?38:32, textAlign:"center", fontSize:idx===0?14:12, fontWeight:800, color:tip==="–"?"rgba(255,255,255,.25)":"#FFD700", background:"rgba(0,0,0,.3)", borderRadius:6, padding:idx===0?"3px 7px":"2px 5px", border:"1px solid rgba(255,255,255,.08)" }}>{tip}</span>
+                    <span style={{ flex:1, fontSize:idx===0?13:11, fontWeight:idx===0?600:400, color:"#e8edf8", display:"flex", alignItems:"center", gap:4 }}><Flag team={m.away} size={idx===0?14:12} /> {m.away}</span>
+                  </div>
+                </div>
+              );
+            })}
+            <button onClick={() => { setShow(false); onShowTips(user); }} style={{ marginTop:12, width:"100%", padding:"7px 0", borderRadius:8, background:"rgba(255,215,0,.12)", border:"1px solid rgba(255,215,0,.3)", color:"#FFD700", fontSize:11, fontWeight:700, cursor:"pointer" }}>Fullt skjema →</button>
+          </div>
+        </>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -3397,7 +3358,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   const [lbPopup, setLbPopup] = useState(null); // {user, x, y}
   const lbCloseTimer = useRef(null);
   const openLbPopup = (r, x, y) => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } setLbPopup(prev => prev?.user?.id === r.id ? prev : { user: r, x, y }); };
-  const closeLbPopup = () => { lbCloseTimer.current = setTimeout(() => setLbPopup(null), 150); };
+  const closeLbPopup = () => { lbCloseTimer.current = setTimeout(() => setLbPopup(null), 300); };
   const cancelLbClose = () => { if (lbCloseTimer.current) { clearTimeout(lbCloseTimer.current); lbCloseTimer.current = null; } };
   const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
@@ -3424,15 +3385,10 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
             onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
             <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
             <span style={{ ...C.lbName }}>
-              <span
-                style={{ textDecoration: canView ? 'underline' : 'none', textDecorationColor:'rgba(255,215,0,.3)', cursor:'pointer', padding:'4px 6px', borderRadius:6, display:'inline-block' }}
-                onMouseEnter={e => { const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 6, rect.top); }}
-                onMouseLeave={closeLbPopup}
-                onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); openLbPopup(r, rect.right + 6, rect.top); }}
-              >
-                {r.displayName}
-                {!canView && <span style={C.lbLockIcon}>🔒</span>}
-              </span>
+              {canView
+                ? <PlayerTipsTooltip user={r} results={results} onShowTips={u => { onShowTips ? onShowTips(u) : setSelected(u); }} />
+                : <span>{r.displayName}<span style={C.lbLockIcon}>🔒</span></span>
+              }
             </span>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {(r.fulltreff||0) > 0 && renderFulltreff(r.fulltreff)}
@@ -3445,17 +3401,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
           );
         })}
       </div>
-      {lbPopup && (
-        <PlayerTipsPopup
-          user={lbPopup.user}
-          results={results}
-          onClose={() => setLbPopup(null)}
-          onShowTips={u => { setLbPopup(null); onShowTips ? onShowTips(u) : setSelected(u); }}
-          pos={{ x: lbPopup.x, y: lbPopup.y }}
-          onMouseEnter={cancelLbClose}
-          onMouseLeave={closeLbPopup}
-        />
-      )}
+
     </div>
   );
 }
