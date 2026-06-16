@@ -2673,6 +2673,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [summaryText, setSummaryText] = useState('');
 
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const onlineOrderRef = useRef([]); // stabil rekkefølge - ikke resortert ved ts-oppdatering
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [matchesFullscreen, setMatchesFullscreen] = useState(false);
   const { soundOn, toggleSound, playSound } = useChatSound();
@@ -2703,7 +2704,22 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const [scorers, setScorers] = useState([]);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
-  useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
+  useEffect(() => {
+    const u = subscribeOnlineUsers(incoming => {
+      const names = incoming.map(u => typeof u === 'string' ? u : u.displayName);
+      // Behold eksisterende rekkefølge, legg nye til på slutten
+      const existing = onlineOrderRef.current.filter(n => names.includes(n));
+      const newOnes = names.filter(n => !onlineOrderRef.current.includes(n));
+      onlineOrderRef.current = [...existing, ...newOnes];
+      // Map til objekter med ts
+      const withTs = onlineOrderRef.current.map(n => {
+        const found = incoming.find(u => (typeof u === 'string' ? u : u.displayName) === n);
+        return { displayName: n, ts: (typeof found === 'object' ? found?.ts : null) || 0 };
+      });
+      setOnlineUsers(withTs);
+    });
+    return u;
+  }, []); // eslint-disable-line
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
   useEffect(() => { const u = subscribeStatsCache(data => setScorers(data?.scorers || [])); return u; }, []);
