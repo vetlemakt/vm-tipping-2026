@@ -795,8 +795,10 @@ async function pollAndUpdate() {
       // Trigger tabellreferat når kamp er ferdig (FT) og ikke allerede trigget
       const justFinished = FINISHED_STATUSES.has(result.status) && (!existing || !FINISHED_STATUSES.has(existing.status));
       if (justFinished) {
-        handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
-          .catch(e => console.error('handleMatchFinished feil:', e.message));
+        // Bot-kommentarer skal KUN trigges av @navn/@funfact i chat, ikke automatisk
+        // ved kamphendelser. handleMatchFinished() er derfor deaktivert her.
+        // handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
+        //   .catch(e => console.error('handleMatchFinished feil:', e.message));
         // Lagre finished-event – sendes til klienten etter live-loop
         const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
         const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();
@@ -856,9 +858,11 @@ async function pollAndUpdate() {
             setTimeout(async () => {
               try { await liveRef.set({ type: null, ts: Date.now() }); } catch(e) {}
             }, 30000);
-            handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
-              console.error('handleGoalEvent feil:', e.message)
-            );
+            // Bot-kommentarer skal KUN trigges av @navn/@funfact i chat, ikke automatisk
+            // ved mål eller andre kamphendelser. handleGoalEvent() er derfor deaktivert her.
+            // handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
+            //   console.error('handleGoalEvent feil:', e.message)
+            // );
             // Oppdater statsCache.scorers med ny scorer
             if (liveEvent.playerName && liveEvent.playerName !== '?' && !liveEvent.suffix?.includes('s.m.')) {
               const statsCacheRef = db.collection('config').doc('statsCache');

@@ -11,7 +11,7 @@ import {
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore'; // eslint-disable-line no-unused-vars
 import { calcScore, calcMatchPts } from './scoring';
-import { getTodaysPlayer, shuffle, isQuizScoring, QUIZ_PLAYERS } from './quizPlayers';
+import { getTodaysPlayer, shuffle, isQuizScoring, isQuizFinished, getQuizRoundKey, QUIZ_PLAYERS } from './quizPlayers';
 import { searchPlayers, ALL_PLAYERS } from './squads';
 import {
   INVITE_CODE, ADMIN_CODE,
@@ -121,17 +121,39 @@ async function deleteMatchSummary(matchId) {
 }
 
 async function getQuizAnswer(username, playerId) {
-  const snap = await getDoc(doc(db, 'quiz', `${username}_${playerId}`));
+  const snap = await getDoc(doc(db, 'quiz', `${username}_${getQuizRoundKey()}_${playerId}`));
   return snap.exists() ? snap.data() : null;
 }
 async function setQuizAnswer(username, playerId, answer, correct) {
   const scoring = isQuizScoring();
-  await setDoc(doc(db, 'quiz', `${username}_${playerId}`), { answer, correct, ts: Date.now(), scoring });
+  await setDoc(doc(db, 'quiz', `${username}_${getQuizRoundKey()}_${playerId}`), { answer, correct, ts: Date.now(), scoring, playerId });
 }
 
 async function getAllQuizAnswers() {
   const snap = await getDocs(collection(db, 'quiz'));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ── Quiz-bonus i Tabellen ─────────────────────────────────────────────
+// Når VM (og dermed quiz-konkurransen) er over: spilleren(e) med flest
+// riktige quiz-svar i SCORING-perioden (fra 11. juni) får 0,5 ekstra poeng
+// i hovedtabellen. Ved uavgjort deles 0,5 poeng likt mellom dem.
+// Returnerer { [username]: bonusPoeng }.
+async function getQuizBonusMap() {
+  if (!isQuizFinished()) return {};
+  const [users, answers] = await Promise.all([getAllUsers(), getAllQuizAnswers()]);
+  const real = users.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+  const correctCounts = real.map(u => {
+    const userAnswers = answers.filter(a => a.id.startsWith(u.id + '_') && a.scoring);
+    return { username: u.id, correct: userAnswers.filter(a => a.correct).length };
+  });
+  const maxCorrect = Math.max(0, ...correctCounts.map(c => c.correct));
+  if (maxCorrect === 0) return {};
+  const winners = correctCounts.filter(c => c.correct === maxCorrect);
+  const bonusEach = 0.5 / winners.length;
+  const map = {};
+  winners.forEach(w => { map[w.username] = bonusEach; });
+  return map;
 }
 
 async function setMatchSummary(matchId, text, author) {
@@ -2726,9 +2748,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   const chatBoxRef = useRef(null);
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
-    getAllUsers().then(us => {
+    Promise.all([getAllUsers(), getQuizBonusMap()]).then(([us, quizBonus]) => {
       setUsers(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
-        .map(u => ({ ...u, ...calcScore(u, results) }))
+        .map(u => ({ ...u, ...calcScore(u, results, quizBonus[u.id] || 0) }))
         .sort((a, b) => b.total - a.total));
     });
   }, [results]);
@@ -3419,9 +3441,9 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
-    getAllUsers().then(us => {
+    Promise.all([getAllUsers(), getQuizBonusMap()]).then(([us, quizBonus]) => {
       setRows(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
-        .map(u => ({ ...u, ...calcScore(u, results) }))
+        .map(u => ({ ...u, ...calcScore(u, results, quizBonus[u.id] || 0) }))
         .sort((a, b) => b.total - a.total));
     });
   }, [results]);
@@ -6606,10 +6628,10 @@ export default function App() {
   // Fetch top 3 for podium
   useEffect(() => {
     if (!podiumMode) return;
-    Promise.all([getAllUsers(), getResults()]).then(([users, results]) => {
+    Promise.all([getAllUsers(), getResults(), getQuizBonusMap()]).then(([users, results, quizBonus]) => {
       const ranked = users
         .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
-        .map(u => ({ ...u, ...calcScore(u, results) }))
+        .map(u => ({ ...u, ...calcScore(u, results, quizBonus[u.id] || 0) }))
         .sort((a, b) => b.total - a.total);
       setPodiumPlayers({
         gold:   ranked[0]?.displayName || '–',

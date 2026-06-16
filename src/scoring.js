@@ -17,7 +17,7 @@ export function calcMatchPts(tip, act) {
   return p;
 }
 
-export function calcScore(user, results) {
+export function calcScore(user, results, quizBonus = 0) {
   let total = 0;
   let fulltreff = 0;
   const bd = { matches: {}, groups: {}, special: {} };
@@ -48,6 +48,8 @@ export function calcScore(user, results) {
       bd.special[key] = pts; total += pts;
     }
   });
+
+  if (quizBonus) { bd.special.quizBonus = quizBonus; total += quizBonus; }
 
   return { total, fulltreff, bd };
 }

@@ -238,32 +238,55 @@ export const QUIZ_PLAYERS = [
     wrong:['Bastian Schweinsteiger','Mesut Özil','Sami Khedira'] },
 ];
 
-// VM starts June 11 2026 06:00 CEST
+// VM starts June 11 2026 06:00 CEST, finalen er 19. juli 2026 (siste VM-dag)
 const VM_QUIZ_START = new Date('2026-06-11T06:00:00+02:00');
+const VM_LAST_DAY    = new Date('2026-07-19T06:00:00+02:00'); // kvelden finalen spilles
 
-// Get today's quiz player (rotates daily at 06:00 CEST = 04:00 UTC)
-export function getTodaysPlayer() {
-  const now = new Date();
-  const base = new Date('2026-01-01T04:00:00Z');
+// Absolutt dag-indeks fra et fast ankerpunkt (06:00 CEST = 04:00 UTC rotasjon),
+// brukt for BÅDE før-VM og VM-perioden, slik at hele turneringen (før + under VM)
+// går gjennom samme kontinuerlige, ikke-repeterende kortrekkefølge.
+const QUIZ_ANCHOR = new Date('2026-01-01T04:00:00Z');
+function absoluteDayIndex(now = new Date()) {
   const msPerDay = 1000 * 60 * 60 * 24;
-  let dayIndex = Math.floor((now.getTime() - base.getTime()) / msPerDay);
+  return Math.floor((now.getTime() - QUIZ_ANCHOR.getTime()) / msPerDay);
+}
+
+// Get today's quiz player. Bruker en kontinuerlig, ikke-repeterende rekkefølge
+// over hele SHUFFLED_PLAYERS-poolen (105 kort) – samme rekkefølge før og under VM,
+// slik at ingen spiller (kort) vises på nytt i løpet av hele perioden.
+// Poolen er stor nok til hele VM-perioden (39 dager) uten repetisjon; når poolen
+// til slutt er brukt opp begynner den å gå i loop (skal ikke skje i praksis).
+export function getTodaysPlayer() {
+  const dayIndex = absoluteDayIndex();
   const idx = ((dayIndex % SHUFFLED_PLAYERS.length) + SHUFFLED_PLAYERS.length) % SHUFFLED_PLAYERS.length;
   return SHUFFLED_PLAYERS[idx];
 }
 
-// Is the real scoring quiz active? (from VM start)
+// Is the real scoring quiz active? (from VM start to og med finaledagen)
 export function isQuizScoring() {
-  return new Date() >= VM_QUIZ_START;
+  const now = new Date();
+  return now >= VM_QUIZ_START && now < new Date(VM_LAST_DAY.getTime() + 24 * 60 * 60 * 1000);
 }
 
-// Get the day index for scoring (0 = first day of VM quiz)
+// Har hele VM-turneringen (og dermed quiz-konkurransen) avsluttet?
+export function isQuizFinished() {
+  return new Date() >= new Date(VM_LAST_DAY.getTime() + 24 * 60 * 60 * 1000);
+}
+
+// Get the day index for scoring (0 = first day of VM quiz, 11. juni)
 export function getQuizDayIndex() {
-  const now = new Date();
-  if (!isQuizScoring()) return -1;
-  // VM_QUIZ_START is already 06:00 CEST = 04:00 UTC
+  if (new Date() < VM_QUIZ_START) return -1;
   const msPerDay = 1000 * 60 * 60 * 24;
-  const day = Math.floor((now.getTime() - VM_QUIZ_START.getTime()) / msPerDay);
+  const day = Math.floor((new Date().getTime() - VM_QUIZ_START.getTime()) / msPerDay);
   return Math.max(0, day);
+}
+
+// Stabil, unik nøkkel for dagens quiz-runde – brukes til å lagre/lese svar i
+// Firestore. Bruker absolutt dag-indeks (ikke spiller-id), slik at samme
+// spiller (kort) som tilfeldigvis dukker opp igjen ALDRI blir forvekslet med
+// et tidligere svar – hver dag i hele perioden er en egen, unik runde.
+export function getQuizRoundKey() {
+  return `d${absoluteDayIndex()}`;
 }
 
 // Shuffle array
