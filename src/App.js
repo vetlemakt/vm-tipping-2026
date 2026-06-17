@@ -20,6 +20,18 @@ import {
 } from './constants';
 import { C } from './styles';
 
+// ── Delt plassering ved poenglikhet (1,1,3,4,4,6 …) ────────────────────
+// Tar inn en allerede sortert liste (høyest poeng først) og legger på
+// et `rank`-felt der spillere med likt antall poeng deler plass, og
+// neste distinkte poengsum hopper til riktig plassnummer.
+function withRanks(sortedRows, key = 'total') {
+  let rank = 0;
+  return sortedRows.map((r, i) => {
+    if (i === 0 || r[key] !== sortedRows[i - 1][key]) rank = i + 1;
+    return { ...r, rank };
+  });
+}
+
 // ── Cloud Functions base URL (API-nøkkel er trygg på serveren) ────────
 const CF_V2 = (fn) => `https://${fn}-7vpze6vvta-uc.a.run.app`;
 async function cfPost(endpoint, body) {
@@ -907,6 +919,7 @@ async function generateBotMatchSummary(match, results, users, allSummaries) {
     })() : 0;
     return { name: u.displayName, pts, total: u.total || 0, fulltreff: u.fulltreff || 0 };
   }).sort((a,b) => b.total - a.total);
+  const rankedScored = withRanks(scored);
 
   // Check if this is the last match in the group
   const groupMatches = GROUP_MATCHES.filter(m => m.group === match.group);
@@ -937,7 +950,7 @@ Du skal skrive et KORT sammendrag (2-4 setninger) om hvordan kampen ${match.home
 Poengoversikt for denne kampen:
 ${scored.map(u => `${u.name}: ${u.pts}p på kampen (totalt ${u.total}p, ${u.fulltreff} fulltreff)`).join('\n')}
 
-Nåværende rekkefølge: ${scored.map((u,i)=>`${i+1}. ${u.name}`).join(', ')}.${groupOrderContext}
+Nåværende rekkefølge: ${rankedScored.map(u=>`${u.rank}. ${u.name}`).join(', ')}.${groupOrderContext}
 
 Skriv som deg selv – med din personlighet og dialekt. Hold deg til tippekonkurransen, ikke selve fotballen. Ikke bruk hermetegn.`;
 
@@ -2750,9 +2763,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
     Promise.all([getAllUsers(), getQuizBonusMap()]).then(([us, quizBonus]) => {
-      setUsers(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
+      setUsers(withRanks(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
         .map(u => ({ ...u, ...calcScore(u, results, quizBonus[u.id] || 0) }))
-        .sort((a, b) => b.total - a.total));
+        .sort((a, b) => b.total - a.total)));
     });
   }, [results]);
 
@@ -2806,7 +2819,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   };
 
   const medals = ['🥇', '🥈', '🥉'];
-  const myRank = users.findIndex(u => u.id === me.username) + 1;
+  const myRank = users.find(u => u.id === me.username)?.rank || 0;
   const finishedMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].filter(m => {
     const r = results[m.id];
     return r && r.home !== undefined && r.away !== undefined;
@@ -3043,13 +3056,13 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         </div>
         <div style={C.dashCardFixedBody}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
-          {users.map((r, i) => {
+          {users.map((r) => {
             const tipsLocked = !OPEN_PHASES.has(phase);
             const canView = tipsLocked || r.id === me.username;
             return (
             <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
               onClick={() => canView && onShowTips && onShowTips(r)}>
-              <span style={C.lbRank}>{medals[i] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{i + 1}</span>}</span>
+              <span style={C.lbRank}>{medals[r.rank - 1] || <span style={{ color: '#4a5a80', fontSize: 13 }}>{r.rank}</span>}</span>
               <span style={{ ...C.lbName }}>
                 {canView
                   ? <PlayerTipsTooltip user={r} results={results} onShowTips={u => onShowTips && onShowTips(u)} />
@@ -3443,9 +3456,9 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     Promise.all([getAllUsers(), getQuizBonusMap()]).then(([us, quizBonus]) => {
-      setRows(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
+      setRows(withRanks(us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
         .map(u => ({ ...u, ...calcScore(u, results, quizBonus[u.id] || 0) }))
-        .sort((a, b) => b.total - a.total));
+        .sort((a, b) => b.total - a.total)));
     });
   }, [results]);
   const medals = ['🥇', '🥈', '🥉'];
@@ -3457,12 +3470,12 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
     <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Full poengtabell</span></div>
       <div style={C.cardBody}>
-        {rows.map((r, i) => {
+        {rows.map((r) => {
           const canView = tipsLocked || r.id === me.username;
           return (
           <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
             onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
-            <span style={C.lbRank}>{medals[i] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{i + 1}</span>}</span>
+            <span style={C.lbRank}>{medals[r.rank - 1] || <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 13 }}>{r.rank}</span>}</span>
             <span style={{ ...C.lbName }}>
               {canView
                 ? <PlayerTipsTooltip user={r} results={results} onShowTips={u => { onShowTips ? onShowTips(u) : setSelected(u); }} />
@@ -5332,11 +5345,11 @@ function buildCompetitionContext(users, results, liveEvent) {
 
   // Stillingstabell
   const realUsers = users.filter(u => !u.id.startsWith('panel_') && u.id !== 'admin');
-  const sorted = [...realUsers]
+  const sorted = withRanks([...realUsers]
     .map(u => ({ ...u, ...calcScore(u, results) }))
-    .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
-  const lines = sorted.map((u, i) =>
-    `${i + 1}. ${u.displayName}: ${u.total}p (${u.fulltreff} fulltreff)`
+    .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff));
+  const lines = sorted.map(u =>
+    `${u.rank}. ${u.displayName}: ${u.total}p (${u.fulltreff} fulltreff)`
   ).join('\n');
   ctx += `\n\nAKTUELL STILLINGSTABELL I TIPPEKONKURRANSEN:\n${lines}`;
 
@@ -5646,16 +5659,16 @@ function PanelLeaderboard({ onSelect }) {
       const u = await getUser('panel_' + e.id);
       const score = u ? calcScore(u, results) : { total: 0, fulltreff: 0 };
       return { ...e, ...score };
-    })).then(r => setRows(r.sort((a,b) => b.total - a.total)));
+    })).then(r => setRows(withRanks(r.sort((a,b) => b.total - a.total))));
   }, [results]);
 
   return (
     <div style={C.card}>
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot}/>Ekspertpanel – poengtabell</span></div>
       <div style={C.cardBody}>
-        {rows.map((r, i) => (
+        {rows.map((r) => (
           <div key={r.id} style={{ ...C.lbRow, cursor:'pointer' }} onClick={() => onSelect(r)}>
-            <span style={C.lbRank}><span style={{color:'rgba(255,255,255,.4)',fontSize:13}}>{i+1}</span></span>
+            <span style={C.lbRank}><span style={{color:'rgba(255,255,255,.4)',fontSize:13}}>{r.rank}</span></span>
 
             <span style={{...C.lbName,color:r.color}}>{r.name}</span>
             {(r.fulltreff||0)>0 && renderFulltreff(r.fulltreff)}
@@ -6630,14 +6643,15 @@ export default function App() {
   useEffect(() => {
     if (!podiumMode) return;
     Promise.all([getAllUsers(), getResults(), getQuizBonusMap()]).then(([users, results, quizBonus]) => {
-      const ranked = users
+      const ranked = withRanks(users
         .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
         .map(u => ({ ...u, ...calcScore(u, results, quizBonus[u.id] || 0) }))
-        .sort((a, b) => b.total - a.total);
+        .sort((a, b) => b.total - a.total));
+      const nameAt = rank => ranked.filter(u => u.rank === rank).map(u => u.displayName).join(' & ') || '–';
       setPodiumPlayers({
-        gold:   ranked[0]?.displayName || '–',
-        silver: ranked[1]?.displayName || '–',
-        bronze: ranked[2]?.displayName || '–',
+        gold:   nameAt(1),
+        silver: nameAt(2),
+        bronze: nameAt(3),
       });
     });
   }, []); // eslint-disable-line
