@@ -72,8 +72,8 @@ const MATCH_WINDOWS = [
   { date: '2026-06-13', utcHour: 19, utcMin: 0 },  // B2 (2026-06-13 21:00 CEST)
   { date: '2026-06-18', utcHour: 19, utcMin: 0 },  // B3 (2026-06-18 21:00 CEST)
   { date: '2026-06-18', utcHour: 22, utcMin: 0 },  // B4 (2026-06-19 00:00 CEST)
-  { date: '2026-06-25', utcHour: 19, utcMin: 0 },  // B5 (2026-06-25 21:00 CEST)
-  { date: '2026-06-25', utcHour: 19, utcMin: 0 },  // B6 (2026-06-25 21:00 CEST)
+  { date: '2026-06-24', utcHour: 19, utcMin: 0 },  // B5 (2026-06-24 21:00 CEST)
+  { date: '2026-06-24', utcHour: 19, utcMin: 0 },  // B6 (2026-06-24 21:00 CEST)
   { date: '2026-06-13', utcHour: 22, utcMin: 0 },  // C1 (2026-06-14 00:00 CEST)
   { date: '2026-06-14', utcHour: 1, utcMin: 0 },  // C2 (2026-06-14 03:00 CEST)
   { date: '2026-06-19', utcHour: 22, utcMin: 0 },  // C3 (2026-06-20 00:00 CEST)
@@ -90,8 +90,8 @@ const MATCH_WINDOWS = [
   { date: '2026-06-14', utcHour: 23, utcMin: 0 },  // E2 (2026-06-15 01:00 CEST)
   { date: '2026-06-21', utcHour: 20, utcMin: 0 },  // E3 (2026-06-21 22:00 CEST)
   { date: '2026-06-21', utcHour: 0, utcMin: 0 },  // E4 (2026-06-21 02:00 CEST)
-  { date: '2026-06-26', utcHour: 20, utcMin: 0 },  // E5 (2026-06-26 22:00 CEST)
-  { date: '2026-06-26', utcHour: 20, utcMin: 0 },  // E6 (2026-06-26 22:00 CEST)
+  { date: '2026-06-25', utcHour: 20, utcMin: 0 },  // E5 (2026-06-25 22:00 CEST)
+  { date: '2026-06-25', utcHour: 20, utcMin: 0 },  // E6 (2026-06-25 22:00 CEST)
   { date: '2026-06-14', utcHour: 20, utcMin: 0 },  // F1 (2026-06-14 22:00 CEST)
   { date: '2026-06-15', utcHour: 2, utcMin: 0 },  // F2 (2026-06-15 04:00 CEST)
   { date: '2026-06-20', utcHour: 17, utcMin: 0 },  // F3 (2026-06-20 19:00 CEST)
@@ -114,10 +114,10 @@ const MATCH_WINDOWS = [
   { date: '2026-06-16', utcHour: 22, utcMin: 0 },  // I2 (2026-06-17 00:00 CEST)
   { date: '2026-06-22', utcHour: 21, utcMin: 0 },  // I3 (2026-06-22 23:00 CEST)
   { date: '2026-06-23', utcHour: 0, utcMin: 0 },  // I4 (2026-06-23 02:00 CEST)
-  { date: '2026-06-27', utcHour: 19, utcMin: 0 },  // I5 (2026-06-27 21:00 CEST)
-  { date: '2026-06-27', utcHour: 19, utcMin: 0 },  // I6 (2026-06-27 21:00 CEST)
+  { date: '2026-06-26', utcHour: 19, utcMin: 0 },  // I5 (2026-06-26 21:00 CEST)
+  { date: '2026-06-26', utcHour: 19, utcMin: 0 },  // I6 (2026-06-26 21:00 CEST)
   { date: '2026-06-17', utcHour: 1, utcMin: 0 },  // J1 (2026-06-17 03:00 CEST)
-  { date: '2026-06-18', utcHour: 4, utcMin: 0 },  // J2 (2026-06-18 06:00 CEST)
+  { date: '2026-06-17', utcHour: 4, utcMin: 0 },  // J2 (2026-06-17 06:00 CEST)
   { date: '2026-06-22', utcHour: 17, utcMin: 0 },  // J3 (2026-06-22 19:00 CEST)
   { date: '2026-06-23', utcHour: 3, utcMin: 0 },  // J4 (2026-06-23 05:00 CEST)
   { date: '2026-06-28', utcHour: 2, utcMin: 0 },  // J5 (2026-06-28 04:00 CEST)
@@ -811,6 +811,81 @@ async function pollAndUpdate() {
         };
       }
     }
+
+    // Krediter mål/kort for kamper som ble ferdigspilt UTEN at vi fanget dem
+    // mens de var live (f.eks. pga. feil i kampvindu-listen, nedetid, eller at
+    // dette er første poll etter at kampen allerede er over). Bruker samme
+    // dedup-nøkler som live-løypa, så ingenting telles dobbelt selv om kampen
+    // også ble delvis fanget opp tidligere.
+    if (matchId) {
+      const fixtureId = fixture.fixture?.id;
+      const finEvents = fixtureId ? await getFixtureEvents(fixtureId) : [];
+      const goalsDedupRef  = db.collection('config').doc('creditedGoals');
+      const statsCacheRef2 = db.collection('config').doc('statsCache');
+      for (const ev of finEvents.filter(e => e.type === 'Goal')) {
+        const playerName = ev.player?.name;
+        const isOwnGoal  = ev.detail === 'Own Goal';
+        if (!playerName || isOwnGoal) continue;
+        const evTeamApi   = ev.team?.name;
+        const homeTeamApi = fixture.teams?.home?.name;
+        const scorerTeam  = evTeamApi === homeTeamApi ? homeNor : awayNor;
+        const goalDedupKey = `${matchId}_${ev.time?.elapsed}_${playerName}`;
+        let alreadyCredited = false;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(goalsDedupRef);
+          const data = snap.exists ? snap.data() : {};
+          const credited = data.keys || [];
+          if (credited.includes(goalDedupKey)) { alreadyCredited = true; return; }
+          tx.set(goalsDedupRef, { keys: [...credited.slice(-300), goalDedupKey] });
+        });
+        if (alreadyCredited) continue;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(statsCacheRef2);
+          const data = snap.exists ? snap.data() : {};
+          const scorers = data.scorers || [];
+          const idx = scorers.findIndex(s => s.name === playerName);
+          if (idx >= 0) {
+            scorers[idx] = { ...scorers[idx], team: scorerTeam, goals: (scorers[idx].goals || 0) + 1 };
+          } else {
+            scorers.push({ name: playerName, team: scorerTeam, goals: 1 });
+          }
+          scorers.sort((a, b) => b.goals - a.goals);
+          tx.set(statsCacheRef2, { ...data, scorers, updatedAt: Date.now() });
+        });
+        console.log(`Toppscorer kreditert (backfill, ferdigspilt kamp): ${playerName} (${scorerTeam})`);
+      }
+
+      // Samme backfill-prinsipp for gule/røde kort
+      const cardsDedupRef = db.collection('config').doc('creditedCards');
+      const cardsRef2      = db.collection('config').doc('cards');
+      for (const ev of finEvents.filter(e => e.type === 'Card')) {
+        const cardPlayer = ev.player?.name;
+        if (!cardPlayer) continue;
+        const isYellow = ev.detail?.includes('Yellow');
+        const cardTeamApi = ev.team?.name;
+        const cardTeamNor = toNor(cardTeamApi) || cardTeamApi;
+        const cardDedupKey = `${matchId}_${ev.time?.elapsed}_${cardPlayer}_${ev.detail}`;
+        let alreadyCredited = false;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(cardsDedupRef);
+          const data = snap.exists ? snap.data() : {};
+          const credited = data.keys || [];
+          if (credited.includes(cardDedupKey)) { alreadyCredited = true; return; }
+          tx.set(cardsDedupRef, { keys: [...credited.slice(-300), cardDedupKey] });
+        });
+        if (alreadyCredited) continue;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(cardsRef2);
+          const data = snap.exists ? snap.data() : {};
+          const yKey = `_y_${cardTeamNor}`;
+          const rKey = `_r_${cardTeamNor}`;
+          const newY = (data[yKey] || 0) + (isYellow ? 1 : 0);
+          const newR = (data[rKey] || 0) + (isYellow ? 0 : 1);
+          tx.set(cardsRef2, { ...data, [yKey]: newY, [rKey]: newR, [cardTeamNor]: newY + newR * 3 });
+        });
+        console.log(`Kort kreditert (backfill, ferdigspilt kamp): ${isYellow ? 'Gult' : 'Rødt'} til ${cardTeamNor} (${cardPlayer})`);
+      }
+    }
   }
 
   // Live-kamper: oppdater score + sjekk nye mål
@@ -834,7 +909,51 @@ async function pollAndUpdate() {
       const events = fixtureId ? await getFixtureEvents(fixtureId) : [];
       fixture.events = events; // legg på fixture-objektet for buildLiveEvent
 
-      // Sjekk om det er scoret et nytt mål siden forrige poll
+      // Krediter ALLE måltilfeller for denne kampen siden sist (ikke bare det
+      // siste), slik at ingen mål "forsvinner" fra toppscorerlisten hvis flere
+      // mål skjer mellom to pollinger (f.eks. to mål i samme 20-sekunders vindu).
+      // Dedup skjer per unikt mål (kamp+minutt+spiller), uavhengig av live-banneret.
+      if (matchId) {
+        const goalEvents = events.filter(e => e.type === 'Goal');
+        if (goalEvents.length) {
+          const goalsDedupRef = db.collection('config').doc('creditedGoals');
+          const statsCacheRef = db.collection('config').doc('statsCache');
+          for (const ev of goalEvents) {
+            const playerName = ev.player?.name;
+            const isOwnGoal = ev.detail === 'Own Goal';
+            if (!playerName || isOwnGoal) continue; // selvmål teller ikke som scoring
+            const evTeamApi = ev.team?.name;
+            const homeTeamApi = fixture.teams?.home?.name;
+            const scorerTeam = evTeamApi === homeTeamApi ? homeNor : awayNor;
+            const goalDedupKey = `${matchId}_${ev.time?.elapsed}_${playerName}`;
+            let alreadyCredited = false;
+            await db.runTransaction(async tx => {
+              const snap = await tx.get(goalsDedupRef);
+              const data = snap.exists ? snap.data() : {};
+              const credited = data.keys || [];
+              if (credited.includes(goalDedupKey)) { alreadyCredited = true; return; }
+              tx.set(goalsDedupRef, { keys: [...credited.slice(-300), goalDedupKey] });
+            });
+            if (alreadyCredited) continue;
+            await db.runTransaction(async tx => {
+              const snap = await tx.get(statsCacheRef);
+              const data = snap.exists ? snap.data() : {};
+              const scorers = data.scorers || [];
+              const idx = scorers.findIndex(s => s.name === playerName);
+              if (idx >= 0) {
+                scorers[idx] = { ...scorers[idx], team: scorerTeam, goals: (scorers[idx].goals || 0) + 1 };
+              } else {
+                scorers.push({ name: playerName, team: scorerTeam, goals: 1 });
+              }
+              scorers.sort((a, b) => b.goals - a.goals);
+              tx.set(statsCacheRef, { ...data, scorers, updatedAt: Date.now() });
+            });
+            console.log(`Toppscorer kreditert: ${playerName} (${scorerTeam})`);
+          }
+        }
+      }
+
+      // Sjekk om det er scoret et nytt mål siden forrige poll (kun for live-banner/UI)
       const currentGoalKey = `${homeNor}_${awayNor}_${fixture.goals?.home}_${fixture.goals?.away}`;
       const prevGoalKey    = prevGoals[`${homeNor}_${awayNor}`];
 
@@ -863,31 +982,46 @@ async function pollAndUpdate() {
             // handleGoalEvent(matchId, liveEvent, prevGoalKey).catch(e =>
             //   console.error('handleGoalEvent feil:', e.message)
             // );
-            // Oppdater statsCache.scorers med ny scorer
-            if (liveEvent.playerName && liveEvent.playerName !== '?' && !liveEvent.suffix?.includes('s.m.')) {
-              const statsCacheRef = db.collection('config').doc('statsCache');
-              await db.runTransaction(async tx => {
-                const snap = await tx.get(statsCacheRef);
-                const data = snap.exists ? snap.data() : {};
-                const scorers = data.scorers || [];
-                const idx = scorers.findIndex(s => s.name === liveEvent.playerName);
-                if (idx >= 0) {
-                  scorers[idx] = { ...scorers[idx], goals: (scorers[idx].goals || 0) + 1 };
-                } else {
-                  scorers.push({ name: liveEvent.playerName, team: homeNor, goals: 1 });
-                }
-                scorers.sort((a, b) => b.goals - a.goals);
-                tx.set(statsCacheRef, { ...data, scorers, updatedAt: Date.now() });
-              });
-              console.log(`Toppscorer oppdatert: ${liveEvent.playerName}`);
-            }
           }
         }
       } else {
         newPrevGoals[`${homeNor}_${awayNor}`] = currentGoalKey;
       }
 
-      // Sjekk nye kort
+      // Krediter ALLE kort for denne kampen siden sist (samme prinsipp som mål),
+      // transaksjonssikkert og med per-kort dedup, så ingen kort mistes hvis
+      // flere deles ut mellom to pollinger.
+      const cardsDedupRefLive = db.collection('config').doc('creditedCards');
+      const cardsRefLive      = db.collection('config').doc('cards');
+      for (const ev of events.filter(e => e.type === 'Card')) {
+        const cardPlayer = ev.player?.name;
+        if (!cardPlayer) continue;
+        const isYellow = ev.detail?.includes('Yellow');
+        const cardTeamApi = ev.team?.name;
+        const cardTeamNor = toNor(cardTeamApi) || cardTeamApi;
+        const cardDedupKey = `${matchId}_${ev.time?.elapsed}_${cardPlayer}_${ev.detail}`;
+        let alreadyCredited = false;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(cardsDedupRefLive);
+          const data = snap.exists ? snap.data() : {};
+          const credited = data.keys || [];
+          if (credited.includes(cardDedupKey)) { alreadyCredited = true; return; }
+          tx.set(cardsDedupRefLive, { keys: [...credited.slice(-300), cardDedupKey] });
+        });
+        if (alreadyCredited) continue;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(cardsRefLive);
+          const data = snap.exists ? snap.data() : {};
+          const yKey = `_y_${cardTeamNor}`;
+          const rKey = `_r_${cardTeamNor}`;
+          const newY = (data[yKey] || 0) + (isYellow ? 1 : 0);
+          const newR = (data[rKey] || 0) + (isYellow ? 0 : 1);
+          tx.set(cardsRefLive, { ...data, [yKey]: newY, [rKey]: newR, [cardTeamNor]: newY + newR * 3 });
+        });
+        console.log(`Kort kreditert: ${isYellow ? 'Gult' : 'Rødt'} til ${cardTeamNor} (${cardPlayer})`);
+      }
+
+      // Live-banner for kort (kun visuelt – siste kort, ufarlig om det er "bare" det nyeste)
       const lastCardEvent = [...events].reverse().find(e => e.type === 'Card');
       if (lastCardEvent) {
         const cardKey = `${homeNor}_${awayNor}_${lastCardEvent.player?.name}_${lastCardEvent.time?.elapsed}_${lastCardEvent.detail}`;
@@ -911,30 +1045,6 @@ async function pollAndUpdate() {
             setTimeout(async () => {
               try { await db.collection('config').doc('liveEvent').set({ type: null, ts: Date.now() }); } catch(e) {}
             }, 30000);
-          }
-
-          // Oppdater kortstatistikk i config/cards
-          try {
-            const isYellow = lastCardEvent.detail?.includes('Yellow');
-            const isRed = !isYellow;
-            const cardTeamApi = lastCardEvent.team?.name;
-            const cardTeamNor = toNor(cardTeamApi) || cardTeamApi;
-            const cardsRef = db.collection('config').doc('cards');
-            const cardsSnap = await cardsRef.get();
-            const cardsData = cardsSnap.exists ? cardsSnap.data() : {};
-            const yKey = `_y_${cardTeamNor}`;
-            const rKey = `_r_${cardTeamNor}`;
-            const newY = (cardsData[yKey] || 0) + (isYellow ? 1 : 0);
-            const newR = (cardsData[rKey] || 0) + (isRed ? 1 : 0);
-            await cardsRef.set({
-              ...cardsData,
-              [yKey]: newY,
-              [rKey]: newR,
-              [cardTeamNor]: newY + newR * 3,
-            });
-            console.log(`Kort registrert: ${isYellow ? 'Gult' : 'Rødt'} til ${cardTeamNor} (${lastCardEvent.player?.name})`);
-          } catch(e) {
-            console.error('Kortregistrering feilet:', e.message);
           }
         }
       }
@@ -1113,7 +1223,7 @@ exports.updateStatsCache = onSchedule(
         for (const apiS of apiScorers) {
           const idx = merged.findIndex(s => s.name === apiS.name);
           if (idx >= 0) {
-            merged[idx] = { ...merged[idx], goals: Math.max(merged[idx].goals || 0, apiS.goals) };
+            merged[idx] = { ...merged[idx], team: apiS.team, goals: Math.max(merged[idx].goals || 0, apiS.goals) };
           } else if (apiS.goals > 0) {
             merged.push(apiS);
           }
