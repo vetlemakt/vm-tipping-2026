@@ -2762,9 +2762,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     setInput('');
     await sendChatMessage(me.displayName, t, '');
 
-    // Prune to 40 messages
-    if (msgs.length >= 40) {
-      msgs.slice(0, msgs.length - 39).forEach(m => { if (m.id) deleteChatMessage(m.id); });
+    // Prune to 120 messages (keep last 117)
+    if (msgs.length >= 120) {
+      msgs.slice(0, msgs.length - 117).forEach(m => { if (m.id) deleteChatMessage(m.id); });
     }
 
     if (senderIsBot) return;
@@ -5765,8 +5765,8 @@ function ChatPage({ me }) {
     setInput('');
     await sendChatMessage(me.displayName, t, '');
 
-    if (msgs.length >= 40) {
-      msgs.slice(0, msgs.length - 39).forEach(m => { if (m.id) deleteChatMessage(m.id); });
+    if (msgs.length >= 120) {
+      msgs.slice(0, msgs.length - 117).forEach(m => { if (m.id) deleteChatMessage(m.id); });
     }
 
     if (senderIsBot) return;

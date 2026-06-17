@@ -836,7 +836,7 @@ async function pollAndUpdate() {
           const data = snap.exists ? snap.data() : {};
           const credited = data.keys || [];
           if (credited.includes(goalDedupKey)) { alreadyCredited = true; return; }
-          tx.set(goalsDedupRef, { keys: [...credited.slice(-300), goalDedupKey] });
+          tx.set(goalsDedupRef, { keys: [...credited, goalDedupKey] });
         });
         if (alreadyCredited) continue;
         await db.runTransaction(async tx => {
@@ -871,7 +871,7 @@ async function pollAndUpdate() {
           const data = snap.exists ? snap.data() : {};
           const credited = data.keys || [];
           if (credited.includes(cardDedupKey)) { alreadyCredited = true; return; }
-          tx.set(cardsDedupRef, { keys: [...credited.slice(-300), cardDedupKey] });
+          tx.set(cardsDedupRef, { keys: [...credited, cardDedupKey] });
         });
         if (alreadyCredited) continue;
         await db.runTransaction(async tx => {
@@ -932,7 +932,7 @@ async function pollAndUpdate() {
               const data = snap.exists ? snap.data() : {};
               const credited = data.keys || [];
               if (credited.includes(goalDedupKey)) { alreadyCredited = true; return; }
-              tx.set(goalsDedupRef, { keys: [...credited.slice(-300), goalDedupKey] });
+              tx.set(goalsDedupRef, { keys: [...credited, goalDedupKey] });
             });
             if (alreadyCredited) continue;
             await db.runTransaction(async tx => {
@@ -1006,7 +1006,7 @@ async function pollAndUpdate() {
           const data = snap.exists ? snap.data() : {};
           const credited = data.keys || [];
           if (credited.includes(cardDedupKey)) { alreadyCredited = true; return; }
-          tx.set(cardsDedupRefLive, { keys: [...credited.slice(-300), cardDedupKey] });
+          tx.set(cardsDedupRefLive, { keys: [...credited, cardDedupKey] });
         });
         if (alreadyCredited) continue;
         await db.runTransaction(async tx => {
@@ -1215,22 +1215,16 @@ exports.updateStatsCache = onSchedule(
           name: e.player.name,
           team: API_TO_NOR[e.statistics?.[0]?.team?.name] || e.statistics?.[0]?.team?.name || '–',
           goals: e.statistics?.[0]?.goals?.total ?? 0,
-        }));
-        // Merge: behold eksisterende scorere, oppdater med API-data (ta høyeste mål-tall)
-        const existingSnap = await db.collection('config').doc('statsCache').get();
-        const existing = existingSnap.exists ? (existingSnap.data().scorers || []) : [];
-        const merged = [...existing];
-        for (const apiS of apiScorers) {
-          const idx = merged.findIndex(s => s.name === apiS.name);
-          if (idx >= 0) {
-            merged[idx] = { ...merged[idx], team: apiS.team, goals: Math.max(merged[idx].goals || 0, apiS.goals) };
-          } else if (apiS.goals > 0) {
-            merged.push(apiS);
-          }
-        }
-        merged.sort((a, b) => b.goals - a.goals);
-        await db.collection('config').doc('statsCache').set({ scorers: merged, updatedAt: Date.now() }, { merge: true });
-        console.log('Toppscorere oppdatert:', merged.length);
+        })).filter(s => s.goals > 0);
+        // Full overwrite (ikke merge) – API-Football sin egen toppscorerliste er
+        // alltid autoritativ og teller hver spiller nøyaktig én gang under ett
+        // kanonisk navn. Live-krediteringen (mål/kort fortløpende) gir raskere
+        // oppdateringer mellom disse 30-minutters kjøringene, men denne jobben
+        // retter automatisk opp ev. drift/duplikater (f.eks. "E. Haaland" vs
+        // "Erling Haaland", eller mål kreditert flere ganger) hver gang den kjører.
+        apiScorers.sort((a, b) => b.goals - a.goals);
+        await db.collection('config').doc('statsCache').set({ scorers: apiScorers, updatedAt: Date.now() }, { merge: true });
+        console.log('Toppscorere oppdatert (full overwrite):', apiScorers.length);
       }
 
       // Kort (topp gule/røde)
