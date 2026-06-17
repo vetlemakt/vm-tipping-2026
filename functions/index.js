@@ -56,118 +56,116 @@ const NOR_TO_SHORT = {
 
 
 
-// ── Kampprogram: når skal vi polle? (UTC-tider) ──────────────────────
-// Bare poll 90 min rundt kampstart for å spare API-kvoter
+// ── Kampprogram: når skal vi polle? (UTC-tider, generert fra VM-kampoppsettet) ──
+// Disse er regnet ut FRA norsk lokal tid (CEST = UTC+2) til UTC automatisk,
+// for å unngå manuelle UTC-regnefeil. Hvis kampoppsettet i App.js/constants.js
+// (GROUP_MATCHES/KNOCKOUT_MATCHES) endres, må denne listen oppdateres til match.
+// Bare poll ca. 90 min rundt kampstart for å spare API-kvoter.
 const MATCH_WINDOWS = [
-  // Gruppe A
-  { date: '2026-06-11', utcHour: 19, utcMin: 0 },   // Mexico-Sør-Afrika 21:00 CEST
-  { date: '2026-06-12', utcHour: 2,  utcMin: 0 },   // Sør-Korea-Tsjekkia
-  { date: '2026-06-12', utcHour: 19, utcMin: 0 },   // Canada-Bosnia
-  { date: '2026-06-13', utcHour: 1,  utcMin: 0 },   // USA-Paraguay
-  { date: '2026-06-13', utcHour: 19, utcMin: 0 },   // Qatar-Sveits
-  { date: '2026-06-14', utcHour: 4,  utcMin: 0 },
-  { date: '2026-06-14', utcHour: 17, utcMin: 0 },
-  { date: '2026-06-14', utcHour: 20, utcMin: 0 },
-  { date: '2026-06-14', utcHour: 22, utcMin: 0 },
-  { date: '2026-06-15', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-15', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-15', utcHour: 16, utcMin: 0 },
-  { date: '2026-06-15', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-15', utcHour: 22, utcMin: 0 },
-  { date: '2026-06-16', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-16', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-16', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-16', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-17', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-17', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-17', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-18', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-18', utcHour: 4,  utcMin: 0 },
-  { date: '2026-06-18', utcHour: 16, utcMin: 0 },
-  { date: '2026-06-18', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-19', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-19', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-19', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-19', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-20', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-20', utcHour: 0,  utcMin: 30 },
-  { date: '2026-06-20', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-20', utcHour: 17, utcMin: 0 },
-  { date: '2026-06-20', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-21', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-21', utcHour: 16, utcMin: 0 },
-  { date: '2026-06-21', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-21', utcHour: 20, utcMin: 0 },
-  { date: '2026-06-22', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-22', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-22', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-22', utcHour: 4,  utcMin: 0 },
-  { date: '2026-06-22', utcHour: 17, utcMin: 0 },
-  { date: '2026-06-22', utcHour: 21, utcMin: 0 },
-  { date: '2026-06-23', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-23', utcHour: 2,  utcMin: 0 },
-  { date: '2026-06-23', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-23', utcHour: 5,  utcMin: 0 },
-  { date: '2026-06-24', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-24', utcHour: 3,  utcMin: 0 },
-  // Siste gruppekamper (parallelle)
-  { date: '2026-06-25', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-25', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-25', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-25', utcHour: 21, utcMin: 0 },
-  { date: '2026-06-26', utcHour: 0,  utcMin: 0 },
-  { date: '2026-06-26', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-26', utcHour: 2,  utcMin: 0 },
-  { date: '2026-06-26', utcHour: 20, utcMin: 0 },
-  { date: '2026-06-26', utcHour: 22, utcMin: 0 },
-  { date: '2026-06-27', utcHour: 1,  utcMin: 0 },
-  { date: '2026-06-27', utcHour: 2,  utcMin: 0 },
-  { date: '2026-06-27', utcHour: 3,  utcMin: 0 },
-  { date: '2026-06-27', utcHour: 5,  utcMin: 0 },
-  { date: '2026-06-27', utcHour: 19, utcMin: 0 },
-  { date: '2026-06-27', utcHour: 21, utcMin: 0 },
-  { date: '2026-06-28', utcHour: 2,  utcMin: 0, knockout: true },
-  { date: '2026-06-28', utcHour: 4,  utcMin: 0, knockout: true },
-  // Sluttspill – legg til etter hvert
-  { date: '2026-06-28', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-06-28', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-06-29', utcHour: 1,  utcMin: 0, knockout: true },
-  { date: '2026-06-29', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-06-29', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-06-30', utcHour: 1,  utcMin: 0, knockout: true },
-  { date: '2026-06-30', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-06-30', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-07-01', utcHour: 1,  utcMin: 0, knockout: true },
-  { date: '2026-07-01', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-07-01', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-07-02', utcHour: 1,  utcMin: 0, knockout: true },
-  { date: '2026-07-02', utcHour: 19, utcMin: 0, knockout: true },
-  { date: '2026-07-02', utcHour: 22, utcMin: 0, knockout: true },
-  { date: '2026-07-03', utcHour: 1,  utcMin: 0, knockout: true },
-  { date: '2026-07-04', utcHour: 17, utcMin: 0, knockout: true },
-  { date: '2026-07-04', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-05', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-05', utcHour: 17, utcMin: 0, knockout: true },
-  { date: '2026-07-05', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-06', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-07', utcHour: 17, utcMin: 0, knockout: true },
-  { date: '2026-07-07', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-08', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-08', utcHour: 17, utcMin: 0, knockout: true },
-  { date: '2026-07-08', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-09', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-10', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-11', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-11', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-12', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-14', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-15', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-15', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-16', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-18', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-19', utcHour: 0,  utcMin: 0, knockout: true },
-  { date: '2026-07-19', utcHour: 21, utcMin: 0, knockout: true },
-  { date: '2026-07-20', utcHour: 0,  utcMin: 0, knockout: true },
+  { date: '2026-06-11', utcHour: 19, utcMin: 0 },  // A1 (2026-06-11 21:00 CEST)
+  { date: '2026-06-12', utcHour: 2, utcMin: 0 },  // A2 (2026-06-12 04:00 CEST)
+  { date: '2026-06-18', utcHour: 16, utcMin: 0 },  // A3 (2026-06-18 18:00 CEST)
+  { date: '2026-06-19', utcHour: 1, utcMin: 0 },  // A4 (2026-06-19 03:00 CEST)
+  { date: '2026-06-25', utcHour: 1, utcMin: 0 },  // A5 (2026-06-25 03:00 CEST)
+  { date: '2026-06-25', utcHour: 1, utcMin: 0 },  // A6 (2026-06-25 03:00 CEST)
+  { date: '2026-06-12', utcHour: 19, utcMin: 0 },  // B1 (2026-06-12 21:00 CEST)
+  { date: '2026-06-13', utcHour: 19, utcMin: 0 },  // B2 (2026-06-13 21:00 CEST)
+  { date: '2026-06-18', utcHour: 19, utcMin: 0 },  // B3 (2026-06-18 21:00 CEST)
+  { date: '2026-06-18', utcHour: 22, utcMin: 0 },  // B4 (2026-06-19 00:00 CEST)
+  { date: '2026-06-25', utcHour: 19, utcMin: 0 },  // B5 (2026-06-25 21:00 CEST)
+  { date: '2026-06-25', utcHour: 19, utcMin: 0 },  // B6 (2026-06-25 21:00 CEST)
+  { date: '2026-06-13', utcHour: 22, utcMin: 0 },  // C1 (2026-06-14 00:00 CEST)
+  { date: '2026-06-14', utcHour: 1, utcMin: 0 },  // C2 (2026-06-14 03:00 CEST)
+  { date: '2026-06-19', utcHour: 22, utcMin: 0 },  // C3 (2026-06-20 00:00 CEST)
+  { date: '2026-06-20', utcHour: 0, utcMin: 30 },  // C4 (2026-06-20 02:30 CEST)
+  { date: '2026-06-24', utcHour: 22, utcMin: 0 },  // C5 (2026-06-25 00:00 CEST)
+  { date: '2026-06-24', utcHour: 22, utcMin: 0 },  // C6 (2026-06-25 00:00 CEST)
+  { date: '2026-06-13', utcHour: 1, utcMin: 0 },  // D1 (2026-06-13 03:00 CEST)
+  { date: '2026-06-14', utcHour: 4, utcMin: 0 },  // D2 (2026-06-14 06:00 CEST)
+  { date: '2026-06-19', utcHour: 19, utcMin: 0 },  // D3 (2026-06-19 21:00 CEST)
+  { date: '2026-06-20', utcHour: 3, utcMin: 0 },  // D4 (2026-06-20 05:00 CEST)
+  { date: '2026-06-26', utcHour: 2, utcMin: 0 },  // D5 (2026-06-26 04:00 CEST)
+  { date: '2026-06-26', utcHour: 2, utcMin: 0 },  // D6 (2026-06-26 04:00 CEST)
+  { date: '2026-06-14', utcHour: 17, utcMin: 0 },  // E1 (2026-06-14 19:00 CEST)
+  { date: '2026-06-14', utcHour: 23, utcMin: 0 },  // E2 (2026-06-15 01:00 CEST)
+  { date: '2026-06-21', utcHour: 20, utcMin: 0 },  // E3 (2026-06-21 22:00 CEST)
+  { date: '2026-06-21', utcHour: 0, utcMin: 0 },  // E4 (2026-06-21 02:00 CEST)
+  { date: '2026-06-26', utcHour: 20, utcMin: 0 },  // E5 (2026-06-26 22:00 CEST)
+  { date: '2026-06-26', utcHour: 20, utcMin: 0 },  // E6 (2026-06-26 22:00 CEST)
+  { date: '2026-06-14', utcHour: 20, utcMin: 0 },  // F1 (2026-06-14 22:00 CEST)
+  { date: '2026-06-15', utcHour: 2, utcMin: 0 },  // F2 (2026-06-15 04:00 CEST)
+  { date: '2026-06-20', utcHour: 17, utcMin: 0 },  // F3 (2026-06-20 19:00 CEST)
+  { date: '2026-06-22', utcHour: 4, utcMin: 0 },  // F4 (2026-06-22 06:00 CEST)
+  { date: '2026-06-25', utcHour: 23, utcMin: 0 },  // F5 (2026-06-26 01:00 CEST)
+  { date: '2026-06-25', utcHour: 23, utcMin: 0 },  // F6 (2026-06-26 01:00 CEST)
+  { date: '2026-06-15', utcHour: 19, utcMin: 0 },  // G1 (2026-06-15 21:00 CEST)
+  { date: '2026-06-16', utcHour: 1, utcMin: 0 },  // G2 (2026-06-16 03:00 CEST)
+  { date: '2026-06-21', utcHour: 19, utcMin: 0 },  // G3 (2026-06-21 21:00 CEST)
+  { date: '2026-06-22', utcHour: 1, utcMin: 0 },  // G4 (2026-06-22 03:00 CEST)
+  { date: '2026-06-27', utcHour: 3, utcMin: 0 },  // G5 (2026-06-27 05:00 CEST)
+  { date: '2026-06-27', utcHour: 3, utcMin: 0 },  // G6 (2026-06-27 05:00 CEST)
+  { date: '2026-06-15', utcHour: 16, utcMin: 0 },  // H1 (2026-06-15 18:00 CEST)
+  { date: '2026-06-15', utcHour: 22, utcMin: 0 },  // H2 (2026-06-16 00:00 CEST)
+  { date: '2026-06-21', utcHour: 16, utcMin: 0 },  // H3 (2026-06-21 18:00 CEST)
+  { date: '2026-06-21', utcHour: 22, utcMin: 0 },  // H4 (2026-06-22 00:00 CEST)
+  { date: '2026-06-27', utcHour: 0, utcMin: 0 },  // H5 (2026-06-27 02:00 CEST)
+  { date: '2026-06-27', utcHour: 0, utcMin: 0 },  // H6 (2026-06-27 02:00 CEST)
+  { date: '2026-06-16', utcHour: 19, utcMin: 0 },  // I1 (2026-06-16 21:00 CEST)
+  { date: '2026-06-16', utcHour: 22, utcMin: 0 },  // I2 (2026-06-17 00:00 CEST)
+  { date: '2026-06-22', utcHour: 21, utcMin: 0 },  // I3 (2026-06-22 23:00 CEST)
+  { date: '2026-06-23', utcHour: 0, utcMin: 0 },  // I4 (2026-06-23 02:00 CEST)
+  { date: '2026-06-27', utcHour: 19, utcMin: 0 },  // I5 (2026-06-27 21:00 CEST)
+  { date: '2026-06-27', utcHour: 19, utcMin: 0 },  // I6 (2026-06-27 21:00 CEST)
+  { date: '2026-06-17', utcHour: 1, utcMin: 0 },  // J1 (2026-06-17 03:00 CEST)
+  { date: '2026-06-18', utcHour: 4, utcMin: 0 },  // J2 (2026-06-18 06:00 CEST)
+  { date: '2026-06-22', utcHour: 17, utcMin: 0 },  // J3 (2026-06-22 19:00 CEST)
+  { date: '2026-06-23', utcHour: 3, utcMin: 0 },  // J4 (2026-06-23 05:00 CEST)
+  { date: '2026-06-28', utcHour: 2, utcMin: 0 },  // J5 (2026-06-28 04:00 CEST)
+  { date: '2026-06-28', utcHour: 2, utcMin: 0 },  // J6 (2026-06-28 04:00 CEST)
+  { date: '2026-06-17', utcHour: 17, utcMin: 0 },  // K1 (2026-06-17 19:00 CEST)
+  { date: '2026-06-18', utcHour: 2, utcMin: 0 },  // K2 (2026-06-18 04:00 CEST)
+  { date: '2026-06-23', utcHour: 17, utcMin: 0 },  // K3 (2026-06-23 19:00 CEST)
+  { date: '2026-06-24', utcHour: 2, utcMin: 0 },  // K4 (2026-06-24 04:00 CEST)
+  { date: '2026-06-27', utcHour: 23, utcMin: 30 },  // K5 (2026-06-28 01:30 CEST)
+  { date: '2026-06-27', utcHour: 23, utcMin: 30 },  // K6 (2026-06-28 01:30 CEST)
+  { date: '2026-06-17', utcHour: 20, utcMin: 0 },  // L1 (2026-06-17 22:00 CEST)
+  { date: '2026-06-17', utcHour: 23, utcMin: 0 },  // L2 (2026-06-18 01:00 CEST)
+  { date: '2026-06-23', utcHour: 20, utcMin: 0 },  // L3 (2026-06-23 22:00 CEST)
+  { date: '2026-06-23', utcHour: 23, utcMin: 0 },  // L4 (2026-06-24 01:00 CEST)
+  { date: '2026-06-27', utcHour: 21, utcMin: 0 },  // L5 (2026-06-27 23:00 CEST)
+  { date: '2026-06-27', utcHour: 21, utcMin: 0 },  // L6 (2026-06-27 23:00 CEST)
+  { date: '2026-06-28', utcHour: 19, utcMin: 0, knockout: true },  // r32_1 (2026-06-28 21:00 CEST)
+  { date: '2026-06-29', utcHour: 20, utcMin: 30, knockout: true },  // r32_2 (2026-06-29 22:30 CEST)
+  { date: '2026-06-30', utcHour: 1, utcMin: 0, knockout: true },  // r32_3 (2026-06-30 03:00 CEST)
+  { date: '2026-06-29', utcHour: 17, utcMin: 0, knockout: true },  // r32_4 (2026-06-29 19:00 CEST)
+  { date: '2026-06-30', utcHour: 21, utcMin: 0, knockout: true },  // r32_5 (2026-06-30 23:00 CEST)
+  { date: '2026-06-30', utcHour: 17, utcMin: 0, knockout: true },  // r32_6 (2026-06-30 19:00 CEST)
+  { date: '2026-07-01', utcHour: 1, utcMin: 0, knockout: true },  // r32_7 (2026-07-01 03:00 CEST)
+  { date: '2026-07-01', utcHour: 16, utcMin: 0, knockout: true },  // r32_8 (2026-07-01 18:00 CEST)
+  { date: '2026-07-02', utcHour: 0, utcMin: 0, knockout: true },  // r32_9 (2026-07-02 02:00 CEST)
+  { date: '2026-07-01', utcHour: 20, utcMin: 0, knockout: true },  // r32_10 (2026-07-01 22:00 CEST)
+  { date: '2026-07-02', utcHour: 23, utcMin: 0, knockout: true },  // r32_11 (2026-07-03 01:00 CEST)
+  { date: '2026-07-02', utcHour: 19, utcMin: 0, knockout: true },  // r32_12 (2026-07-02 21:00 CEST)
+  { date: '2026-07-03', utcHour: 3, utcMin: 0, knockout: true },  // r32_13 (2026-07-03 05:00 CEST)
+  { date: '2026-07-03', utcHour: 22, utcMin: 0, knockout: true },  // r32_14 (2026-07-04 00:00 CEST)
+  { date: '2026-07-04', utcHour: 1, utcMin: 30, knockout: true },  // r32_15 (2026-07-04 03:30 CEST)
+  { date: '2026-07-03', utcHour: 18, utcMin: 0, knockout: true },  // r32_16 (2026-07-03 20:00 CEST)
+  { date: '2026-07-04', utcHour: 21, utcMin: 0, knockout: true },  // r16_1 (2026-07-04 23:00 CEST)
+  { date: '2026-07-04', utcHour: 17, utcMin: 0, knockout: true },  // r16_2 (2026-07-04 19:00 CEST)
+  { date: '2026-07-05', utcHour: 20, utcMin: 0, knockout: true },  // r16_3 (2026-07-05 22:00 CEST)
+  { date: '2026-07-06', utcHour: 0, utcMin: 0, knockout: true },  // r16_4 (2026-07-06 02:00 CEST)
+  { date: '2026-07-06', utcHour: 19, utcMin: 0, knockout: true },  // r16_5 (2026-07-06 21:00 CEST)
+  { date: '2026-07-07', utcHour: 0, utcMin: 0, knockout: true },  // r16_6 (2026-07-07 02:00 CEST)
+  { date: '2026-07-07', utcHour: 16, utcMin: 0, knockout: true },  // r16_7 (2026-07-07 18:00 CEST)
+  { date: '2026-07-07', utcHour: 20, utcMin: 0, knockout: true },  // r16_8 (2026-07-07 22:00 CEST)
+  { date: '2026-07-09', utcHour: 20, utcMin: 0, knockout: true },  // qf_1 (2026-07-09 22:00 CEST)
+  { date: '2026-07-10', utcHour: 19, utcMin: 0, knockout: true },  // qf_2 (2026-07-10 21:00 CEST)
+  { date: '2026-07-11', utcHour: 21, utcMin: 0, knockout: true },  // qf_3 (2026-07-11 23:00 CEST)
+  { date: '2026-07-12', utcHour: 1, utcMin: 0, knockout: true },  // qf_4 (2026-07-12 03:00 CEST)
+  { date: '2026-07-14', utcHour: 19, utcMin: 0, knockout: true },  // sf_1 (2026-07-14 21:00 CEST)
+  { date: '2026-07-15', utcHour: 19, utcMin: 0, knockout: true },  // sf_2 (2026-07-15 21:00 CEST)
+  { date: '2026-07-18', utcHour: 21, utcMin: 0, knockout: true },  // bronze (2026-07-18 23:00 CEST)
+  { date: '2026-07-19', utcHour: 19, utcMin: 0, knockout: true },  // final (2026-07-19 21:00 CEST)
 ];
 
 // Sjekk om vi er innenfor et kampvindu
@@ -795,10 +793,12 @@ async function pollAndUpdate() {
       // Trigger tabellreferat når kamp er ferdig (FT) og ikke allerede trigget
       const justFinished = FINISHED_STATUSES.has(result.status) && (!existing || !FINISHED_STATUSES.has(existing.status));
       if (justFinished) {
-        // Bot-kommentarer skal KUN trigges av @navn/@funfact i chat, ikke automatisk
-        // ved kamphendelser. handleMatchFinished() er derfor deaktivert her.
-        // handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
-        //   .catch(e => console.error('handleMatchFinished feil:', e.message));
+        // Tabellreferat (lagres i 'summaries', ikke i chat) skal fortsatt postes
+        // automatisk når en kamp avsluttes. Det er KUN auto-kommentarer på mål
+        // (handleGoalEvent, i selve chat-loggen) som skal være deaktivert –
+        // bot-kommentarer i chat skal kun trigges av @navn/@funfact.
+        handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
+          .catch(e => console.error('handleMatchFinished feil:', e.message));
         // Lagre finished-event – sendes til klienten etter live-loop
         const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
         const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();

@@ -28,7 +28,7 @@ export function calcScore(user, results, quizBonus = 0) {
     if (tip && act) {
       const p = calcMatchPts(tip, act);
       if (p > 0) { bd.matches[m.id] = p; total += p; }
-      if (p === 4) fulltreff++;
+      if (p === 4 || p === 5) fulltreff++;
     }
   });
 

@@ -743,7 +743,7 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
         />
       )}
       {hasReactions && (
-        <div style={{ display:'flex', flexWrap:'wrap', gap:3, marginTop:3, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:3, marginTop:-9, marginBottom:3, position:'relative', zIndex:5, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
           {Object.entries(reactions).filter(([,u]) => u.length > 0).map(([emoji, users]) => (
             <div key={emoji} style={{ position: 'relative', display: 'inline-block' }}>
               <button
@@ -761,6 +761,7 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
                   border: `1px solid ${users.includes(username) ? 'rgba(255,215,0,.4)' : 'rgba(255,255,255,.12)'}`,
                   borderRadius: 10, padding:'1px 6px', cursor:'pointer', fontSize:12,
                   color:'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:3,
+                  boxShadow: '0 1px 4px rgba(0,0,0,.35)',
                 }}>
                 {emoji} <span style={{ fontSize:10, color:'rgba(255,255,255,.5)' }}>{users.length}</span>
               </button>
