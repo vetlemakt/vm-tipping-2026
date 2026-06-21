@@ -697,6 +697,7 @@ const REACTION_EMOJIS = ['👍','😂','😮','❤️','🔥','👏'];
 function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
   const [showPicker, setShowPicker] = useState(false);
   const [reactionTooltip, setReactionTooltip] = useState(null); // emoji key or null
+  const [lightbox, setLightbox] = useState(false);
   const isMobile = useIsMobile();
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
@@ -742,10 +743,20 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
         display: 'block', cursor: 'pointer',
       }}>
         {m.image
-          ? <img src={m.image} alt="bilde" style={{ maxWidth:'100%', maxHeight: maxImgH, borderRadius:8, display:'block' }} />
+          ? <img src={m.image} alt="bilde" onClick={e => { e.stopPropagation(); setLightbox(true); }} style={{ maxWidth:'100%', maxHeight: maxImgH, borderRadius:8, display:'block', cursor:'zoom-in' }} />
           : renderChatText(m.text)
         }
       </span>
+      {lightbox && (
+        <div onClick={() => setLightbox(false)} style={{
+          position:'fixed', inset:0, zIndex:9999,
+          background:'rgba(0,0,0,0.85)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          cursor:'zoom-out',
+        }}>
+          <img src={m.image} alt="bilde" style={{ maxWidth:'92vw', maxHeight:'88vh', borderRadius:10, boxShadow:'0 4px 40px #000' }} />
+        </div>
+      )}
       {/* Reaksjoner */}
       {reactionTooltip && isMobile && (
         <div

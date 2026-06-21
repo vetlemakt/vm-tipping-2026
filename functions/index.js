@@ -10,8 +10,7 @@ const API_KEY        = process.env.FOOTBALL_API_KEY;
 const ANTHROPIC_KEY  = process.env.ANTHROPIC_KEY;
 const WC_LEAGUE      = 1;
 const WC_SEASON      = 2026;
-const POLL_INTERVAL_MS  = 20000;
-const FUNCTION_DURATION = 50000;
+
 
 // ── Lagnavn-mapping ──────────────────────────────────────────────────
 const TEAM_NAME_MAP = {
@@ -756,11 +755,11 @@ async function getFixtureLookup() {
 }
 
 // ── Hovedjobb ────────────────────────────────────────────────────────
-async function pollAndUpdate() {
+async function pollAndUpdate(checkFinished = true) {
   if (!API_KEY) { console.warn('FOOTBALL_API_KEY ikke satt'); return; }
 
   const liveFixtures     = await getActiveFixtures();
-  const finishedFixtures = await getRecentlyFinished();
+  const finishedFixtures = checkFinished ? await getRecentlyFinished() : [];
 
   const lookup         = await getFixtureLookup();
   const resultsRef     = db.collection('config').doc('results');
@@ -1084,8 +1083,9 @@ exports.pollFootball = onSchedule(
   {
     schedule: 'every 1 minutes',
     timeZone: 'Europe/Oslo',
-    timeoutSeconds: 60,
+    timeoutSeconds: 58,
     memory: '256MiB',
+    maxInstances: 1,
     secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'],
   },
   async () => {
@@ -1093,14 +1093,16 @@ exports.pollFootball = onSchedule(
       console.log('Ingen kamp innenfor kampvindu – hopper over polling');
       return;
     }
-
+    const POLL_INTERVAL_MS  = 20000;
+    const FUNCTION_DURATION = 50000;
     const start = Date.now();
     let calls = 0;
     while (true) {
-      let result;
-      try { result = await pollAndUpdate(); calls++; }
+      // getRecentlyFinished kun hvert 5. poll (~100 sek) for å spare API-kvoter.
+      // getActiveFixtures kjøres hver gang for rask mål-deteksjon (20 sek forsinkelse).
+      const checkFinished = calls % 5 === 0;
+      try { await pollAndUpdate(checkFinished); calls++; }
       catch (err) { console.error(`Poll #${calls + 1} feilet:`, err.message); }
-
       const elapsed = Date.now() - start;
       if (elapsed + POLL_INTERVAL_MS >= FUNCTION_DURATION) break;
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
