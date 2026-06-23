@@ -3647,11 +3647,12 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
         {[0,1,2,3].map(pos => {
           const picked = tipOrder[pos] || '';
           const pickedTeams = [0,1,2,3].map(p => tipOrder[p]).filter(t => t && t !== picked);
-          const finalCorrect  = actOrder?.length && picked && picked === actOrder[pos];
+          const finalPosTeam = actOrder?.[pos] || null; // kun hvis denne posisjonen er satt
+          const finalCorrect  = finalPosTeam && picked && picked === finalPosTeam;
           const currentCorrect = !finalCorrect && currentStandings.length && picked && currentStandings[pos] === picked;
           const isWrong = picked && !finalCorrect && !currentCorrect;
-          // Riktig lag for denne posisjonen (endelig eller foreløpig)
-          const correctTeam = actOrder?.length ? actOrder[pos] : currentStandings[pos];
+          // Riktig lag for denne posisjonen (endelig hvis satt, ellers foreløpig)
+          const correctTeam = finalPosTeam || currentStandings[pos] || null;
           const correctShort = correctTeam ? (TEAM_SHORT[correctTeam] || correctTeam.slice(0,3).toUpperCase()) : null;
           return (
             <div key={pos} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
