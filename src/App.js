@@ -4310,11 +4310,12 @@ function TipsForm({ me, phase, viewUser }) {
                 };
                 // User's tip for the slot (shown in parens before group is done)
                 const tipForSlot = (slot) => {
+                  // Vis foreløpig gruppeleder, ikke brukerens egne gruppetips
                   if (!slot) return null;
                   const vinnerMatch = slot.match(/^Vinner ([A-L])$/);
                   const toerMatch   = slot.match(/^Toer ([A-L])$/);
-                  if (vinnerMatch) return (grpO[vinnerMatch[1]] || [])[0] || null;
-                  if (toerMatch)   return (grpO[toerMatch[1]] || [])[1] || null;
+                  if (vinnerMatch) return calcGroupStandings(vinnerMatch[1])[0] || null;
+                  if (toerMatch)   return calcGroupStandings(toerMatch[1])[1] || null;
                   return null;
                 };
                 const shortenSlot = (slot) => {
