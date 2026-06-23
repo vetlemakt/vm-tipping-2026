@@ -3794,6 +3794,12 @@ function TipsForm({ me, phase, viewUser }) {
   const allGroupDone = GROUP_MATCHES.every(m => results[m.id]?.home !== undefined);
   const [tab, setTab] = useState(() => allGroupDone ? 'knockout' : 'group');
   useEffect(() => { if (allGroupDone) setTab('knockout'); }, [allGroupDone]);
+  const [koTabPulse, setKoTabPulse] = useState(false);
+  useEffect(() => {
+    setKoTabPulse(true);
+    const t = setTimeout(() => setKoTabPulse(false), 5000); // 10 pulser × 500ms
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
@@ -4000,7 +4006,15 @@ function TipsForm({ me, phase, viewUser }) {
         {/* Tabs */}
         <div style={C.tabs}>
           {['group','knockout'].map(t => (
-            <button key={t} style={{ ...C.tab, ...(tab===t ? C.tabOn : {}) }} onClick={() => setTab(t)}>
+            <button key={t}
+              style={{
+                ...C.tab,
+                ...(tab===t ? C.tabOn : {}),
+                ...(t === 'knockout' && koTabPulse && tab !== 'knockout' ? {
+                  animation: 'koTabPulse 0.5s ease-in-out 10',
+                } : {}),
+              }}
+              onClick={() => { setTab(t); if (t === 'knockout') setKoTabPulse(false); }}>
               {t === 'group' ? '📋 Gruppespill' : '🏟️ Sluttspill'}
             </button>
           ))}
@@ -6836,6 +6850,11 @@ export default function App() {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes tickerScroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+      @keyframes koTabPulse {
+        0%   { background: rgba(255,255,255,.06); color: rgba(255,255,255,.6); }
+        50%  { background: rgba(255,215,0,.18); color: #FFD700; box-shadow: 0 0 8px rgba(255,215,0,.4); }
+        100% { background: rgba(255,255,255,.06); color: rgba(255,255,255,.6); }
+      }
       @keyframes fieldPulse {
         0%   { box-shadow: 0 0 0 0 rgba(255,215,0,0); border-color: rgba(255,255,255,.15); }
         40%  { box-shadow: 0 0 0 4px rgba(255,215,0,.35); border-color: rgba(255,215,0,.8); }
