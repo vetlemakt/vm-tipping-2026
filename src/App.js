@@ -4018,7 +4018,7 @@ function TipsForm({ me, phase, viewUser }) {
                             ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: isMobile ? 11 : 13, height: isMobile ? 8 : 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
                             : <span style={{ width: isMobile ? 11 : 13 }} />}
                           <span style={{ fontSize: isMobile ? 7 : 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
-                          <span style={{ width: isMobile ? 8 : 9, fontSize: isMobile ? 7 : 8, lineHeight: 1, color: goldCheck ? '#FFD700' : greyCheck ? 'rgba(255,255,255,.4)' : 'transparent' }}>✓</span>
+                          <span style={{ width: isMobile ? 8 : 9, fontSize: isMobile ? 7 : 8, lineHeight: 1, color: goldCheck ? '#FFD700' : greyCheck ? 'rgba(255,255,255,.4)' : 'transparent', fontWeight: goldCheck ? 700 : 400 }}>✓</span>
                         </div>
                       );
                     });
@@ -4042,7 +4042,7 @@ function TipsForm({ me, phase, viewUser }) {
                   if (team && finalOrder[i] === team) earnedPts += 5;
                 });
               }
-              // Potensielle poeng: beregn foreløpig tabell
+              // Potensielle poeng: beregn foreløpig tabell, ekskluder allerede sikre
               const teamStats = {};
               grpMatches.forEach(m => {
                 if (!teamStats[m.home]) teamStats[m.home] = { pts:0, gf:0, ga:0, played:0 };
@@ -4061,7 +4061,9 @@ function TipsForm({ me, phase, viewUser }) {
                 .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
                 .map(([team]) => team);
               tipOrder.forEach((team, i) => {
-                if (team && currentStandings[i] === team) potentialPts += 5;
+                // Ikke tell posisjoner som allerede er sikret (gul hake)
+                const alreadyEarned = finalOrder?.length && finalOrder[i] === team;
+                if (team && currentStandings[i] === team && !alreadyEarned) potentialPts += 5;
               });
             });
             return (
