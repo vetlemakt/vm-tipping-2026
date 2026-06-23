@@ -3709,7 +3709,20 @@ function TipsForm({ me, phase, viewUser }) {
 
   const grpOk  = isOwn && phase === 'pre';
   const specOk = isOwn && (phase === 'pre' || phase === 'group_lock');
-  const koOk   = isOwn && OPEN_PHASES.has(phase);
+  // Sluttspill: åpent per runde frem til 10 min før første kamp i runden
+  const knockoutPhaseOpen = (kp) => {
+    if (!isOwn) return false;
+    const lockMap = {
+      r32:    new Date('2026-06-28T20:50:00+02:00'), // 10 min før r32_1
+      r16:    new Date('2026-07-04T18:50:00+02:00'),
+      qf:     new Date('2026-07-09T21:50:00+02:00'),
+      sf:     new Date('2026-07-14T20:50:00+02:00'),
+      bronze: new Date('2026-07-18T22:50:00+02:00'),
+      final:  new Date('2026-07-19T20:50:00+02:00'),
+    };
+    return new Date() < (lockMap[kp] || new Date(0));
+  };
+  const koOk = isOwn && KNOCKOUT_ROUNDS.some(({ phase: kp }) => knockoutPhaseOpen(kp));
 
   // Start pulse sequence when tips/spec/grpO loaded and grpOk
   useEffect(() => {
@@ -4219,7 +4232,6 @@ function TipsForm({ me, phase, viewUser }) {
         </>}
 
         {tab === 'knockout' && <>
-          {!koOk && <div style={C.lockBanner}>🔒 Sluttspill-vinduet er stengt.</div>}
           {KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom:18 }}>
               <span style={C.roundL}>{label}</span>
@@ -4359,10 +4371,10 @@ function TipsForm({ me, phase, viewUser }) {
                       padding:'2px 8px', width:76, flexShrink:0,
                     }}>
                       <div style={{display:'flex',alignItems:'center',gap:4}}>
-                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:koOk?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!koOk}
+                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:knockoutPhaseOpen(kp)?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!knockoutPhaseOpen(kp)}
                           value={t.home??''} placeholder='–' onChange={e => setTip(m.id,'home',e.target.value)} />
                         <span style={{color:superbonus?'#FFD700':rightOutcome?'#FFD700':'rgba(255,255,255,.5)',fontWeight:800,fontSize:15,lineHeight:1}}>–</span>
-                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:koOk?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!koOk}
+                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:knockoutPhaseOpen(kp)?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!knockoutPhaseOpen(kp)}
                           value={t.away??''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
                       </div>
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
