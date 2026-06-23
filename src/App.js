@@ -697,7 +697,6 @@ const REACTION_EMOJIS = ['👍','😂','😮','❤️','🔥','👏'];
 function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
   const [showPicker, setShowPicker] = useState(false);
   const [reactionTooltip, setReactionTooltip] = useState(null); // emoji key or null
-  const [lightbox, setLightbox] = useState(false);
   const isMobile = useIsMobile();
   const botExpert = PANEL_EXPERTS.find(e => e.name === m.user);
   const botColor = botExpert?.color;
@@ -743,20 +742,10 @@ function ChatBubble({ m, mine, isAdmin, onDelete, maxImgH = 300, username }) {
         display: 'block', cursor: 'pointer',
       }}>
         {m.image
-          ? <img src={m.image} alt="bilde" onClick={e => { e.stopPropagation(); setLightbox(true); }} style={{ maxWidth:'100%', maxHeight: maxImgH, borderRadius:8, display:'block', cursor:'zoom-in' }} />
+          ? <img src={m.image} alt="bilde" style={{ maxWidth:'100%', maxHeight: maxImgH, borderRadius:8, display:'block' }} />
           : renderChatText(m.text)
         }
       </span>
-      {lightbox && (
-        <div onClick={() => setLightbox(false)} style={{
-          position:'fixed', inset:0, zIndex:9999,
-          background:'rgba(0,0,0,0.85)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          cursor:'zoom-out',
-        }}>
-          <img src={m.image} alt="bilde" style={{ maxWidth:'92vw', maxHeight:'88vh', borderRadius:10, boxShadow:'0 4px 40px #000' }} />
-        </div>
-      )}
       {/* Reaksjoner */}
       {reactionTooltip && isMobile && (
         <div
@@ -3990,19 +3979,51 @@ function TipsForm({ me, phase, viewUser }) {
                   <div style={{ fontSize: isMobile ? 10 : 12, fontWeight: 800, color: grpBotEx ? (grpBotEx.color || '#FFD700') : filled ? '#FFD700' : 'rgba(255,255,255,.5)', fontFamily: "'Inter',sans-serif", marginBottom: 3, lineHeight: 1 }}>
                     {g}{grpBotEx && <span style={{ fontSize: 7, marginLeft: 2 }}>🤖</span>}
                   </div>
-                  {(order.length === 4 ? order : [...order.filter(Boolean), ...teams.filter(t => !order.includes(t))]).map((team, i) => {
-                    const code = COUNTRY_CODES[team];
-                    const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
-                    const placed = order.includes(team);
-                    return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 2 : 3, marginBottom: 2, justifyContent: 'center' }}>
-                        {code
-                          ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: isMobile ? 11 : 13, height: isMobile ? 8 : 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
-                          : <span style={{ width: isMobile ? 11 : 13 }} />}
-                        <span style={{ fontSize: isMobile ? 7 : 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
-                      </div>
-                    );
-                  })}
+                  {(() => {
+                    // Beregn foreløpig/endelig gruppetabell for hake-visning
+                    const grpMatches = GROUP_MATCHES.filter(m => m.group === g);
+                    const teamStats = {};
+                    grpMatches.forEach(m => {
+                      if (!teamStats[m.home]) teamStats[m.home] = { pts:0, gf:0, ga:0, played:0 };
+                      if (!teamStats[m.away]) teamStats[m.away] = { pts:0, gf:0, ga:0, played:0 };
+                      const r = results[m.id];
+                      if (r?.home === undefined) return;
+                      const h = parseInt(r.home), a = parseInt(r.away);
+                      teamStats[m.home].played++; teamStats[m.away].played++;
+                      teamStats[m.home].gf += h; teamStats[m.home].ga += a;
+                      teamStats[m.away].gf += a; teamStats[m.away].ga += h;
+                      if (h > a) { teamStats[m.home].pts += 3; }
+                      else if (h < a) { teamStats[m.away].pts += 3; }
+                      else { teamStats[m.home].pts += 1; teamStats[m.away].pts += 1; }
+                    });
+                    const currentStandings = Object.entries(teamStats)
+                      .filter(([,s]) => s.played > 0)
+                      .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
+                      .map(([team]) => team);
+                    const finalStandings = groupDone && results[`grp_${g}`] ? results[`grp_${g}`] : null;
+
+                    return (order.length === 4 ? order : [...order.filter(Boolean), ...teams.filter(t => !order.includes(t))]).map((team, i) => {
+                      const code = COUNTRY_CODES[team];
+                      const short = TEAM_SHORT[team] || team.slice(0,3).toUpperCase();
+                      const placed = order.includes(team);
+                      // Hake-logikk
+                      const tipPos = order.indexOf(team); // brukerens tipsposisjon
+                      const finalPos = finalStandings ? finalStandings.indexOf(team) : -1;
+                      const currentPos = currentStandings.indexOf(team);
+                      const goldCheck = finalPos !== -1 && finalPos === tipPos; // gul: endelig riktig
+                      const greyCheck = !goldCheck && currentPos !== -1 && currentPos === tipPos; // grå: foreløpig riktig
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 2 : 3, marginBottom: 2, justifyContent: 'center' }}>
+                          {code
+                            ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: isMobile ? 11 : 13, height: isMobile ? 8 : 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
+                            : <span style={{ width: isMobile ? 11 : 13 }} />}
+                          <span style={{ fontSize: isMobile ? 7 : 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
+                          {goldCheck && <span style={{ fontSize: isMobile ? 7 : 8, color: '#FFD700', lineHeight: 1 }}>✓</span>}
+                          {greyCheck && <span style={{ fontSize: isMobile ? 7 : 8, color: 'rgba(255,255,255,.4)', lineHeight: 1 }}>✓</span>}
+                        </div>
+                      );
+                    });
+                  })()}
                 </button>
               );
             })}
@@ -4137,7 +4158,27 @@ function TipsForm({ me, phase, viewUser }) {
                 const rightAway    = hasAct && hasTip && tA === aA;
                 const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
 
-                // Resolve placeholder to actual team only when group is fully played
+                // Beregn foreløpig gruppetabell fra resultater
+                const calcGroupStandings = (grpLetter) => {
+                  const grpMatches = GROUP_MATCHES.filter(m => m.group === grpLetter);
+                  const teams = {};
+                  grpMatches.forEach(m => {
+                    if (!teams[m.home]) teams[m.home] = { pts:0, gf:0, ga:0, played:0 };
+                    if (!teams[m.away]) teams[m.away] = { pts:0, gf:0, ga:0, played:0 };
+                    const r = results[m.id];
+                    if (r?.home === undefined) return;
+                    const h = parseInt(r.home), a = parseInt(r.away);
+                    teams[m.home].played++; teams[m.away].played++;
+                    teams[m.home].gf += h; teams[m.home].ga += a;
+                    teams[m.away].gf += a; teams[m.away].ga += h;
+                    if (h > a) { teams[m.home].pts += 3; }
+                    else if (h < a) { teams[m.away].pts += 3; }
+                    else { teams[m.home].pts += 1; teams[m.away].pts += 1; }
+                  });
+                  return Object.entries(teams)
+                    .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
+                    .map(([team]) => team);
+                };
                 const groupIsFinished = (grpLetter) => {
                   if (!grpLetter) return false;
                   return GROUP_MATCHES.filter(m => m.group === grpLetter).every(m => results[m.id]?.home !== undefined);
@@ -4148,13 +4189,15 @@ function TipsForm({ me, phase, viewUser }) {
                   const toerMatch   = slot.match(/^Toer ([A-L])$/);
                   if (vinnerMatch) {
                     const g = vinnerMatch[1];
-                    if (!groupIsFinished(g)) return null;
-                    return results[`grp_${g}`]?.[0] || (grpO[g] || [])[0] || null;
+                    if (groupIsFinished(g)) return results[`grp_${g}`]?.[0] || calcGroupStandings(g)[0] || null;
+                    const standings = calcGroupStandings(g);
+                    return standings[0] || null;
                   }
                   if (toerMatch) {
                     const g = toerMatch[1];
-                    if (!groupIsFinished(g)) return null;
-                    return results[`grp_${g}`]?.[1] || (grpO[g] || [])[1] || null;
+                    if (groupIsFinished(g)) return results[`grp_${g}`]?.[1] || calcGroupStandings(g)[1] || null;
+                    const standings = calcGroupStandings(g);
+                    return standings[1] || null;
                   }
                   return null;
                 };
