@@ -4000,7 +4000,7 @@ function TipsForm({ me, phase, viewUser }) {
                       .filter(([,s]) => s.played > 0)
                       .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
                       .map(([team]) => team);
-                    const finalStandings = groupDone && results[`grp_${g}`] ? results[`grp_${g}`] : null;
+                    const finalStandings = results[`grp_${g}`]?.length ? results[`grp_${g}`] : null;
 
                     return (order.length === 4 ? order : [...order.filter(Boolean), ...teams.filter(t => !order.includes(t))]).map((team, i) => {
                       const code = COUNTRY_CODES[team];
@@ -4018,8 +4018,7 @@ function TipsForm({ me, phase, viewUser }) {
                             ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: isMobile ? 11 : 13, height: isMobile ? 8 : 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
                             : <span style={{ width: isMobile ? 11 : 13 }} />}
                           <span style={{ fontSize: isMobile ? 7 : 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
-                          {goldCheck && <span style={{ fontSize: isMobile ? 7 : 8, color: '#FFD700', lineHeight: 1 }}>✓</span>}
-                          {greyCheck && <span style={{ fontSize: isMobile ? 7 : 8, color: 'rgba(255,255,255,.4)', lineHeight: 1 }}>✓</span>}
+                          <span style={{ width: isMobile ? 8 : 9, fontSize: isMobile ? 7 : 8, lineHeight: 1, color: goldCheck ? '#FFD700' : greyCheck ? 'rgba(255,255,255,.4)' : 'transparent' }}>✓</span>
                         </div>
                       );
                     });
@@ -4029,11 +4028,49 @@ function TipsForm({ me, phase, viewUser }) {
             })}
           </div>
 
-          {isOwn && (
-            <div style={{ textAlign: 'center', margin: '4px 0 12px', fontSize: isMobile ? 11 : 13, color: '#FFD700', fontFamily: "'Inter',sans-serif", fontWeight: 700, letterSpacing: 0.5, userSelect: 'none', pointerEvents: 'none', opacity: 0.85 }}>
-              ↑ Trykk på en gruppe for å fylle ut gruppeplassering ↑
-            </div>
-          )}
+          {(() => {
+            // Beregn faktiske og potensielle gruppepoeng
+            let earnedPts = 0;
+            let potentialPts = 0;
+            Object.keys(GROUPS).forEach(g => {
+              const tipOrder = grpO[g] || [];
+              const finalOrder = results[`grp_${g}`];
+              const grpMatches = GROUP_MATCHES.filter(m => m.group === g);
+              // Faktiske poeng: kun hvis endelig tabell er satt
+              if (finalOrder?.length) {
+                tipOrder.forEach((team, i) => {
+                  if (team && finalOrder[i] === team) earnedPts += 5;
+                });
+              }
+              // Potensielle poeng: beregn foreløpig tabell
+              const teamStats = {};
+              grpMatches.forEach(m => {
+                if (!teamStats[m.home]) teamStats[m.home] = { pts:0, gf:0, ga:0, played:0 };
+                if (!teamStats[m.away]) teamStats[m.away] = { pts:0, gf:0, ga:0, played:0 };
+                const r = results[m.id];
+                if (r?.home === undefined) return;
+                const h = parseInt(r.home), a = parseInt(r.away);
+                teamStats[m.home].played++; teamStats[m.away].played++;
+                teamStats[m.home].gf += h; teamStats[m.home].ga += a;
+                teamStats[m.away].gf += a; teamStats[m.away].ga += h;
+                if (h > a) teamStats[m.home].pts += 3;
+                else if (h < a) teamStats[m.away].pts += 3;
+                else { teamStats[m.home].pts += 1; teamStats[m.away].pts += 1; }
+              });
+              const currentStandings = Object.entries(teamStats)
+                .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
+                .map(([team]) => team);
+              tipOrder.forEach((team, i) => {
+                if (team && currentStandings[i] === team) potentialPts += 5;
+              });
+            });
+            return (
+              <div style={{ textAlign: 'center', margin: '4px 0 12px', fontFamily: "'Inter',sans-serif", userSelect: 'none', pointerEvents: 'none' }}>
+                <span style={{ fontSize: isMobile ? 11 : 13, color: '#FFD700', fontWeight: 700 }}>Gruppepoeng: {earnedPts}</span>
+                <span style={{ fontSize: isMobile ? 10 : 11, color: 'rgba(255,255,255,.4)', marginLeft: 10 }}>Potensielle gruppepoeng: {potentialPts}</span>
+              </div>
+            );
+          })()}
 
           {/* Chronological matches */}
           <div style={C.matchList}>
