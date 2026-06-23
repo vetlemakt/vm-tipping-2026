@@ -4295,15 +4295,16 @@ function TipsForm({ me, phase, viewUser }) {
                   const toerMatch   = slot.match(/^Toer ([A-L])$/);
                   if (vinnerMatch) {
                     const g = vinnerMatch[1];
+                    // Vis kun hvis gruppen er ferdigspilt, eller posisjonen er garantert i actOrder
                     if (groupIsFinished(g)) return results[`grp_${g}`]?.[0] || calcGroupStandings(g)[0] || null;
-                    const standings = calcGroupStandings(g);
-                    return standings[0] || null;
+                    if (results[`grp_${g}`]?.[0]) return results[`grp_${g}`][0]; // garantert av admin
+                    return null;
                   }
                   if (toerMatch) {
                     const g = toerMatch[1];
                     if (groupIsFinished(g)) return results[`grp_${g}`]?.[1] || calcGroupStandings(g)[1] || null;
-                    const standings = calcGroupStandings(g);
-                    return standings[1] || null;
+                    if (results[`grp_${g}`]?.[1]) return results[`grp_${g}`][1]; // garantert av admin
+                    return null;
                   }
                   return null;
                 };
