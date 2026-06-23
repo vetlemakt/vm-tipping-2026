@@ -3606,6 +3606,28 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
   const actOrder = results[`grp_${group}`];
   const tipOrder = grpO[group] || [];
   const allGroupPlayed = GROUP_MATCHES.filter(m => m.group === group).every(m => results[m.id]?.home !== undefined);
+
+  // Beregn foreløpig tabellstilling
+  const grpMatches = GROUP_MATCHES.filter(m => m.group === group);
+  const teamStats = {};
+  grpMatches.forEach(m => {
+    if (!teamStats[m.home]) teamStats[m.home] = { pts:0, gf:0, ga:0, played:0 };
+    if (!teamStats[m.away]) teamStats[m.away] = { pts:0, gf:0, ga:0, played:0 };
+    const r = results[m.id];
+    if (r?.home === undefined) return;
+    const h = parseInt(r.home), a = parseInt(r.away);
+    teamStats[m.home].played++; teamStats[m.away].played++;
+    teamStats[m.home].gf += h; teamStats[m.home].ga += a;
+    teamStats[m.away].gf += a; teamStats[m.away].ga += h;
+    if (h > a) teamStats[m.home].pts += 3;
+    else if (h < a) teamStats[m.away].pts += 3;
+    else { teamStats[m.home].pts += 1; teamStats[m.away].pts += 1; }
+  });
+  const currentStandings = Object.entries(teamStats)
+    .filter(([,s]) => s.played > 0)
+    .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
+    .map(([team]) => team);
+
   let totalGrpPts = 0;
   if (allGroupPlayed && actOrder) {
     tipOrder.forEach((t, i) => { if (t && t === actOrder[i]) totalGrpPts += 5; });
@@ -3616,7 +3638,7 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:899 }} />
       <div onClick={e => e.stopPropagation()} style={{
         position:'fixed', zIndex:900,
-        width:280, bottom:28, left:12,
+        width:300, bottom:28, left:12,
         background:'rgba(13,18,48,.97)', border:'2px solid rgba(255,215,0,.3)',
         borderRadius:16, padding:24,
         boxShadow:'0 12px 40px rgba(0,0,0,.8)',
@@ -3624,8 +3646,14 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
         <div style={{ fontSize:13, color:'rgba(255,215,0,.7)', fontFamily:"'Fira Code',monospace", textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>Gruppe {group} – rangering</div>
         {[0,1,2,3].map(pos => {
           const picked = tipOrder[pos] || '';
-          const correct = allGroupPlayed && actOrder && picked && picked === actOrder[pos];
           const pickedTeams = [0,1,2,3].map(p => tipOrder[p]).filter(t => t && t !== picked);
+          const finalCorrect  = actOrder?.length && picked && picked === actOrder[pos];
+          const currentCorrect = !finalCorrect && currentStandings.length && picked && currentStandings[pos] === picked;
+          const isWrong = picked && !finalCorrect && !currentCorrect;
+          // Riktig lag for denne posisjonen (endelig eller foreløpig)
+          const correctTeam = actOrder?.length ? actOrder[pos] : currentStandings[pos];
+          const correctCode = correctTeam ? COUNTRY_CODES[correctTeam] : null;
+          const correctShort = correctTeam ? (TEAM_SHORT[correctTeam] || correctTeam.slice(0,3).toUpperCase()) : null;
           return (
             <div key={pos} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={{ color:'rgba(255,255,255,.4)', fontSize:12, width:16 }}>{pos+1}.</span>
@@ -3637,12 +3665,25 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
                   dimmed={pickedTeams}
                 />
               ) : (
-                <span style={{ flex:1, fontSize:13, color:'#e8edf8', display:'flex', alignItems:'center', gap:6 }}>
+                <span style={{ flex:1, fontSize:13, display:'flex', alignItems:'center', gap:6,
+                  color: finalCorrect ? '#FFD700' : currentCorrect ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.3)',
+                  textDecoration: isWrong ? 'line-through' : 'none',
+                  opacity: isWrong ? 0.4 : 1,
+                }}>
                   {picked ? <><Flag team={picked} /> {picked}</> : <span style={{color:'rgba(255,255,255,.3)'}}>–</span>}
                 </span>
               )}
-              {allGroupPlayed && actOrder && picked && (
-                <span style={{ fontSize:13 }}>{correct ? '✅' : '❌'}</span>
+              {/* Riktig lag i parentes hvis feil */}
+              {!grpOk && isWrong && correctTeam && (
+                <span style={{ fontSize:11, color:'#e8edf8', display:'flex', alignItems:'center', gap:3 }}>
+                  (<Flag team={correctTeam} />{correctShort})
+                </span>
+              )}
+              {/* Poengindikator */}
+              {!grpOk && picked && (
+                <span style={{ fontSize:12, fontWeight:700, color: finalCorrect ? '#FFD700' : currentCorrect ? 'rgba(255,255,255,.4)' : 'transparent', minWidth:28, textAlign:'right' }}>
+                  {(finalCorrect || currentCorrect) ? '5 p.' : ''}
+                </span>
               )}
             </div>
           );
@@ -4017,7 +4058,7 @@ function TipsForm({ me, phase, viewUser }) {
                           {code
                             ? <img src={`https://flagcdn.com/w20/${code}.png`} alt="" style={{ width: isMobile ? 11 : 13, height: isMobile ? 8 : 9, objectFit: 'cover', borderRadius: 1, flexShrink: 0, filter: placed ? 'none' : 'grayscale(100%) opacity(0.4)' }} />
                             : <span style={{ width: isMobile ? 11 : 13 }} />}
-                          <span style={{ fontSize: isMobile ? 7 : 8, color: placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace" }}>{short}</span>
+                          <span style={{ fontSize: isMobile ? 7 : 8, color: goldCheck ? '#FFD700' : placed ? '#e8edf8' : 'rgba(255,255,255,.3)', whiteSpace: 'nowrap', fontFamily: "'Fira Code',monospace", fontWeight: goldCheck ? 700 : 400 }}>{short}</span>
                           <span style={{ width: isMobile ? 8 : 9, fontSize: isMobile ? 7 : 8, lineHeight: 1, color: goldCheck ? '#FFD700' : greyCheck ? 'rgba(255,255,255,.4)' : 'transparent', fontWeight: goldCheck ? 700 : 400 }}>✓</span>
                         </div>
                       );
