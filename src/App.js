@@ -3652,7 +3652,6 @@ function GroupOrderPopup({ group, grpO, setOrd, results, grpOk, onClose }) {
           const isWrong = picked && !finalCorrect && !currentCorrect;
           // Riktig lag for denne posisjonen (endelig eller foreløpig)
           const correctTeam = actOrder?.length ? actOrder[pos] : currentStandings[pos];
-          const correctCode = correctTeam ? COUNTRY_CODES[correctTeam] : null;
           const correctShort = correctTeam ? (TEAM_SHORT[correctTeam] || correctTeam.slice(0,3).toUpperCase()) : null;
           return (
             <div key={pos} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
