@@ -15,7 +15,7 @@ const WC_SEASON      = 2026;
 // ── Lagnavn-mapping ──────────────────────────────────────────────────
 const TEAM_NAME_MAP = {
   'Mexico':'Mexico','Sør-Afrika':'South Africa','Sør-Korea':'South Korea',
-  'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina','Bosnia-Herz2':'Bosnia & Herzegovina',
+  'Tsjekkia':'Czech Republic','Canada':'Canada','Bosnia-Herz':'Bosnia and Herzegovina',
   'Qatar':'Qatar','Sveits':'Switzerland','Brasil':'Brazil','Marokko':'Morocco',
   'Haiti':'Haiti','Skottland':'Scotland','USA':'USA','USA2':'United States','Paraguay':'Paraguay',
   'Australia':'Australia','Tyrkia':'Turkey','Tyskland':'Germany','Curacao':'Curacao',
@@ -635,11 +635,15 @@ function toNor(apiName) {
     'Ivory Coast': 'Elfenbenskysten',
     "Cote d'Ivoire": 'Elfenbenskysten',
     'DR Congo': 'Kongo DR',
+    'Congo DR': 'Kongo DR',
     'Cape Verde': 'Kapp Verde',
+    'Cape Verde Islands': 'Kapp Verde',
     'Saudi Arabia': 'Saudi-Arabia',
     'Bosnia and Herzegovina': 'Bosnia-Herz',
     'Bosnia & Herzegovina': 'Bosnia-Herz',
     'New Zealand': 'New Zealand',
+    'Türkiye': 'Tyrkia',
+    'Turkey': 'Tyrkia',
   };
   return variants[apiName] || API_TO_NOR[apiName] || apiName;
 }
@@ -1093,19 +1097,41 @@ exports.pollFootball = onSchedule(
       console.log('Ingen kamp innenfor kampvindu – hopper over polling');
       return;
     }
+
+    // ── Firestore-lås: hindrer parallelle instanser ───────────────────
+    const lockRef = db.collection('config').doc('pollLock');
+    const lockAcquired = await db.runTransaction(async tx => {
+      const snap = await tx.get(lockRef);
+      const data = snap.exists ? snap.data() : {};
+      const age = Date.now() - (data.ts || 0);
+      // Gi slipp på lås etter 55 sek (i tilfelle forrige instans krasjet)
+      if (data.locked && age < 55000) return false;
+      tx.set(lockRef, { locked: true, ts: Date.now() });
+      return true;
+    });
+    if (!lockAcquired) {
+      console.log('pollFootball: annen instans kjører allerede, avbryter.');
+      return;
+    }
+
     const POLL_INTERVAL_MS  = 20000;
     const FUNCTION_DURATION = 50000;
     const start = Date.now();
     let calls = 0;
-    while (true) {
-      // getRecentlyFinished kun hvert 5. poll (~100 sek) for å spare API-kvoter.
-      // getActiveFixtures kjøres hver gang for rask mål-deteksjon (20 sek forsinkelse).
-      const checkFinished = calls % 5 === 0;
-      try { await pollAndUpdate(checkFinished); calls++; }
-      catch (err) { console.error(`Poll #${calls + 1} feilet:`, err.message); }
-      const elapsed = Date.now() - start;
-      if (elapsed + POLL_INTERVAL_MS >= FUNCTION_DURATION) break;
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+    try {
+      while (true) {
+        // getRecentlyFinished kun hvert 5. poll (~100 sek) for å spare API-kvoter.
+        // getActiveFixtures kjøres hver gang for rask mål-deteksjon (20 sek forsinkelse).
+        const checkFinished = calls % 5 === 0;
+        try { await pollAndUpdate(checkFinished); calls++; }
+        catch (err) { console.error(`Poll #${calls + 1} feilet:`, err.message); }
+        const elapsed = Date.now() - start;
+        if (elapsed + POLL_INTERVAL_MS >= FUNCTION_DURATION) break;
+        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+      }
+    } finally {
+      // Frigi låsen alltid, selv om noe kaster en feil
+      await lockRef.set({ locked: false, ts: Date.now() });
     }
     console.log(`pollFootball: ${calls} kall på ${Math.round((Date.now()-start)/1000)}s`);
   }
@@ -1397,6 +1423,102 @@ exports.getTopscorers = onRequest(
     } catch (err) {
       console.error('getTopscorers feilet:', err);
       res.status(500).json({ error: err.message, scorers: [] });
+    }
+  }
+);
+
+// ── Bygg kortstatistikk fra scratch basert på fixture-events ─────────
+exports.rebuildCardsFromFixtures = onRequest(
+  { secrets: ['FOOTBALL_API_KEY'], cors: true, timeoutSeconds: 540, memory: '512MiB' },
+  async (req, res) => {
+    if (!API_KEY) { res.status(500).json({ ok: false, error: 'FOOTBALL_API_KEY ikke satt' }); return; }
+    try {
+      // Hent alle ferdigspilte resultater for å vite hvilke kamper vi skal hente
+      const resultsSnap = await db.collection('config').doc('results').get();
+      const results = resultsSnap.exists ? resultsSnap.data() : {};
+      const finishedMatchIds = Object.entries(results)
+        .filter(([, v]) => v && FINISHED_STATUSES.has(v.status))
+        .map(([id]) => id);
+
+      if (!finishedMatchIds.length) {
+        res.json({ ok: false, error: 'Ingen ferdigspilte kamper funnet' });
+        return;
+      }
+
+      // Hent fixture-lookup for å mappe matchId → fixtureId
+      const lookupSnap = await db.collection('config').doc('fixtureLookup').get();
+      const lookup = lookupSnap.exists ? lookupSnap.data() : {};
+      // Inverter lookup: matchId → fixtureId
+      // fixtureLookup er { "Norge_Frankrike": "I2", "Norway_France": "I2", ... }
+      // Vi trenger fixture-ID fra API-Football, ikke vår interne matchId.
+      // Hent heller ferdigspilte fixtures direkte fra API.
+      const finishedData = await apiFetch(
+        `fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&from=2026-06-11&to=2026-07-19`
+      );
+      const allFixtures = finishedData.response || [];
+      const finishedFixtures = allFixtures.filter(f =>
+        FINISHED_STATUSES.has(f.fixture?.status?.short)
+      );
+
+      // Tell opp kort per lag fra events
+      const teamYellow = {};
+      const teamRed = {};
+      let totalCards = 0;
+      const dedupKeys = new Set();
+
+      for (const fixture of finishedFixtures) {
+        const fixtureId = fixture.fixture?.id;
+        if (!fixtureId) continue;
+        const homeTeamApi = fixture.teams?.home?.name;
+        const awayTeamApi = fixture.teams?.away?.name;
+
+        const eventsData = await apiFetch(`fixtures/events?fixture=${fixtureId}`);
+        const events = eventsData.response || [];
+
+        for (const ev of events.filter(e => e.type === 'Card')) {
+          const player = ev.player?.name || 'ukjent';
+          const isYellow = ev.detail?.includes('Yellow');
+          const teamApi = ev.team?.name;
+          const teamNor = toNor(teamApi) || teamApi;
+          const min = ev.time?.elapsed;
+
+          // Dedup per kamp+minutt+spiller+korttype
+          const key = `${fixtureId}_${min}_${player}_${ev.detail}`;
+          if (dedupKeys.has(key)) continue;
+          dedupKeys.add(key);
+
+          if (isYellow) {
+            teamYellow[teamNor] = (teamYellow[teamNor] || 0) + 1;
+          } else {
+            teamRed[teamNor] = (teamRed[teamNor] || 0) + 1;
+          }
+          totalCards++;
+        }
+
+        // Liten pause for å ikke hammere API
+        await new Promise(r => setTimeout(r, 200));
+      }
+
+      // Bygg cards-dokument (samme format som før)
+      const cardsDoc = {};
+      const allTeams = new Set([...Object.keys(teamYellow), ...Object.keys(teamRed)]);
+      for (const team of allTeams) {
+        const y = teamYellow[team] || 0;
+        const r = teamRed[team] || 0;
+        cardsDoc[`_y_${team}`] = y;
+        cardsDoc[`_r_${team}`] = r;
+        cardsDoc[team] = y + r * 3; // poengverdi for spesialtips
+      }
+
+      // Nullstill creditedCards-dedup så fremtidig live-kreditt ikke dobbelteller
+      await db.collection('config').doc('creditedCards').set({ keys: [] });
+      await db.collection('config').doc('cards').set(cardsDoc);
+
+      console.log(`rebuildCardsFromFixtures: ${finishedFixtures.length} kamper, ${totalCards} kort, ${allTeams.size} lag`);
+      res.json({ ok: true, matches: finishedFixtures.length, cards: totalCards, teams: allTeams.size, breakdown: cardsDoc });
+    } catch (err) {
+      console.error('rebuildCardsFromFixtures feilet:', err);
+      res.status(500).json({ ok: false, error: err.message });
     }
   }
 );

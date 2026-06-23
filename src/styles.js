@@ -349,10 +349,10 @@ export const C = {
     borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit',
   },
   matchSummaryText: {
-    marginTop: 7, fontSize: 13, color: 'rgba(255,255,255,.8)',
+    marginTop: 7, fontSize: 13, color: '#FFD700',
     lineHeight: 1.6, padding: '8px 12px',
     background: 'rgba(255,255,255,.04)', borderRadius: 8,
-    border: '1px solid rgba(255,255,255,.08)',
+    border: '1px solid rgba(255,215,0,.15)',
     whiteSpace: 'pre-wrap',
   },
   matchSummaryAuthor: { fontSize: 11, color: '#4ade80', fontFamily: "'Fira Code',monospace", marginTop: 4 },
