@@ -4408,12 +4408,7 @@ function TipsForm({ me, phase, viewUser }) {
           ))}
         </>}
 
-        {isOwn && <>
-          <button style={{ ...C.btnDanger, width:'100%', marginTop:16 }} onClick={resetTips}>
-            🗑️ Nullstill tips
-          </button>
-          {dirty && <p style={{ color:'#f59e0b', fontSize:11, textAlign:'center', marginTop:6, fontFamily:"'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
-        </>}
+        {dirty && <p style={{ color:'#f59e0b', fontSize:11, textAlign:'center', marginTop:6, fontFamily:"'Fira Code',monospace" }}>⚠ Ulagrede endringer</p>}
       </div>
     </div>
 
