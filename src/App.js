@@ -3821,20 +3821,6 @@ function TipsForm({ me, phase, viewUser }) {
   };
   const setSp = (k, v) => { setSpec(p => ({ ...p, [k]: v })); setDirty(true); };
 
-  const resetTips = async () => {
-    if (!window.confirm('Er du sikker på at du vil nullstille tipsene dine?\n\nTips for kamper som allerede er spilt kan ikke fjernes.')) return;
-    const playedMatchIds = new Set(Object.keys(results));
-    const keptTips = {};
-    [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].forEach(m => {
-      if (playedMatchIds.has(m.id) && tips[m.id]) keptTips[m.id] = tips[m.id];
-    });
-    const keptGrpO = grpOk ? {} : grpO;
-    const keptSpec = grpOk ? {} : spec;
-    setTips(keptTips); setGrpO(keptGrpO); setSpec(keptSpec); setBotSource(null);
-    await updateUser(me.username, { tips: keptTips, groupOrders: keptGrpO, specialTips: keptSpec, botSource: null });
-    setSaved(true); setDirty(false);
-    setTimeout(() => setSaved(false), 2500);
-  };
 
   const save = async () => {
     // Fetch the current saved tips from DB so we never overwrite already-played matches
