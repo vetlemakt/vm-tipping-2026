@@ -4123,7 +4123,7 @@ function TipsForm({ me, phase, viewUser }) {
             return (
               <div style={{ textAlign: 'center', margin: '4px 0 12px', fontFamily: "'Inter',sans-serif", userSelect: 'none', pointerEvents: 'none' }}>
                 <span style={{ fontSize: isMobile ? 11 : 13, color: '#FFD700', fontWeight: 700 }}>Sikre gruppepoeng: <b>{earnedPts}</b></span>
-                <span style={{ fontSize: isMobile ? 10 : 11, color: 'rgba(255,255,255,.4)', marginLeft: 10 }}>Foreløpig usikre gruppepoeng: <b>{potentialPts}</b> – poeng tildeles fra en gruppe først når den er ferdigspilt</span>
+                <span style={{ fontSize: isMobile ? 10 : 11, color: 'rgba(255,255,255,.4)', marginLeft: 10 }}>Foreløpig usikre gruppepoeng: <b>{potentialPts}</b></span>
               </div>
             );
           })()}
