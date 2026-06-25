@@ -2805,7 +2805,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     });
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
-        const ctx = buildCompetitionContext(users, results, liveEvent);
+        const [freshUsers, freshResults, qb] = await Promise.all([getAllUsers(), getResults(), getQuizBonusMap()]);
+        const filteredUsers = freshUsers.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+        const ctx = buildCompetitionContext(filteredUsers, freshResults, liveEvent, qb);
         const reply = await chatWithExpert(expert, t, [], ctx);
         await sendChatMessage(expert.name, reply, '');
       }, 1000 + i * 2000);
@@ -5473,7 +5475,7 @@ ABSOLUTTE REGLER – BRYT ALDRI DISSE:
 `;
 
 // Bygger en tekstlig oversikt over konkurransen som sendes til boten
-function buildCompetitionContext(users, results, liveEvent) {
+function buildCompetitionContext(users, results, liveEvent, quizBonusMap = {}) {
   let ctx = '';
 
   // Live-kamp
@@ -5490,8 +5492,10 @@ function buildCompetitionContext(users, results, liveEvent) {
 
   // Stillingstabell
   const realUsers = users.filter(u => !u.id.startsWith('panel_') && u.id !== 'admin');
+  // Bruk total/fulltreff fra state hvis tilgjengelig (allerede beregnet med alle poeng),
+  // ellers beregn på nytt
   const sorted = withRanks([...realUsers]
-    .map(u => ({ ...u, ...calcScore(u, results) }))
+    .map(u => u.total !== undefined ? u : { ...u, ...calcScore(u, results, quizBonusMap[u.id] || 0) })
     .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff));
   const lines = sorted.map(u =>
     `${u.rank}. ${u.displayName}: ${u.total}p (${u.fulltreff} fulltreff)`
@@ -5548,29 +5552,6 @@ function buildCompetitionContext(users, results, liveEvent) {
   }
 
   // Spesialtips-sammendrag
-  const specLabels = {
-    champion:    'Verdensmester',
-    runner_up:   'Sølvvinner',
-    third:       'Bronsevinner',
-    topscorer:   'Toppscorer',
-    most_carded: 'Flest kortpoeng',
-  };
-  const specKeys = Object.keys(specLabels);
-  const specLines = specKeys.map(key => {
-    const label = specLabels[key];
-    const picks = realUsers
-      .filter(u => u.specialTips?.[key])
-      .map(u => `${u.displayName}: ${u.specialTips[key]}`);
-    const actual = results[key] ? ` (fasit: ${results[key]})` : '';
-    return picks.length
-      ? `${label}${actual}:\n${picks.map(p => '  ' + p).join('\n')}`
-      : null;
-  }).filter(Boolean);
-
-  if (specLines.length > 0) {
-    ctx += `\n\nSPESIALTIPS FRA DELTAKERNE:\n${specLines.join('\n')}`;
-  }
-
   ctx += `\n\nBruk tabellen og tipsene aktivt når noen spør om hvem som leder, hvem som har tippet hva, hvem som har 0-0 på en kamp, osv.`;
   return ctx;
 }
@@ -5975,7 +5956,9 @@ function ChatPage({ me }) {
     });
     mentionedExperts.forEach((expert, i) => {
       setTimeout(async () => {
-        const ctx = buildCompetitionContext(users, results, liveEvent);
+        const [freshUsers, freshResults, qb] = await Promise.all([getAllUsers(), getResults(), getQuizBonusMap()]);
+        const filteredUsers = freshUsers.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
+        const ctx = buildCompetitionContext(filteredUsers, freshResults, liveEvent, qb);
         const reply = await chatWithExpert(expert, t, [], ctx);
         await sendChatMessage(expert.name, reply, '');
       }, 1000 + i * 2000);
