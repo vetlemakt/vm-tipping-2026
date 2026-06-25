@@ -5548,6 +5548,29 @@ function buildCompetitionContext(users, results, liveEvent) {
   }
 
   // Spesialtips-sammendrag
+  const specLabels = {
+    champion:    'Verdensmester',
+    runner_up:   'Sølvvinner',
+    third:       'Bronsevinner',
+    topscorer:   'Toppscorer',
+    most_carded: 'Flest kortpoeng',
+  };
+  const specKeys = Object.keys(specLabels);
+  const specLines = specKeys.map(key => {
+    const label = specLabels[key];
+    const picks = realUsers
+      .filter(u => u.specialTips?.[key])
+      .map(u => `${u.displayName}: ${u.specialTips[key]}`);
+    const actual = results[key] ? ` (fasit: ${results[key]})` : '';
+    return picks.length
+      ? `${label}${actual}:\n${picks.map(p => '  ' + p).join('\n')}`
+      : null;
+  }).filter(Boolean);
+
+  if (specLines.length > 0) {
+    ctx += `\n\nSPESIALTIPS FRA DELTAKERNE:\n${specLines.join('\n')}`;
+  }
+
   ctx += `\n\nBruk tabellen og tipsene aktivt når noen spør om hvem som leder, hvem som har tippet hva, hvem som har 0-0 på en kamp, osv.`;
   return ctx;
 }
