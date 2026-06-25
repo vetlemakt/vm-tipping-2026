@@ -3368,6 +3368,10 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
     const r = results[m.id];
     return (now-ms)>=0 && (now-ms)<180*60000 && r && LIVE_S.has(r.status) && !FINISHED_S.has(r.status);
   });
+  const upcoming = allMatches.filter(m => {
+    const ms = new Date(m.date+"T"+(m.time||"00:00")+":00+02:00").getTime();
+    return ms > now && !results[m.id];
+  }).sort((a,b) => new Date(a.date+"T"+(a.time||"00:00")+":00+02:00") - new Date(b.date+"T"+(b.time||"00:00")+":00+02:00"));
   const showMatches = liveMatches.length
     ? [...liveMatches, ...upcoming.slice(0, Math.max(0, 3 - liveMatches.length))]
     : upcoming.slice(0,3);
