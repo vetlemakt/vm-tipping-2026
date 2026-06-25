@@ -3363,16 +3363,14 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
   const LIVE_S = new Set(["1H","HT","2H","ET","BT","P","INT","LIVE"]);
   const now = Date.now();
   const allMatches = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES];
-  const liveMatch = allMatches.find(m => {
+  const liveMatches = allMatches.filter(m => {
     const ms = new Date(m.date + "T" + (m.time||"00:00") + ":00+02:00").getTime();
     const r = results[m.id];
     return (now-ms)>=0 && (now-ms)<180*60000 && r && LIVE_S.has(r.status) && !FINISHED_S.has(r.status);
   });
-  const upcoming = allMatches.filter(m => {
-    const ms = new Date(m.date+"T"+(m.time||"00:00")+":00+02:00").getTime();
-    return ms > now && !results[m.id];
-  }).sort((a,b) => new Date(a.date+"T"+(a.time||"00:00")+":00+02:00") - new Date(b.date+"T"+(b.time||"00:00")+":00+02:00"));
-  const showMatches = liveMatch ? [liveMatch, ...upcoming.slice(0,2)] : upcoming.slice(0,3);
+  const showMatches = liveMatches.length
+    ? [...liveMatches, ...upcoming.slice(0, Math.max(0, 3 - liveMatches.length))]
+    : upcoming.slice(0,3);
   const fmtTip = (matchId) => { const t = user.tips?.[matchId]; if (!t||t.home===undefined||t.away===undefined) return "–"; return t.home+" – "+t.away; };
 
   const popW = 240;
@@ -3402,7 +3400,7 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
             {showMatches.length === 0 && <div style={{ fontSize:11, color:"rgba(255,255,255,.4)" }}>Ingen kommende kamper</div>}
             {showMatches.map((m, idx) => {
               const tip = fmtTip(m.id);
-              const isLive = idx === 0 && liveMatch;
+              const isLive = liveMatches.some(lm => lm.id === m.id);
               const r = results[m.id];
               const tipParts = tip !== "–" ? tip.split(" – ") : null;
               const tipH = tipParts ? parseInt(tipParts[0]) : null;
