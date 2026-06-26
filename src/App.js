@@ -5901,8 +5901,6 @@ function ChatPage({ me }) {
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState('');
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [results, setResults] = useState({});
   const [liveEvent, setLiveEvent] = useState(null);
   const chatBoxRef = useRef(null);
   const { soundOn, toggleSound, playSound } = useChatSound();
@@ -5910,13 +5908,7 @@ function ChatPage({ me }) {
 
   useEffect(() => { const u = subscribeChatMessages(setMsgs); return u; }, []);
   useEffect(() => { const u = subscribeOnlineUsers(setOnlineUsers); return u; }, []);
-  useEffect(() => { const u = subscribeResults(setResults); return u; }, []);
   useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
-  useEffect(() => {
-    getAllUsers().then(us => setUsers(
-      us.filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'))
-    ));
-  }, []);
   useEffect(() => {
     if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
   }, [msgs]);
