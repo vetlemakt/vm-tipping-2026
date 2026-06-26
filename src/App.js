@@ -3712,7 +3712,7 @@ function TipsForm({ me, phase, viewUser }) {
   const pulseRef = useRef(null);
 
   const grpOk  = isOwn && phase === 'pre';
-  const specOk = isOwn && (phase === 'pre' || phase === 'group_lock');
+  const specOk = isOwn && phase === 'pre';
   // Sluttspill: åpent per runde frem til 10 min før første kamp i runden
   const knockoutPhaseOpen = (kp) => {
     if (!isOwn) return false;
@@ -3850,7 +3850,7 @@ function TipsForm({ me, phase, viewUser }) {
     }
 
     // Special tips: only writable during 'pre' phase
-    const safeSpec = grpOk ? spec : (saved_u?.specialTips || {});
+    const safeSpec = specOk ? spec : (saved_u?.specialTips || {});
     // Group orders: only writable during 'pre' phase
     const safeGrpO = grpOk ? grpO : (saved_u?.groupOrders || {});
 
