@@ -3717,8 +3717,8 @@ function TipsForm({ me, phase, viewUser }) {
   const knockoutPhaseOpen = (kp) => {
     if (!isOwn) return false;
     const lockMap = {
-      r32:    new Date('2026-06-28T20:50:00+02:00'), // 10 min før r32_1
-      r16:    new Date('2026-07-04T18:50:00+02:00'),
+      r32:    new Date('2026-06-28T20:50:00+02:00'),
+      r16:    new Date('2026-07-04T22:50:00+02:00'),
       qf:     new Date('2026-07-09T21:50:00+02:00'),
       sf:     new Date('2026-07-14T20:50:00+02:00'),
       bronze: new Date('2026-07-18T22:50:00+02:00'),
@@ -4238,7 +4238,14 @@ function TipsForm({ me, phase, viewUser }) {
         {tab === 'knockout' && <>
           {KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom:18 }}>
-              <span style={C.roundL}>{label}</span>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
+                <span style={C.roundL}>{label}</span>
+                {kp === 'r32' && (
+                  <span style={{ fontSize:11, color:'#FFD700', fontWeight:700, letterSpacing:1, fontFamily:"'Fira Code',monospace", opacity:0.85 }}>
+                    ALLE TIPS GJELDER ORDINÆR TID I KAMPENE
+                  </span>
+                )}
+              </div>
               {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map(m => {
                 const t = tips[m.id] || {};
                 const act = results[m.id];
@@ -6013,7 +6020,7 @@ function ChatPage({ me }) {
 const PHASE_SCHEDULE = [
   { phase: 'pre',          until: new Date('2026-06-11T22:30:00+02:00') },
   { phase: 'group_lock',   until: new Date('2026-06-27T23:59:00+02:00') },
-  { phase: 'group_done',   until: new Date('2026-06-28T16:00:00+02:00') },
+  { phase: 'group_done',   until: new Date('2026-06-28T20:50:00+02:00') },
   { phase: 'r32_lock',     until: new Date('2026-07-03T23:59:00+02:00') },
   { phase: 'r32_done',     until: new Date('2026-07-04T17:00:00+02:00') },
   { phase: 'r16_lock',     until: new Date('2026-07-07T23:59:00+02:00') },

@@ -115,12 +115,12 @@ export const GROUP_MATCHES = [
 ];
 
 export const KNOCKOUT_ROUNDS = [
-  { phase:'r32',    label:'Sekstendelsfinalene (kamp 73–88)', count:16 },
-  { phase:'r16',    label:'Åttendedelsfinalene (kamp 89–96)', count:8  },
-  { phase:'qf',     label:'Kvartfinalene (kamp 97–100)',       count:4  },
-  { phase:'sf',     label:'Semifinalene (kamp 101–102)',       count:2  },
-  { phase:'bronze', label:'Bronsefinalen (kamp 103)',          count:1  },
-  { phase:'final',  label:'Gullfinalen (kamp 104)',            count:1  },
+  { phase:'r32',    label:'Sekstendelsfinalene', count:16 },
+  { phase:'r16',    label:'Åttendedelsfinalene', count:8  },
+  { phase:'qf',     label:'Kvartfinalene',       count:4  },
+  { phase:'sf',     label:'Semifinalene',        count:2  },
+  { phase:'bronze', label:'Bronsefinalen',       count:1  },
+  { phase:'final',  label:'Finale',         count:1  },
 ];
 
 export const KNOCKOUT_MATCHES = [
