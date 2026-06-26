@@ -4238,10 +4238,10 @@ function TipsForm({ me, phase, viewUser }) {
         {tab === 'knockout' && <>
           {KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom:18 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
                 <span style={C.roundL}>{label}</span>
                 {kp === 'r32' && (
-                  <span style={{ fontSize:11, color:'#FFD700', fontWeight:700, letterSpacing:1, fontFamily:"'Fira Code',monospace", opacity:0.85 }}>
+                  <span style={{ fontSize:11, color:'#FFD700', fontWeight:700, letterSpacing:1, fontFamily:"'Fira Code',monospace", opacity:0.85, textAlign:'center' }}>
                     ALLE TIPS GJELDER ORDINÆR TID I KAMPENE
                   </span>
                 )}
