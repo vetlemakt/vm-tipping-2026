@@ -530,30 +530,20 @@ async function handleMatchFinished(matchId, homeNor, awayNor, homeGoals, awayGoa
     .map(d => ({ id: d.id, ...d.data() }))
     .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
 
-  // Beregn stillingstabell
-  function calcScore(user) {
-    let total = 0, fulltreff = 0;
+  // Beregn stillingstabell – bruker calcTotalScore som inkluderer gruppeplassering og spesialtips
+  function calcScoreForSummary(user) {
+    const total = calcTotalScore(user, updatedResults);
+    let fulltreff = 0;
     for (const [mid, act] of Object.entries(updatedResults)) {
       const tip = user.tips?.[mid];
       if (!tip || act?.home === undefined) continue;
-      const th = parseInt(tip.home), ta = parseInt(tip.away);
-      const ah = parseInt(act.home), aa = parseInt(act.away);
-      if (isNaN(th) || isNaN(ta) || isNaN(ah) || isNaN(aa)) continue;
-      let p = 0;
-      const tOut = th > ta ? 'H' : th < ta ? 'A' : 'D';
-      const aOut = ah > aa ? 'H' : ah < aa ? 'A' : 'D';
-      if (tOut === aOut) p += 2;
-      if (th === ah) p += 1;
-      if (ta === aa) p += 1;
-      if (p === 4 && (ah + aa) >= 5) p = 5;
-      total += p;
-      if (p >= 4) fulltreff++;
+      if (calcMatchPts(tip, act) >= 4) fulltreff++;
     }
     return { total, fulltreff };
   }
 
   const ranked = allUsers
-    .map(u => ({ ...u, ...calcScore(u) }))
+    .map(u => ({ ...u, ...calcScoreForSummary(u) }))
     .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
 
   const tableLines = ranked.map((u, i) =>
@@ -1291,18 +1281,12 @@ exports.triggerSummary = onRequest(
         .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
 
       function calcPts(user) {
-        let total = 0, fulltreff = 0;
+        const total = calcTotalScore(user, results);
+        let fulltreff = 0;
         for (const [mid, act] of Object.entries(results)) {
           const tip = user.tips?.[mid];
           if (!tip || act?.home === undefined) continue;
-          const th = parseInt(tip.home), ta = parseInt(tip.away);
-          const ah = parseInt(act.home), aa = parseInt(act.away);
-          if (isNaN(th)||isNaN(ta)||isNaN(ah)||isNaN(aa)) continue;
-          let p = 0;
-          if ((th>ta?'H':th<ta?'A':'D') === (ah>aa?'H':ah<aa?'A':'D')) p+=2;
-          if (th===ah) p+=1; if (ta===aa) p+=1;
-          if (p===4 && ah+aa>=5) p=5;
-          total+=p; if(p>=4) fulltreff++;
+          if (calcMatchPts(tip, act) >= 4) fulltreff++;
         }
         return { total, fulltreff };
       }
