@@ -3722,9 +3722,7 @@ function TipsForm({ me, phase, viewUser }) {
     const kickoff = new Date(`${m.date}T${m.time}:00+02:00`);
     return new Date() < new Date(kickoff.getTime() - 10 * 60 * 1000);
   };
-  // Brukes for å vise lagre-knapp og for batch-lagring
-  const knockoutPhaseOpen = (matchId) => isMatchOpen(matchId);
-  const koOk = isOwn && KNOCKOUT_MATCHES.some(m => isMatchOpen(m.id));
+
 
   // Start pulse sequence when tips/spec/grpO loaded and grpOk
   useEffect(() => {
