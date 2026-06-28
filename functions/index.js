@@ -514,7 +514,73 @@ async function handleGoalEvent(matchId, liveEvent, prevGoalKey) {
 
 
 // ── Tabellreferat etter fullført kamp ────────────────────────────────
+// ── Bracket-tabell: hvilken kamp og side fylles ut av vinner/taper av gitt kampnummer ──
+const BRACKET_SLOTS = {
+  // matchNum -> [{ nextId, side, role }]  role: 'winner' | 'loser'
+  73:  [{ nextId: 'r16_2', side: 'home', role: 'winner' }],
+  74:  [{ nextId: 'r16_1', side: 'home', role: 'winner' }],
+  75:  [{ nextId: 'r16_2', side: 'away', role: 'winner' }],
+  76:  [{ nextId: 'r16_3', side: 'home', role: 'winner' }],
+  77:  [{ nextId: 'r16_1', side: 'away', role: 'winner' }],
+  78:  [{ nextId: 'r16_3', side: 'away', role: 'winner' }],
+  79:  [{ nextId: 'r16_4', side: 'home', role: 'winner' }],
+  80:  [{ nextId: 'r16_4', side: 'away', role: 'winner' }],
+  81:  [{ nextId: 'r16_6', side: 'home', role: 'winner' }],
+  82:  [{ nextId: 'r16_6', side: 'away', role: 'winner' }],
+  83:  [{ nextId: 'r16_5', side: 'home', role: 'winner' }],
+  84:  [{ nextId: 'r16_5', side: 'away', role: 'winner' }],
+  85:  [{ nextId: 'r16_8', side: 'home', role: 'winner' }],
+  86:  [{ nextId: 'r16_7', side: 'home', role: 'winner' }],
+  87:  [{ nextId: 'r16_8', side: 'away', role: 'winner' }],
+  88:  [{ nextId: 'r16_7', side: 'away', role: 'winner' }],
+  89:  [{ nextId: 'qf_1',  side: 'home', role: 'winner' }],
+  90:  [{ nextId: 'qf_1',  side: 'away', role: 'winner' }],
+  91:  [{ nextId: 'qf_3',  side: 'home', role: 'winner' }],
+  92:  [{ nextId: 'qf_3',  side: 'away', role: 'winner' }],
+  93:  [{ nextId: 'qf_2',  side: 'home', role: 'winner' }],
+  94:  [{ nextId: 'qf_2',  side: 'away', role: 'winner' }],
+  95:  [{ nextId: 'qf_4',  side: 'home', role: 'winner' }],
+  96:  [{ nextId: 'qf_4',  side: 'away', role: 'winner' }],
+  97:  [{ nextId: 'sf_1',  side: 'home', role: 'winner' }, { nextId: 'bronze', side: 'home', role: 'loser' }],
+  98:  [{ nextId: 'sf_1',  side: 'away', role: 'winner' }, { nextId: 'bronze', side: 'away', role: 'loser' }],
+  99:  [{ nextId: 'sf_2',  side: 'home', role: 'winner' }, { nextId: 'bronze', side: 'home', role: 'loser' }],
+  100: [{ nextId: 'sf_2',  side: 'away', role: 'winner' }, { nextId: 'bronze', side: 'away', role: 'loser' }],
+  101: [{ nextId: 'final', side: 'home', role: 'winner' }],
+  102: [{ nextId: 'final', side: 'away', role: 'winner' }],
+};
+
+async function propagateBracket(matchId, homeNor, awayNor, homeGoals, awayGoals, result) {
+  const allMatches = [...KNOCKOUT_MATCHES];
+  const match = allMatches.find(m => m.id === matchId);
+  if (!match) return;
+  const slots = BRACKET_SLOTS[match.matchNum];
+  if (!slots || slots.length === 0) return;
+
+  // Bestem vinner – ved straffer brukes penHome/penAway
+  let homeWon;
+  if (result?.penHome !== null && result?.penHome !== undefined) {
+    homeWon = parseInt(result.penHome) > parseInt(result.penAway);
+  } else {
+    homeWon = parseInt(homeGoals) > parseInt(awayGoals);
+  }
+  const winner = homeWon ? homeNor : awayNor;
+  const loser  = homeWon ? awayNor : homeNor;
+
+  const resultsRef = db.collection('config').doc('results');
+  const updates = {};
+  for (const { nextId, side, role } of slots) {
+    const team = role === 'winner' ? winner : loser;
+    updates[`${nextId}.${side === 'home' ? 'homeTeam' : 'awayTeam'}`] = team;
+  }
+  await resultsRef.set(updates, { merge: true });
+  console.log(`Bracket propagert fra ${matchId} (kamp ${match.matchNum}):`, updates);
+}
+
 async function handleMatchFinished(matchId, homeNor, awayNor, homeGoals, awayGoals, updatedResults) {
+  // Propagér vinner/taper til neste kamp i bracketen automatisk
+  await propagateBracket(matchId, homeNor, awayNor, homeGoals, awayGoals, updatedResults[matchId])
+    .catch(e => console.error('propagateBracket feil:', e.message));
+
   if (!ANTHROPIC_KEY) return;
 
   // Ikke skriv nytt referat hvis det allerede finnes et
@@ -530,20 +596,30 @@ async function handleMatchFinished(matchId, homeNor, awayNor, homeGoals, awayGoa
     .map(d => ({ id: d.id, ...d.data() }))
     .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
 
-  // Beregn stillingstabell – bruker calcTotalScore som inkluderer gruppeplassering og spesialtips
-  function calcScoreForSummary(user) {
-    const total = calcTotalScore(user, updatedResults);
-    let fulltreff = 0;
+  // Beregn stillingstabell
+  function calcScore(user) {
+    let total = 0, fulltreff = 0;
     for (const [mid, act] of Object.entries(updatedResults)) {
       const tip = user.tips?.[mid];
       if (!tip || act?.home === undefined) continue;
-      if (calcMatchPts(tip, act) >= 4) fulltreff++;
+      const th = parseInt(tip.home), ta = parseInt(tip.away);
+      const ah = parseInt(act.home), aa = parseInt(act.away);
+      if (isNaN(th) || isNaN(ta) || isNaN(ah) || isNaN(aa)) continue;
+      let p = 0;
+      const tOut = th > ta ? 'H' : th < ta ? 'A' : 'D';
+      const aOut = ah > aa ? 'H' : ah < aa ? 'A' : 'D';
+      if (tOut === aOut) p += 2;
+      if (th === ah) p += 1;
+      if (ta === aa) p += 1;
+      if (p === 4 && (ah + aa) >= 5) p = 5;
+      total += p;
+      if (p >= 4) fulltreff++;
     }
     return { total, fulltreff };
   }
 
   const ranked = allUsers
-    .map(u => ({ ...u, ...calcScoreForSummary(u) }))
+    .map(u => ({ ...u, ...calcScore(u) }))
     .sort((a, b) => b.total - a.total || b.fulltreff - a.fulltreff);
 
   const tableLines = ranked.map((u, i) =>
@@ -770,7 +846,13 @@ async function pollAndUpdate(checkFinished = true) {
   for (const fixture of finishedFixtures) {
     const homeNor = toNor(fixture.teams?.home?.name);
     const awayNor = toNor(fixture.teams?.away?.name);
-    const matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
+    let matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
+    // Fallback: slå opp via homeTeam/awayTeam satt manuelt i results (r16+)
+    if (!matchId) {
+      matchId = Object.entries(currentResults).find(([, r]) =>
+        r.homeTeam === homeNor && r.awayTeam === awayNor
+      )?.[0] || null;
+    }
     if (!matchId) continue;
     const result = buildMatchResult(fixture);
     if (!result) continue;
@@ -1281,12 +1363,18 @@ exports.triggerSummary = onRequest(
         .filter(u => u.id !== 'admin' && !u.id.startsWith('panel_'));
 
       function calcPts(user) {
-        const total = calcTotalScore(user, results);
-        let fulltreff = 0;
+        let total = 0, fulltreff = 0;
         for (const [mid, act] of Object.entries(results)) {
           const tip = user.tips?.[mid];
           if (!tip || act?.home === undefined) continue;
-          if (calcMatchPts(tip, act) >= 4) fulltreff++;
+          const th = parseInt(tip.home), ta = parseInt(tip.away);
+          const ah = parseInt(act.home), aa = parseInt(act.away);
+          if (isNaN(th)||isNaN(ta)||isNaN(ah)||isNaN(aa)) continue;
+          let p = 0;
+          if ((th>ta?'H':th<ta?'A':'D') === (ah>aa?'H':ah<aa?'A':'D')) p+=2;
+          if (th===ah) p+=1; if (ta===aa) p+=1;
+          if (p===4 && ah+aa>=5) p=5;
+          total+=p; if(p>=4) fulltreff++;
         }
         return { total, fulltreff };
       }
@@ -1385,6 +1473,10 @@ exports.getTopscorers = onRequest(
 
 // ── Bygg fixture-lookup ───────────────────────────────────────────────
 exports.buildFixtureLookup = onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
   if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return; }
   const { matches } = req.body;
   if (!matches || !Array.isArray(matches)) {
@@ -1398,6 +1490,6 @@ exports.buildFixtureLookup = onRequest(async (req, res) => {
     lookup[`${m.home}_${m.away}`]   = m.id;
     lookup[`${homeApi}_${awayApi}`] = m.id;
   }
-  await db.collection('config').doc('fixtureLookup').set(lookup);
+  await db.collection('config').doc('fixtureLookup').set(lookup, { merge: true });
   res.json({ ok: true, entries: Object.keys(lookup).length });
 });
