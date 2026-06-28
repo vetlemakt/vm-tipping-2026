@@ -5058,16 +5058,9 @@ function InfoPage() {
           </div>
 
           <div style={{borderLeft:'3px solid #60a5fa', paddingLeft:12, marginBottom:10}}>
-            <div style={{color:'#60a5fa', fontWeight:700, marginBottom:2}}>🏟️ Sluttspillsrundene – løpende deadlines</div>
-            <div>Deadline for hver sluttspillsrunde er <strong style={{color:'#FFD700'}}>10 minutter</strong> før første kamp i den runden:</div>
-            <div style={{marginTop:6, fontSize:13, color:'rgba(255,255,255,.65)'}}>
-              <div>• 16-delsfinaler: 28. juni kl. 20:50</div>
-              <div>• 8-delsfinaler: 4. juli kl. 16:50</div>
-              <div>• Kvartfinaler: 9. juli kl. 19:50</div>
-              <div>• Semifinaler: 14. juli kl. 18:50</div>
-              <div>• Finaler (inkl. bronsefinale): 18. juli kl. 20:50</div>
-            </div>
-            <div style={{marginTop:6}}>Sluttspillstips for kommende runder kan fritt endres helt frem til sin deadline, men allerede spilte og pågående runder låses permanent.</div>
+            <div style={{color:'#60a5fa', fontWeight:700, marginBottom:2}}>🏟️ Sluttspillstips – løpende deadlines per kamp</div>
+            <div>Hver sluttspillkamp har sin egen deadline: <strong style={{color:'#FFD700'}}>10 minutter før kampstart</strong>. Du kan fritt endre tipset ditt på en kamp helt frem til den sparkes i gang – men når kampen starter låses den for alltid.</div>
+            <div style={{marginTop:6}}>Kamper som ikke er spilt ennå er alltid åpne for endring.</div>
           </div>
 
           <div style={{borderLeft:'3px solid #f87171', paddingLeft:12, marginBottom:10}}>
