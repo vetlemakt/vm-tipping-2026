@@ -3714,19 +3714,14 @@ function TipsForm({ me, phase, viewUser }) {
   const grpOk  = isOwn && phase === 'pre';
   const specOk = isOwn && (phase === 'pre' || phase === 'group_lock');
   // Sluttspill: åpent per runde frem til 10 min før første kamp i runden
-  const knockoutPhaseOpen = (kp) => {
+  // Per-kamp låsing: åpen frem til 10 min før kampstart
+  const isMatchOpen = (matchId) => {
     if (!isOwn) return false;
-    const lockMap = {
-      r32:    new Date('2026-06-28T20:50:00+02:00'),
-      r16:    new Date('2026-07-04T22:50:00+02:00'),
-      qf:     new Date('2026-07-09T21:50:00+02:00'),
-      sf:     new Date('2026-07-14T20:50:00+02:00'),
-      bronze: new Date('2026-07-18T22:50:00+02:00'),
-      final:  new Date('2026-07-19T20:50:00+02:00'),
-    };
-    return new Date() < (lockMap[kp] || new Date(0));
+    const m = KNOCKOUT_MATCHES.find(x => x.id === matchId);
+    if (!m) return false;
+    const kickoff = new Date(`${m.date}T${m.time}:00+02:00`);
+    return new Date() < new Date(kickoff.getTime() - 10 * 60 * 1000);
   };
-  const koOk = isOwn && KNOCKOUT_ROUNDS.some(({ phase: kp }) => knockoutPhaseOpen(kp));
 
   // Start pulse sequence when tips/spec/grpO loaded and grpOk
   useEffect(() => {
@@ -3840,14 +3835,13 @@ function TipsForm({ me, phase, viewUser }) {
       });
     }
 
-    // Knockout tips: only writable during an open knockout phase
-    if (koOk) {
-      KNOCKOUT_MATCHES.forEach(m => {
-        // Never overwrite a match that already has a result
-        if (results[m.id]?.home !== undefined) return;
-        if (tips[m.id] !== undefined) safeTips[m.id] = tips[m.id];
-      });
-    }
+    // Knockout tips: per kamp, åpen frem til 10 min før kampstart
+    KNOCKOUT_MATCHES.forEach(m => {
+      if (!isMatchOpen(m.id)) return;
+      // Never overwrite a match that already has a result
+      if (results[m.id]?.home !== undefined) return;
+      if (tips[m.id] !== undefined) safeTips[m.id] = tips[m.id];
+    });
 
     // Special tips: only writable during 'pre' phase
     const safeSpec = grpOk ? spec : (saved_u?.specialTips || {});
@@ -4384,10 +4378,10 @@ function TipsForm({ me, phase, viewUser }) {
                       padding:'2px 8px', width:76, flexShrink:0,
                     }}>
                       <div style={{display:'flex',alignItems:'center',gap:4}}>
-                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:knockoutPhaseOpen(kp)?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!knockoutPhaseOpen(kp)}
+                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:isMatchOpen(m.id)?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
                           value={t.home??''} placeholder='–' onChange={e => setTip(m.id,'home',e.target.value)} />
                         <span style={{color:superbonus?'#FFD700':rightOutcome?'#FFD700':'rgba(255,255,255,.5)',fontWeight:800,fontSize:15,lineHeight:1}}>–</span>
-                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:knockoutPhaseOpen(kp)?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!knockoutPhaseOpen(kp)}
+                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:isMatchOpen(m.id)?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
                           value={t.away??''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
                       </div>
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
