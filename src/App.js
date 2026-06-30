@@ -3712,7 +3712,7 @@ function TipsForm({ me, phase, viewUser }) {
   const pulseRef = useRef(null);
 
   const grpOk  = isOwn && phase === 'pre';
-  const specOk = isOwn && (phase === 'pre' || phase === 'group_lock');
+  const specOk = isOwn && phase === 'pre';
   // Sluttspill: åpent per runde frem til 10 min før første kamp i runden
   // Per-kamp låsing: åpen frem til 10 min før kampstart
   const isMatchOpen = (matchId) => {
@@ -3844,7 +3844,7 @@ function TipsForm({ me, phase, viewUser }) {
     });
 
     // Special tips: only writable during 'pre' phase
-    const safeSpec = grpOk ? spec : (saved_u?.specialTips || {});
+    const safeSpec = specOk ? spec : (saved_u?.specialTips || {});
     // Group orders: only writable during 'pre' phase
     const safeGrpO = grpOk ? grpO : (saved_u?.groupOrders || {});
 
@@ -4313,8 +4313,8 @@ function TipsForm({ me, phase, viewUser }) {
                   if (!slot || !isMobile) return slot;
                   return slot.replace('Vinner kamp ', 'Vinner ').replace('Taper kamp ', 'Taper ');
                 };
-                const resolvedHome = hasAct ? act.homeTeam : resolveSlot(m.home);
-                const resolvedAway = hasAct ? act.awayTeam : resolveSlot(m.away);
+                const resolvedHome = act?.homeTeam || resolveSlot(m.home);
+                const resolvedAway = act?.awayTeam || resolveSlot(m.away);
                 const tipHome = !resolvedHome ? tipForSlot(m.home) : null;
                 const tipAway = !resolvedAway ? tipForSlot(m.away) : null;
 
