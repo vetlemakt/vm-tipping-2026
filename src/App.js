@@ -272,61 +272,7 @@ const DEADLINES = [
       return allMatchesFilled && allGroupsFilled && allSpecFilled;
     },
   },
-  {
-    key: 'r32',
-    label: '16-delsfinaler',
-    shortLabel: '16-delsfinalene starter',
-    // First r32 match: r32_1, 2026-06-28 21:00 CEST = 19:00 UTC
-    deadline: new Date('2026-06-28T18:50:00Z'),
-    checkDone: (user) => {
-      const tips = user?.tips || {};
-      return KNOCKOUT_MATCHES.filter(m => m.phase === 'r32').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
-    },
-  },
-  {
-    key: 'r16',
-    label: '8-delsfinaler',
-    shortLabel: '8-delsfinalene starter',
-    // First r16 match: r16_2, 2026-07-04 19:00 CEST = 17:00 UTC
-    deadline: new Date('2026-07-04T16:50:00Z'),
-    checkDone: (user) => {
-      const tips = user?.tips || {};
-      return KNOCKOUT_MATCHES.filter(m => m.phase === 'r16').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
-    },
-  },
-  {
-    key: 'qf',
-    label: 'kvartfinaler',
-    shortLabel: 'Kvartfinalene starter',
-    // First qf match: qf_1, 2026-07-09 22:00 CEST = 20:00 UTC
-    deadline: new Date('2026-07-09T19:50:00Z'),
-    checkDone: (user) => {
-      const tips = user?.tips || {};
-      return KNOCKOUT_MATCHES.filter(m => m.phase === 'qf').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
-    },
-  },
-  {
-    key: 'sf',
-    label: 'semifinaler',
-    shortLabel: 'Semifinalene starter',
-    // First sf match: sf_1, 2026-07-14 21:00 CEST = 19:00 UTC
-    deadline: new Date('2026-07-14T18:50:00Z'),
-    checkDone: (user) => {
-      const tips = user?.tips || {};
-      return KNOCKOUT_MATCHES.filter(m => m.phase === 'sf').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
-    },
-  },
-  {
-    key: 'finals',
-    label: 'finaler',
-    shortLabel: 'Finalene starter',
-    // Bronze: 2026-07-18 23:00 CEST = 21:00 UTC
-    deadline: new Date('2026-07-18T20:50:00Z'),
-    checkDone: (user) => {
-      const tips = user?.tips || {};
-      return KNOCKOUT_MATCHES.filter(m => m.phase === 'bronze' || m.phase === 'final').every(m => tips[m.id]?.home !== undefined && tips[m.id]?.away !== undefined);
-    },
-  },
+  // Sluttspillsfaser har per-kamp-deadlines, ikke fase-deadlines – ingen bannere her.
 ];
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;

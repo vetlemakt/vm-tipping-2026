@@ -691,6 +691,7 @@ function toNor(apiName) {
     'Ivory Coast': 'Elfenbenskysten',
     "Cote d'Ivoire": 'Elfenbenskysten',
     'DR Congo': 'Kongo DR',
+    'Congo DR': 'Kongo DR',
     'Cape Verde': 'Kapp Verde',
     'Saudi Arabia': 'Saudi-Arabia',
     'Bosnia and Herzegovina': 'Bosnia-Herz',
