@@ -4230,7 +4230,7 @@ function TipsForm({ me, phase, viewUser }) {
                   if (!grpLetter) return false;
                   return GROUP_MATCHES.filter(m => m.group === grpLetter).every(m => results[m.id]?.home !== undefined);
                 };
-                const resolveSlot = (slot) => {
+                const resolveSlot = (slot, visited = new Set()) => {
                   if (!slot) return null;
                   const vinnerMatch = slot.match(/^Vinner ([A-L])$/);
                   const toerMatch   = slot.match(/^Toer ([A-L])$/);
@@ -4246,6 +4246,28 @@ function TipsForm({ me, phase, viewUser }) {
                     if (groupIsFinished(g)) return results[`grp_${g}`]?.[1] || calcGroupStandings(g)[1] || null;
                     if (results[`grp_${g}`]?.[1]) return results[`grp_${g}`][1]; // garantert av admin
                     return null;
+                  }
+                  // "Vinner kamp N" / "Taper kamp N" – regn ut selv fra resultatet på kamp N,
+                  // uansett om laget ble skrevet inn automatisk (Cloud Function) eller manuelt av admin.
+                  const vinnerKamp = slot.match(/^Vinner kamp (\d+)$/);
+                  const taperKamp  = slot.match(/^Taper kamp (\d+)$/);
+                  if (vinnerKamp || taperKamp) {
+                    const num = parseInt((vinnerKamp || taperKamp)[1], 10);
+                    const km = KNOCKOUT_MATCHES.find(x => x.matchNum === num);
+                    if (!km || visited.has(km.id)) return null;
+                    const prevAct = results[km.id];
+                    if (!prevAct || prevAct.home === undefined || prevAct.away === undefined) return null;
+                    const nextVisited = new Set(visited); nextVisited.add(km.id);
+                    const homeTeam = prevAct.homeTeam || resolveSlot(km.home, nextVisited);
+                    const awayTeam = prevAct.awayTeam || resolveSlot(km.away, nextVisited);
+                    if (!homeTeam || !awayTeam) return null;
+                    let homeWon;
+                    if (prevAct.penHome !== undefined && prevAct.penHome !== null && prevAct.penHome !== '') {
+                      homeWon = parseInt(prevAct.penHome) > parseInt(prevAct.penAway);
+                    } else {
+                      homeWon = parseInt(prevAct.home) > parseInt(prevAct.away);
+                    }
+                    return vinnerKamp ? (homeWon ? homeTeam : awayTeam) : (homeWon ? awayTeam : homeTeam);
                   }
                   return null;
                 };
