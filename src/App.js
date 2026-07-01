@@ -3726,7 +3726,6 @@ function TipsForm({ me, phase, viewUser }) {
   const [tips, setTips]   = useState({});
   const [grpO, setGrpO]   = useState({});
   const [spec, setSpec]   = useState({});
-  const [botSource, setBotSource] = useState(null);
   const [botFilled, setBotFilled] = useState({});
   const [saved, setSaved]   = useState(false);
   const [dirty, setDirty]   = useState(false);
@@ -3749,7 +3748,7 @@ function TipsForm({ me, phase, viewUser }) {
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     getUser(userId).then(u => {
-      if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); setBotSource(u.botSource || null); setBotFilled(u.botFilledMatches || {}); }
+      if (u) { setTips(u.tips || {}); setGrpO(u.groupOrders || {}); setSpec(u.specialTips || {}); setBotFilled(u.botFilledMatches || {}); }
       setLoading(false);
     });
   }, [userId]);
