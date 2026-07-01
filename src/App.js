@@ -2773,6 +2773,18 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
     return r && r.home !== undefined && r.away !== undefined;
   }).sort((a, b) => { const kA = new Date(a.date + "T" + (a.time||"00:00") + ":00+02:00").getTime(); const kB = new Date(b.date + "T" + (b.time||"00:00") + ":00+02:00").getTime(); return kB - kA; });
 
+  // Ekstraomganger/straffer – vises som en ekstra linje under fulltidsresultatet
+  const decidingLabel = (r) => {
+    if (!r) return null;
+    if (r.penHome !== undefined && r.penHome !== null && r.penHome !== '' && r.penAway !== undefined && r.penAway !== null && r.penAway !== '') {
+      return `${r.penHome}–${r.penAway} e.e.o.+s.s.k`;
+    }
+    if (r.etHome !== undefined && r.etHome !== null && r.etHome !== '' && r.etAway !== undefined && r.etAway !== null && r.etAway !== '') {
+      return `${r.etHome}–${r.etAway} e.e.o.`;
+    }
+    return null;
+  };
+
   return (
     <>
     <div>
@@ -3104,6 +3116,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
                   <span style={{ ...C.matchTeam, textAlign:'left', flex:1 }}><Flag team={r.awayTeam || m.away} /> {r.awayTeam || m.away}</span>
                 </div>
+                {decidingLabel(r) && (
+                  <div style={{ textAlign:'center', marginTop:-2, marginBottom:2 }}>
+                    <span style={{ fontFamily:"'Fira Code',monospace", fontSize:12, fontWeight:700, color:'#00e5ff' }}>{decidingLabel(r)}</span>
+                  </div>
+                )}
                 <div style={{ ...C.matchScorers, textAlign:'center' }}>{m.group ? `Gruppe ${m.group} · ` : ''}{fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}<FulltreffBadge matchId={m.id} results={results} users={users} /></div>
                 {/* Spillers kampreferat */}
                 {sum?.text && !isEditing ? (
@@ -3228,6 +3245,11 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                   <span style={C.matchScore}>{r.home} – {r.away}</span>
                   <span style={{ ...C.matchTeam, textAlign:'left', flex:1 }}><Flag team={r.awayTeam || m.away} /> {r.awayTeam || m.away}</span>
                 </div>
+                {decidingLabel(r) && (
+                  <div style={{ textAlign:'center', marginTop:-2, marginBottom:2 }}>
+                    <span style={{ fontFamily:"'Fira Code',monospace", fontSize:12, fontWeight:700, color:'#00e5ff' }}>{decidingLabel(r)}</span>
+                  </div>
+                )}
                 <div style={{ ...C.matchScorers, textAlign:'center' }}>{m.group ? `Gruppe ${m.group} · ` : ''}{fmtDate(m.date)}{m.time ? ' · ' + m.time : ''}<FulltreffBadge matchId={m.id} results={results} users={users} /></div>
                 {sum?.text && !isEditing ? (
                   <div style={{ marginTop:6 }}>
