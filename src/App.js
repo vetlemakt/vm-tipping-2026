@@ -4262,8 +4262,15 @@ function TipsForm({ me, phase, viewUser }) {
                     const awayTeam = prevAct.awayTeam || resolveSlot(km.away, nextVisited);
                     if (!homeTeam || !awayTeam) return null;
                     let homeWon;
-                    if (prevAct.penHome !== undefined && prevAct.penHome !== null && prevAct.penHome !== '') {
+                    if (prevAct.winnerSide === 'home') {
+                      homeWon = true;
+                    } else if (prevAct.winnerSide === 'away') {
+                      homeWon = false;
+                    } else if (prevAct.penHome !== undefined && prevAct.penHome !== null && prevAct.penHome !== '') {
                       homeWon = parseInt(prevAct.penHome) > parseInt(prevAct.penAway);
+                    } else if (parseInt(prevAct.home) === parseInt(prevAct.away)) {
+                      // Uavgjort etter ordinær tid og verken vinnerfelt eller straffedata finnes ennå – ukjent hvem som går videre
+                      return null;
                     } else {
                       homeWon = parseInt(prevAct.home) > parseInt(prevAct.away);
                     }
@@ -4350,10 +4357,10 @@ function TipsForm({ me, phase, viewUser }) {
                       padding:'2px 8px', width:76, flexShrink:0,
                     }}>
                       <div style={{display:'flex',alignItems:'center',gap:4}}>
-                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:isMatchOpen(m.id)?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
+                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:(isMatchOpen(m.id)||hasAct)?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
                           value={t.home??''} placeholder='–' onChange={e => setTip(m.id,'home',e.target.value)} />
                         <span style={{color:superbonus?'#FFD700':rightOutcome?'#FFD700':'rgba(255,255,255,.5)',fontWeight:800,fontSize:15,lineHeight:1}}>–</span>
-                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:isMatchOpen(m.id)?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
+                        <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:(isMatchOpen(m.id)||hasAct)?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
                           value={t.away??''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
                       </div>
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
@@ -4722,6 +4729,19 @@ function AdminPanel() {
                         <option key={t} value={t}>{FLAGS[t]||''} {t}</option>
                       ))}
                     </select>
+                    {r.home !== undefined && r.home !== '' && r.away !== undefined && r.away !== '' && parseInt(r.home) === parseInt(r.away) && (
+                      <div style={{ display:'flex', alignItems:'center', gap:6, width:'100%', marginTop:2 }}>
+                        <span style={{ fontSize:10, color:'rgba(255,215,0,.7)', minWidth:55 }}>Straffer:</span>
+                        <input style={{ ...C.sInp, width:40 }} type="number" min={0} value={r.penHome ?? ''} placeholder='–'
+                          onChange={e => setKOScore(m.id, 'penHome', e.target.value)}
+                          onBlur={() => saveKOScore(m.id)} />
+                        <span style={C.dash}>–</span>
+                        <input style={{ ...C.sInp, width:40 }} type="number" min={0} value={r.penAway ?? ''} placeholder='–'
+                          onChange={e => setKOScore(m.id, 'penAway', e.target.value)}
+                          onBlur={() => saveKOScore(m.id)} />
+                        <span style={{ fontSize:9, color:'rgba(255,255,255,.4)' }}>(kun ved uavgjort etter ordinær tid)</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
