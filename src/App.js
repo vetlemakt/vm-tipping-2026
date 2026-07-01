@@ -3817,10 +3817,6 @@ function TipsForm({ me, phase, viewUser }) {
         <span style={C.cardTitle}><span style={C.cardTitleDot} /> {isOwn ? 'Mine tips' : `${displayName}s tips`}</span>
       </div>
       <div style={C.cardBody}>
-        {botSource && isOwn && (
-          <div style={C.botBanner}>🤖 Disse tipsene ble generert av <strong>{PANEL_EXPERTS.find(e=>e.id===botSource)?.name || botSource}</strong></div>
-        )}
-
         {/* Spesialtips */}
         <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', height: isMobile ? 'auto' : 340, flexDirection: isMobile ? 'column' : 'row' }}>
         <div style={{ ...C.specBox, flex: isMobile ? '1 1 auto' : '0 0 auto', marginBottom: 0, overflowY: 'auto', minWidth: 0 }}>

@@ -556,10 +556,21 @@ async function propagateBracket(matchId, homeNor, awayNor, homeGoals, awayGoals,
   const slots = BRACKET_SLOTS[match.matchNum];
   if (!slots || slots.length === 0) return;
 
-  // Bestem vinner – ved straffer brukes penHome/penAway
+  // Bestem vinner – bruk API-Footballs eget vinnerfelt (tar høyde for
+  // ekstraomganger/straffer) fremfor å regne det ut selv fra scorer.
+  // Fulltidsresultatet (homeGoals/awayGoals) brukes KUN til poeng i tippekonkurransen,
+  // aldri til å avgjøre hvem som går videre.
   let homeWon;
-  if (result?.penHome !== null && result?.penHome !== undefined) {
+  if (result?.winnerSide === 'home') {
+    homeWon = true;
+  } else if (result?.winnerSide === 'away') {
+    homeWon = false;
+  } else if (result?.penHome !== null && result?.penHome !== undefined) {
     homeWon = parseInt(result.penHome) > parseInt(result.penAway);
+  } else if (parseInt(homeGoals) === parseInt(awayGoals)) {
+    // Uavgjort og verken vinnerfelt eller straffedata finnes ennå – ikke propager, vent
+    console.log(`propagateBracket: ${matchId} uavgjort (${homeGoals}-${awayGoals}) uten vinnerdata – venter`);
+    return;
   } else {
     homeWon = parseInt(homeGoals) > parseInt(awayGoals);
   }
@@ -740,8 +751,15 @@ function buildMatchResult(fixture) {
   const etHome  = fixture.score?.extratime?.home ?? null;
   const etAway  = fixture.score?.extratime?.away ?? null;
 
+  // API-Football sier eksplisitt hvem som faktisk vant kampen (tar høyde for
+  // ekstraomganger/straffer). Denne brukes til å avgjøre hvem som går videre
+  // i sluttspillet – IKKE fulltidsresultatet, som kun brukes til poeng i tippekonkurransen.
+  const homeWinnerApi = fixture.teams?.home?.winner;
+  const awayWinnerApi = fixture.teams?.away?.winner;
+  const winnerSide = homeWinnerApi === true ? 'home' : awayWinnerApi === true ? 'away' : null;
+
   return { home, away, status, elapsed, isLive, isFinished,
-    penHome, penAway, etHome, etAway, updatedAt: Date.now() };
+    penHome, penAway, etHome, etAway, winnerSide, updatedAt: Date.now() };
 }
 
 function buildLiveEvent(fixture, includeCards = false) {
