@@ -4186,7 +4186,11 @@ function TipsForm({ me, phase, viewUser }) {
                   </span>
                 )}
               </div>
-              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map(m => {
+              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).sort((a, b) => {
+                const dA = new Date(`${a.date}T${a.time||'00:00'}:00+02:00`).getTime();
+                const dB = new Date(`${b.date}T${b.time||'00:00'}:00+02:00`).getTime();
+                return dA - dB;
+              }).map(m => {
                 const t = tips[m.id] || {};
                 const act = results[m.id];
                 const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
@@ -4656,7 +4660,11 @@ function AdminPanel() {
           return KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom: 16 }}>
               <span style={C.roundL}>{label}</span>
-              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).map(m => {
+              {KNOCKOUT_MATCHES.filter(m => m.phase === kp).sort((a, b) => {
+                const dA = new Date(`${a.date}T${a.time||'00:00'}:00+02:00`).getTime();
+                const dB = new Date(`${b.date}T${b.time||'00:00'}:00+02:00`).getTime();
+                return dA - dB;
+              }).map(m => {
                 const r = results[m.id] || {};
                 const homeTeam = r.homeTeam || '';
                 const awayTeam = r.awayTeam || '';
@@ -5711,7 +5719,11 @@ function ExpertTipsView({ expert }) {
       <div style={{marginTop:8}}>
         <span style={{...C.secH}}>Sluttspill</span>
         {KNOCKOUT_ROUNDS.map(({phase:kp, label}) => {
-          const kMatches = KNOCKOUT_MATCHES.filter(m => m.phase === kp);
+          const kMatches = KNOCKOUT_MATCHES.filter(m => m.phase === kp).sort((a, b) => {
+            const dA = new Date(`${a.date}T${a.time||'00:00'}:00+02:00`).getTime();
+            const dB = new Date(`${b.date}T${b.time||'00:00'}:00+02:00`).getTime();
+            return dA - dB;
+          });
           const tippedMatches = kMatches.filter(m => tips[m.id]);
           return (
             <div key={kp} style={{marginBottom:12}}>
