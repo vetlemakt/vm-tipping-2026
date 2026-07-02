@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove,
   collection, getDocs, onSnapshot, addDoc,
-  serverTimestamp, query, orderBy
+  serverTimestamp, query, orderBy, deleteField
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -45,6 +45,13 @@ export async function getResults() {
 
 export async function setResults(data) {
   await setDoc(doc(db, 'config', 'results'), data, { merge: true });
+}
+
+// Fjerner et enkelt kampresultat HELT (deleteField) – merge:true kan ikke
+// fjerne eksisterende felt, kun overskrive/legge til, så dette må gjøres separat.
+// Brukes til å nullstille feilregistrerte kamper (poeng + bracket-fremrykning forsvinner automatisk).
+export async function clearMatchResult(matchId) {
+  await updateDoc(doc(db, 'config', 'results'), { [matchId]: deleteField() });
 }
 
 // ── Phase ────────────────────────────────────────────────────────────

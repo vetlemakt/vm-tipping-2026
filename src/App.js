@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   getUser, getAllUsers, createUser, updateUser,
-  getResults, setResults, getPhase, setPhase,
+  getResults, setResults, clearMatchResult, getPhase, setPhase,
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage, addReaction,
   subscribePhase, subscribeResults,
@@ -19,6 +19,76 @@ import {
   PHASE_OPTIONS, OPEN_PHASES, FLAGS, WS_MSGS, SPEC_FIELDS, STADIUMS,
 } from './constants';
 import { C } from './styles';
+
+// ── Sluttspill-slot-oppløsning (delt av TipsForm, PlayerTipsTooltip m.fl.) ──
+// Regner ut hvilket lag som faktisk skjuler seg bak "Vinner G", "Toer G",
+// "Vinner kamp N" eller "Taper kamp N", rekursivt, basert på foreliggende
+// resultater. Returnerer null hvis det ennå ikke er avgjort.
+function calcGroupStandingsFor(grpLetter, results) {
+  const teams = {};
+  GROUP_MATCHES.filter(m => m.group === grpLetter).forEach(m => {
+    if (!teams[m.home]) teams[m.home] = { pts:0, gf:0, ga:0, played:0 };
+    if (!teams[m.away]) teams[m.away] = { pts:0, gf:0, ga:0, played:0 };
+    const r = results[m.id];
+    if (r?.home === undefined) return;
+    const h = parseInt(r.home), a = parseInt(r.away);
+    teams[m.home].played++; teams[m.away].played++;
+    teams[m.home].gf += h; teams[m.home].ga += a;
+    teams[m.away].gf += a; teams[m.away].ga += h;
+    if (h > a) { teams[m.home].pts += 3; }
+    else if (h < a) { teams[m.away].pts += 3; }
+    else { teams[m.home].pts += 1; teams[m.away].pts += 1; }
+  });
+  return Object.entries(teams)
+    .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
+    .map(([team]) => team);
+}
+function groupIsFinishedFor(grpLetter, results) {
+  if (!grpLetter) return false;
+  return GROUP_MATCHES.filter(m => m.group === grpLetter).every(m => results[m.id]?.home !== undefined);
+}
+function resolveKOSlot(slot, results, visited = new Set()) {
+  if (!slot) return null;
+  const vinnerMatch = slot.match(/^Vinner ([A-L])$/);
+  const toerMatch   = slot.match(/^Toer ([A-L])$/);
+  if (vinnerMatch) {
+    const g = vinnerMatch[1];
+    if (groupIsFinishedFor(g, results)) return results[`grp_${g}`]?.[0] || calcGroupStandingsFor(g, results)[0] || null;
+    if (results[`grp_${g}`]?.[0]) return results[`grp_${g}`][0];
+    return null;
+  }
+  if (toerMatch) {
+    const g = toerMatch[1];
+    if (groupIsFinishedFor(g, results)) return results[`grp_${g}`]?.[1] || calcGroupStandingsFor(g, results)[1] || null;
+    if (results[`grp_${g}`]?.[1]) return results[`grp_${g}`][1];
+    return null;
+  }
+  const vinnerKamp = slot.match(/^Vinner kamp (\d+)$/);
+  const taperKamp  = slot.match(/^Taper kamp (\d+)$/);
+  if (vinnerKamp || taperKamp) {
+    const num = parseInt((vinnerKamp || taperKamp)[1], 10);
+    const km = KNOCKOUT_MATCHES.find(x => x.matchNum === num);
+    if (!km || visited.has(km.id)) return null;
+    const prevAct = results[km.id];
+    if (!prevAct || prevAct.home === undefined || prevAct.away === undefined) return null;
+    const nextVisited = new Set(visited); nextVisited.add(km.id);
+    const homeTeam = prevAct.homeTeam || resolveKOSlot(km.home, results, nextVisited);
+    const awayTeam = prevAct.awayTeam || resolveKOSlot(km.away, results, nextVisited);
+    if (!homeTeam || !awayTeam) return null;
+    let homeWon;
+    if (prevAct.winnerSide === 'home') { homeWon = true; }
+    else if (prevAct.winnerSide === 'away') { homeWon = false; }
+    else if (prevAct.penHome !== undefined && prevAct.penHome !== null && prevAct.penHome !== '') {
+      homeWon = parseInt(prevAct.penHome) > parseInt(prevAct.penAway);
+    } else if (parseInt(prevAct.home) === parseInt(prevAct.away)) {
+      return null;
+    } else {
+      homeWon = parseInt(prevAct.home) > parseInt(prevAct.away);
+    }
+    return vinnerKamp ? (homeWon ? homeTeam : awayTeam) : (homeWon ? awayTeam : homeTeam);
+  }
+  return null;
+}
 
 // ── Delt plassering ved poenglikhet (1,1,3,4,4,6 …) ────────────────────
 // Tar inn en allerede sortert liste (høyest poeng først) og legger på
@@ -3389,13 +3459,15 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
               const outcome = (h, a) => h > a ? "H" : h < a ? "A" : "D";
               const dashClr = isLive && tipH !== null && actH !== null
                 ? (outcome(tipH, tipA) === outcome(actH, actA) ? "#FFD700" : "rgba(255,255,255,.9)") : "rgba(255,255,255,.9)";
-              const shortH = TEAM_SHORT[m.home] || m.home.slice(0,3).toUpperCase();
-              const shortA = TEAM_SHORT[m.away] || m.away.slice(0,3).toUpperCase();
+              const homeTeam = r?.homeTeam || resolveKOSlot(m.home, results) || m.home;
+              const awayTeam = r?.awayTeam || resolveKOSlot(m.away, results) || m.away;
+              const shortH = TEAM_SHORT[homeTeam] || homeTeam.slice(0,3).toUpperCase();
+              const shortA = TEAM_SHORT[awayTeam] || awayTeam.slice(0,3).toUpperCase();
               return (
                 <div key={m.id} style={{ marginBottom:idx<showMatches.length-1?8:0, paddingBottom:idx<showMatches.length-1?8:0, borderBottom:idx<showMatches.length-1?"1px solid rgba(255,255,255,.07)":"none" }}>
                   {isLive && <div style={{ fontSize:10, color:"#ef4444", fontWeight:700, textAlign:"center", marginBottom:2, letterSpacing:1 }}>🔴 LIVE</div>}
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                    <span style={{ flex:1, textAlign:"right", fontSize:11, fontWeight:400, color:"#e8edf8", display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>{shortH} <Flag team={m.home} size={12} /></span>
+                    <span style={{ flex:1, textAlign:"right", fontSize:11, fontWeight:400, color:"#e8edf8", display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>{shortH} <Flag team={homeTeam} size={12} /></span>
                     <span style={{ flexShrink:0, minWidth:36, textAlign:"center", fontFamily:"'Fira Code',monospace", fontSize:13, fontWeight:700, background: isLive ? "rgba(0,229,255,.08)" : "rgba(0,0,0,.25)", borderRadius:6, padding:"2px 7px", border: isLive ? "1px solid rgba(0,229,255,.2)" : "1px solid rgba(255,255,255,.08)" }}>
                       {tip === "–" ? <span style={{color:"rgba(255,255,255,.2)"}}>–</span> : (
                         <span>
@@ -3405,7 +3477,7 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
                         </span>
                       )}
                     </span>
-                    <span style={{ flex:1, fontSize:11, fontWeight:400, color:"#e8edf8", display:"flex", alignItems:"center", gap:4 }}><Flag team={m.away} size={12} /> {shortA}</span>
+                    <span style={{ flex:1, fontSize:11, fontWeight:400, color:"#e8edf8", display:"flex", alignItems:"center", gap:4 }}><Flag team={awayTeam} size={12} /> {shortA}</span>
                   </div>
                 </div>
               );
@@ -4222,79 +4294,10 @@ function TipsForm({ me, phase, viewUser }) {
                 const rightAway    = hasAct && hasTip && tA === aA;
                 const superbonus   = rightOutcome && rightHome && rightAway && hasAct && (aH+aA) >= 5;
 
-                // Beregn foreløpig gruppetabell fra resultater
-                const calcGroupStandings = (grpLetter) => {
-                  const grpMatches = GROUP_MATCHES.filter(m => m.group === grpLetter);
-                  const teams = {};
-                  grpMatches.forEach(m => {
-                    if (!teams[m.home]) teams[m.home] = { pts:0, gf:0, ga:0, played:0 };
-                    if (!teams[m.away]) teams[m.away] = { pts:0, gf:0, ga:0, played:0 };
-                    const r = results[m.id];
-                    if (r?.home === undefined) return;
-                    const h = parseInt(r.home), a = parseInt(r.away);
-                    teams[m.home].played++; teams[m.away].played++;
-                    teams[m.home].gf += h; teams[m.home].ga += a;
-                    teams[m.away].gf += a; teams[m.away].ga += h;
-                    if (h > a) { teams[m.home].pts += 3; }
-                    else if (h < a) { teams[m.away].pts += 3; }
-                    else { teams[m.home].pts += 1; teams[m.away].pts += 1; }
-                  });
-                  return Object.entries(teams)
-                    .sort(([,a],[,b]) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
-                    .map(([team]) => team);
-                };
-                const groupIsFinished = (grpLetter) => {
-                  if (!grpLetter) return false;
-                  return GROUP_MATCHES.filter(m => m.group === grpLetter).every(m => results[m.id]?.home !== undefined);
-                };
-                const resolveSlot = (slot, visited = new Set()) => {
-                  if (!slot) return null;
-                  const vinnerMatch = slot.match(/^Vinner ([A-L])$/);
-                  const toerMatch   = slot.match(/^Toer ([A-L])$/);
-                  if (vinnerMatch) {
-                    const g = vinnerMatch[1];
-                    // Vis kun hvis gruppen er ferdigspilt, eller posisjonen er garantert i actOrder
-                    if (groupIsFinished(g)) return results[`grp_${g}`]?.[0] || calcGroupStandings(g)[0] || null;
-                    if (results[`grp_${g}`]?.[0]) return results[`grp_${g}`][0]; // garantert av admin
-                    return null;
-                  }
-                  if (toerMatch) {
-                    const g = toerMatch[1];
-                    if (groupIsFinished(g)) return results[`grp_${g}`]?.[1] || calcGroupStandings(g)[1] || null;
-                    if (results[`grp_${g}`]?.[1]) return results[`grp_${g}`][1]; // garantert av admin
-                    return null;
-                  }
-                  // "Vinner kamp N" / "Taper kamp N" – regn ut selv fra resultatet på kamp N,
-                  // uansett om laget ble skrevet inn automatisk (Cloud Function) eller manuelt av admin.
-                  const vinnerKamp = slot.match(/^Vinner kamp (\d+)$/);
-                  const taperKamp  = slot.match(/^Taper kamp (\d+)$/);
-                  if (vinnerKamp || taperKamp) {
-                    const num = parseInt((vinnerKamp || taperKamp)[1], 10);
-                    const km = KNOCKOUT_MATCHES.find(x => x.matchNum === num);
-                    if (!km || visited.has(km.id)) return null;
-                    const prevAct = results[km.id];
-                    if (!prevAct || prevAct.home === undefined || prevAct.away === undefined) return null;
-                    const nextVisited = new Set(visited); nextVisited.add(km.id);
-                    const homeTeam = prevAct.homeTeam || resolveSlot(km.home, nextVisited);
-                    const awayTeam = prevAct.awayTeam || resolveSlot(km.away, nextVisited);
-                    if (!homeTeam || !awayTeam) return null;
-                    let homeWon;
-                    if (prevAct.winnerSide === 'home') {
-                      homeWon = true;
-                    } else if (prevAct.winnerSide === 'away') {
-                      homeWon = false;
-                    } else if (prevAct.penHome !== undefined && prevAct.penHome !== null && prevAct.penHome !== '') {
-                      homeWon = parseInt(prevAct.penHome) > parseInt(prevAct.penAway);
-                    } else if (parseInt(prevAct.home) === parseInt(prevAct.away)) {
-                      // Uavgjort etter ordinær tid og verken vinnerfelt eller straffedata finnes ennå – ukjent hvem som går videre
-                      return null;
-                    } else {
-                      homeWon = parseInt(prevAct.home) > parseInt(prevAct.away);
-                    }
-                    return vinnerKamp ? (homeWon ? homeTeam : awayTeam) : (homeWon ? awayTeam : homeTeam);
-                  }
-                  return null;
-                };
+                // Beregn foreløpig gruppetabell fra resultater (delt funksjon)
+                const calcGroupStandings = (grpLetter) => calcGroupStandingsFor(grpLetter, results);
+                const groupIsFinished = (grpLetter) => groupIsFinishedFor(grpLetter, results);
+                const resolveSlot = (slot) => resolveKOSlot(slot, results);
                 // User's tip for the slot (shown in parens before group is done)
                 const tipForSlot = (slot) => {
                   // Vis foreløpig gruppeleder, ikke brukerens egne gruppetips
@@ -4703,6 +4706,11 @@ function AdminPanel() {
             const cur = results[matchId] || {};
             await setResults({ ...results, [matchId]: cur });
           };
+          const resetKOMatch = async (matchId, label) => {
+            if (!window.confirm(`Nullstille kamp ${label} helt?\n\nDette fjerner resultat, lagoppsett og eventuelle straffer for denne kampen – og alle poeng spillerne har fått for den forsvinner automatisk. Kan ikke angres.`)) return;
+            await clearMatchResult(matchId);
+            setResultsState(r => { const next = { ...r }; delete next[matchId]; return next; });
+          };
           return KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom: 16 }}>
               <span style={C.roundL}>{label}</span>
@@ -4759,6 +4767,30 @@ function AdminPanel() {
                         <span style={{ fontSize:9, color:'rgba(255,255,255,.4)' }}>(kun ved uavgjort etter ordinær tid)</span>
                       </div>
                     )}
+                    {(() => {
+                      // Live forhåndsvisning av hvem som går videre, basert på det som er tastet inn –
+                      // så feil lag/side-mismatch oppdages med det samme, før det propagerer videre i braketten.
+                      if (r.home === undefined || r.home === '' || r.away === undefined || r.away === '' || !homeTeam || !awayTeam) return null;
+                      let winnerName = null;
+                      if (r.winnerSide === 'home') winnerName = homeTeam;
+                      else if (r.winnerSide === 'away') winnerName = awayTeam;
+                      else if (r.penHome !== undefined && r.penHome !== null && r.penHome !== '') {
+                        winnerName = parseInt(r.penHome) > parseInt(r.penAway) ? homeTeam : awayTeam;
+                      } else if (parseInt(r.home) !== parseInt(r.away)) {
+                        winnerName = parseInt(r.home) > parseInt(r.away) ? homeTeam : awayTeam;
+                      }
+                      return (
+                        <div style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:2 }}>
+                          <span style={{ fontSize:11, color: winnerName ? '#4ade80' : 'rgba(255,180,0,.8)' }}>
+                            {winnerName ? `→ Går videre: ${FLAGS[winnerName]||''} ${winnerName}` : '→ Uavgjort – venter på straffedata'}
+                          </span>
+                          <button style={{ ...C.btnDanger, padding:'3px 8px', fontSize:10 }}
+                            onClick={() => resetKOMatch(m.id, `${m.matchNum} (${homeTeam}–${awayTeam})`)}>
+                            🗑️ Nullstill kamp
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
