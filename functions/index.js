@@ -241,7 +241,7 @@ function calcMatchPts(tip, act) {
 function calcTotalScore(user, results) {
   let total = 0;
   Object.entries(results).forEach(([matchId, act]) => {
-    if (!act || act.home === undefined || act.away === undefined) return;
+    if (!act || act.home === undefined || act.away === undefined || act.scoringExcluded) return;
     const tip = user.tips?.[matchId];
     if (tip) total += calcMatchPts(tip, act);
   });

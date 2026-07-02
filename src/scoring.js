@@ -25,7 +25,9 @@ export function calcScore(user, results, quizBonus = 0) {
   [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].forEach(m => {
     const tip = user.tips?.[m.id];
     const act = results[m.id];
-    if (tip && act) {
+    // scoringExcluded: admin har nullstilt poeng for denne kampen (f.eks. feilregistrering),
+    // uten å slette selve resultatet/referatet. Kampen vises fortsatt overalt, men gir 0 poeng.
+    if (tip && act && !act.scoringExcluded) {
       const p = calcMatchPts(tip, act);
       if (p > 0) { bd.matches[m.id] = p; total += p; }
       if (p === 4 || p === 5) fulltreff++;

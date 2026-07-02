@@ -4282,7 +4282,7 @@ function TipsForm({ me, phase, viewUser }) {
               }).map(m => {
                 const t = tips[m.id] || {};
                 const act = results[m.id];
-                const pts = act && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
+                const pts = act && !act.scoringExcluded && t.home !== undefined && t.away !== undefined ? calcMatchPts(t, act) : null;
                 const hasAct = act && act.home !== undefined && act.away !== undefined;
                 const hasTip = t.home !== undefined && t.away !== undefined;
                 const tH = hasTip ? parseInt(t.home) : null;
@@ -4710,6 +4710,12 @@ function AdminPanel() {
             await clearMatchResult(matchId);
             setResultsState(r => { const next = { ...r }; delete next[matchId]; return next; });
           };
+          const toggleKOScoring = async (matchId) => {
+            const cur = results[matchId] || {};
+            const next = { ...cur, scoringExcluded: !cur.scoringExcluded };
+            await setResults({ ...results, [matchId]: next });
+            setResultsState(r => ({ ...r, [matchId]: next }));
+          };
           return KNOCKOUT_ROUNDS.map(({ phase: kp, label }) => (
             <div key={kp} style={{ marginBottom: 16 }}>
               <span style={C.roundL}>{label}</span>
@@ -4779,14 +4785,25 @@ function AdminPanel() {
                         winnerName = parseInt(r.home) > parseInt(r.away) ? homeTeam : awayTeam;
                       }
                       return (
-                        <div style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:2 }}>
+                        <div style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:2, flexWrap:'wrap', gap:6 }}>
                           <span style={{ fontSize:11, color: winnerName ? '#4ade80' : 'rgba(255,180,0,.8)' }}>
                             {winnerName ? `→ Går videre: ${FLAGS[winnerName]||''} ${winnerName}` : '→ Uavgjort – venter på straffedata'}
                           </span>
-                          <button style={{ ...C.btnDanger, padding:'3px 8px', fontSize:10 }}
-                            onClick={() => resetKOMatch(m.id, `${m.matchNum} (${homeTeam}–${awayTeam})`)}>
-                            🗑️ Nullstill kamp
-                          </button>
+                          {r.scoringExcluded && (
+                            <span style={{ fontSize:10, color:'#f87171', background:'rgba(248,113,113,.12)', border:'1px solid rgba(248,113,113,.3)', borderRadius:6, padding:'2px 7px' }}>
+                              🚫 Poeng ekskludert – teller ikke for noen
+                            </span>
+                          )}
+                          <div style={{ display:'flex', gap:6 }}>
+                            <button style={{ ...(r.scoringExcluded ? C.btnGold : C.btnDanger), padding:'3px 8px', fontSize:10 }}
+                              onClick={() => toggleKOScoring(m.id)}>
+                              {r.scoringExcluded ? '✅ Aktiver poeng igjen' : '🚫 Nullstill poeng (behold resultat)'}
+                            </button>
+                            <button style={{ ...C.btnDanger, padding:'3px 8px', fontSize:10 }}
+                              onClick={() => resetKOMatch(m.id, `${m.matchNum} (${homeTeam}–${awayTeam})`)}>
+                              🗑️ Slett kamp helt
+                            </button>
+                          </div>
                         </div>
                       );
                     })()}
