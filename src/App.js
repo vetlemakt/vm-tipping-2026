@@ -4296,7 +4296,6 @@ function TipsForm({ me, phase, viewUser }) {
 
                 // Beregn foreløpig gruppetabell fra resultater (delt funksjon)
                 const calcGroupStandings = (grpLetter) => calcGroupStandingsFor(grpLetter, results);
-                const groupIsFinished = (grpLetter) => groupIsFinishedFor(grpLetter, results);
                 const resolveSlot = (slot) => resolveKOSlot(slot, results);
                 // User's tip for the slot (shown in parens before group is done)
                 const tipForSlot = (slot) => {
