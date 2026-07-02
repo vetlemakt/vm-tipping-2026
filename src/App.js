@@ -4246,7 +4246,7 @@ function TipsForm({ me, phase, viewUser }) {
                       <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!grpOk}
                         value={t.away ?? ''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
                     </div>
-                    {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
+                    {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>Res: {act.home}–{act.away}</span>}
                   </div>
                   {/* Away team */}
                   <div style={{display:'flex',alignItems:'center',gap:3,flex:1,justifyContent:'flex-start',minWidth:0}}>
@@ -4382,7 +4382,7 @@ function TipsForm({ me, phase, viewUser }) {
                         <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:(isMatchOpen(m.id)||hasAct)?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
                           value={t.away??''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
                       </div>
-                      {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>{act.home}–{act.away}</span>}
+                      {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>Res: {act.home}–{act.away}</span>}
                     </div>
                     {/* Away */}
                     <TeamLabel slot={shortenSlot(m.away)} resolved={resolvedAway} tip={tipAway} align="left" />
