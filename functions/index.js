@@ -139,7 +139,7 @@ const MATCH_WINDOWS = [
   { date: '2026-06-29', utcHour: 17, utcMin: 0, knockout: true },  // r32_4 (2026-06-29 19:00 CEST)
   { date: '2026-06-30', utcHour: 21, utcMin: 0, knockout: true },  // r32_5 (2026-06-30 23:00 CEST)
   { date: '2026-06-30', utcHour: 17, utcMin: 0, knockout: true },  // r32_6 (2026-06-30 19:00 CEST)
-  { date: '2026-07-01', utcHour: 1, utcMin: 0, knockout: true },  // r32_7 (2026-07-01 03:00 CEST)
+  { date: '2026-07-01', utcHour: 2, utcMin: 0, knockout: true },  // r32_7 (2026-07-01 04:00 CEST)
   { date: '2026-07-01', utcHour: 16, utcMin: 0, knockout: true },  // r32_8 (2026-07-01 18:00 CEST)
   { date: '2026-07-02', utcHour: 0, utcMin: 0, knockout: true },  // r32_9 (2026-07-02 02:00 CEST)
   { date: '2026-07-01', utcHour: 20, utcMin: 0, knockout: true },  // r32_10 (2026-07-01 22:00 CEST)
@@ -976,7 +976,16 @@ async function pollAndUpdate(checkFinished = true) {
     for (const fixture of liveFixtures) {
       const homeNor = toNor(fixture.teams?.home?.name);
       const awayNor = toNor(fixture.teams?.away?.name);
-      const matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
+      let matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
+      // Fallback: slå opp via homeTeam/awayTeam satt manuelt i results (r16+/sluttspill) –
+      // samme fallback som brukes for ferdigspilte kamper. Uten denne forblir en
+      // sluttspillkamp usynlig for live-visning helt til den er ferdigspilt,
+      // siden fixtureLookup-konfigurasjonen aldri fylles ut automatisk fra appen.
+      if (!matchId) {
+        matchId = Object.entries(currentResults).find(([, r]) =>
+          r.homeTeam === homeNor && r.awayTeam === awayNor
+        )?.[0] || null;
+      }
 
       if (matchId) {
         const result = buildMatchResult(fixture);

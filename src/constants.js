@@ -130,7 +130,7 @@ export const KNOCKOUT_MATCHES = [
   { id:'r32_4',  phase:'r32',    matchNum:76,  home:'Vinner C',       away:'Toer F',           date:'2026-06-29', time:'19:00', stadium:'nrg' },
   { id:'r32_5',  phase:'r32',    matchNum:77,  home:'Vinner I',       away:'3er C/D/F/G/H',    date:'2026-06-30', time:'23:00', stadium:'metlife' },
   { id:'r32_6',  phase:'r32',    matchNum:78,  home:'Toer E',         away:'Toer I',           date:'2026-06-30', time:'19:00', stadium:'att' },
-  { id:'r32_7',  phase:'r32',    matchNum:79,  home:'Vinner A',       away:'3er C/E/F/H/I',    date:'2026-07-01', time:'03:00', stadium:'azteca' },
+  { id:'r32_7',  phase:'r32',    matchNum:79,  home:'Vinner A',       away:'3er C/E/F/H/I',    date:'2026-07-01', time:'04:00', stadium:'azteca' },
   { id:'r32_8',  phase:'r32',    matchNum:80,  home:'Vinner L',       away:'3er E/H/I/J/K',    date:'2026-07-01', time:'18:00', stadium:'mercedesbenz' },
   { id:'r32_9',  phase:'r32',    matchNum:81,  home:'Vinner D',       away:'3er B/E/F/I/J',    date:'2026-07-02', time:'02:00', stadium:'levis' },
   { id:'r32_10', phase:'r32',    matchNum:82,  home:'Vinner G',       away:'3er A/E/H/I/J',    date:'2026-07-01', time:'22:00', stadium:'lumen' },
