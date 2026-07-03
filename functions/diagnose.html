@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Diagnose – gruppetabeller & r32-kamper</title>
+<style>
+  body { font-family: 'Courier New', monospace; background:#0f1420; color:#e8edf8; padding:24px; }
+  h1 { color:#FFD700; font-size:18px; }
+  h2 { color:#FFD700; font-size:14px; margin-top:28px; border-bottom:1px solid #333; padding-bottom:4px; }
+  table { border-collapse: collapse; margin-top:8px; width:100%; max-width:900px; }
+  td, th { border:1px solid #334; padding:6px 10px; text-align:left; font-size:13px; }
+  th { background:#1a2440; }
+  .bad { color:#ff6b6b; font-weight:bold; }
+  .ok { color:#4ade80; }
+  .muted { color:#7788aa; }
+  pre { background:#111827; padding:12px; border-radius:6px; overflow:auto; font-size:12px; }
+</style>
+</head>
+<body>
+<h1>🔍 Diagnose: gruppetabeller (grp_X) og r32-kamper</h1>
+<p class="muted">Leser <code>config/results</code> fra Firestore (read-only, ingen endringer gjøres).</p>
+<div id="out">Laster…</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAELQvSWSmBt9RcL-d1eUlT2oogIbiQVkY",
+    authDomain: "vm-tipping-2026.firebaseapp.com",
+    projectId: "vm-tipping-2026",
+    storageBucket: "vm-tipping-2026.firebasestorage.app",
+    messagingSenderId: "1060307731188",
+    appId: "1:1060307731188:web:df1771b481b630bd6cd4a1",
+    measurementId: "G-5WE2HWBY2Q"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const R32_MATCH_IDS = ['r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8',
+                          'r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16'];
+
+  function esc(v){ return v === undefined ? '<span class="muted">–</span>' : JSON.stringify(v); }
+
+  (async () => {
+    const snap = await getDoc(doc(db, 'config', 'results'));
+    if (!snap.exists()) {
+      document.getElementById('out').innerHTML = '<p class="bad">Fant ingen config/results-dokument.</p>';
+      return;
+    }
+    const data = snap.data();
+    let html = '';
+
+    // Gruppetabeller
+    html += '<h2>Gruppetabeller (grp_X) – admin-satt rekkefølge [1.,2.,3.,4.]</h2><table><tr><th>Gruppe</th><th>1. plass</th><th>2. plass</th><th>3. plass</th><th>4. plass</th></tr>';
+    GROUPS.forEach(g => {
+      const arr = data[`grp_${g}`] || [];
+      html += `<tr><td>${g}</td><td>${esc(arr[0])}</td><td>${esc(arr[1])}</td><td>${esc(arr[2])}</td><td>${esc(arr[3])}</td></tr>`;
+    });
+    html += '</table>';
+
+    // r32-kamper – rådata
+    html += '<h2>r32-kamper – rådata fra config/results</h2><table><tr><th>ID</th><th>homeTeam</th><th>awayTeam</th><th>home</th><th>away</th><th>winnerSide</th><th>penHome</th><th>penAway</th><th>scoringExcluded</th></tr>';
+    R32_MATCH_IDS.forEach(id => {
+      const m = data[id];
+      if (!m) { html += `<tr><td>${id}</td><td colspan="8" class="muted">Ingen data</td></tr>`; return; }
+      html += `<tr><td>${id}</td><td>${esc(m.homeTeam)}</td><td>${esc(m.awayTeam)}</td><td>${esc(m.home)}</td><td>${esc(m.away)}</td><td>${esc(m.winnerSide)}</td><td>${esc(m.penHome)}</td><td>${esc(m.penAway)}</td><td>${esc(m.scoringExcluded)}</td></tr>`;
+    });
+    html += '</table>';
+
+    html += '<h2>Full rådump (til Claude om nødvendig)</h2><pre>' +
+      JSON.stringify({
+        groups: Object.fromEntries(GROUPS.map(g => [`grp_${g}`, data[`grp_${g}`] || null])),
+        r32: Object.fromEntries(R32_MATCH_IDS.map(id => [id, data[id] || null])),
+      }, null, 2) + '</pre>';
+
+    document.getElementById('out').innerHTML = html;
+  })().catch(e => {
+    document.getElementById('out').innerHTML = '<p class="bad">Feil: ' + e.message + '</p>';
+  });
+</script>
+</body>
+</html>

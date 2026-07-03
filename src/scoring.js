@@ -53,5 +53,9 @@ export function calcScore(user, results, quizBonus = 0) {
 
   if (quizBonus) { bd.special.quizBonus = quizBonus; total += quizBonus; }
 
+  // Manuell justering (f.eks. kompensasjon etter retting av feilregistrerte kamper),
+  // slik at en spillers totalsum kan bevares selv om enkeltkamper må rettes i etterkant.
+  if (user.bonusAdjustment) { bd.special.bonusAdjustment = user.bonusAdjustment; total += user.bonusAdjustment; }
+
   return { total, fulltreff, bd };
 }
