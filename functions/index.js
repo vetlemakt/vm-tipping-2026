@@ -1201,7 +1201,7 @@ exports.pollFootball = onSchedule(
 
 // ── Manuell HTTP-trigger ──────────────────────────────────────────────
 exports.manualPoll = onRequest(
-  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'] },
+  { secrets: ['FOOTBALL_API_KEY', 'ANTHROPIC_KEY'], cors: true },
   async (req, res) => {
     try { await pollAndUpdate(); res.json({ ok: true, ts: Date.now() }); }
     catch (err) { console.error('manualPoll feilet:', err); res.status(500).json({ ok: false, error: err.message }); }
@@ -1504,4 +1504,46 @@ exports.buildFixtureLookup = onRequest(async (req, res) => {
   }
   await db.collection('config').doc('fixtureLookup').set(lookup, { merge: true });
   res.json({ ok: true, entries: Object.keys(lookup).length });
+});
+
+// ── Automatisk faseovergang (server-side) ─────────────────────────────
+// Speiler PHASE_SCHEDULE/getAutoPhase fra App.js, men kjører uavhengig av
+// om admin har appen åpen i nettleseren. Kjører hvert 5. minutt.
+const PHASE_SCHEDULE = [
+  { phase: 'pre',          until: new Date('2026-06-11T22:30:00+02:00') },
+  { phase: 'group_lock',   until: new Date('2026-06-27T23:59:00+02:00') },
+  { phase: 'group_done',   until: new Date('2026-06-28T20:50:00+02:00') },
+  { phase: 'r32_lock',     until: new Date('2026-07-03T23:59:00+02:00') },
+  { phase: 'r32_done',     until: new Date('2026-07-04T17:00:00+02:00') },
+  { phase: 'r16_lock',     until: new Date('2026-07-07T23:59:00+02:00') },
+  { phase: 'r16_done',     until: new Date('2026-07-09T21:00:00+02:00') },
+  { phase: 'qf_lock',      until: new Date('2026-07-12T23:59:00+02:00') },
+  { phase: 'qf_done',      until: new Date('2026-07-14T00:00:00+02:00') },
+  { phase: 'sf_lock',      until: new Date('2026-07-15T23:59:00+02:00') },
+  { phase: 'sf_done',      until: new Date('2026-07-18T21:00:00+02:00') },
+  { phase: 'bronze_lock',  until: new Date('2026-07-19T21:00:00+02:00') },
+  { phase: 'finished',     until: null },
+];
+
+function getAutoPhaseServer() {
+  const now = new Date();
+  for (const p of PHASE_SCHEDULE) {
+    if (!p.until || now < p.until) return p.phase;
+  }
+  return 'finished';
+}
+
+exports.autoPhaseTransition = onSchedule('every 5 minutes', async () => {
+  const auto = getAutoPhaseServer();
+  const snap = await db.collection('config').doc('phase').get();
+  const cur = snap.exists ? snap.data().value : 'pre';
+  if (auto !== cur) {
+    await db.collection('config').doc('phase').set({ value: auto });
+    console.log(`autoPhaseTransition: ${cur} -> ${auto}`);
+    // NB: fyller IKKE automatisk ut manglende tips (autoFillMissingTips) her –
+    // den logikken kjører fortsatt klientsidig i App.js når admin har appen åpen.
+    // Fasen (og dermed innsyn i andres tips) oppdateres uansett korrekt og i tide.
+  } else {
+    console.log(`autoPhaseTransition: ingen endring (${cur})`);
+  }
 });
