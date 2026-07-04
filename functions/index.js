@@ -549,11 +549,22 @@ const BRACKET_SLOTS = {
   102: [{ nextId: 'final', side: 'away', role: 'winner' }],
 };
 
+// Duplisert fra constants.js sin KNOCKOUT_MATCHES (kun id->matchNum trengs her,
+// siden Cloud Functions-koden ikke kan importere fra klient-appens constants.js).
+// VIKTIG: hvis sluttspilloppsettet i constants.js endres, må denne oppdateres til match.
+const MATCH_NUM_BY_ID = {
+  r32_1:73, r32_2:74, r32_3:75, r32_4:76, r32_5:77, r32_6:78, r32_7:79, r32_8:80,
+  r32_9:81, r32_10:82, r32_11:83, r32_12:84, r32_13:85, r32_14:86, r32_15:87, r32_16:88,
+  r16_1:89, r16_2:90, r16_3:91, r16_4:92, r16_5:93, r16_6:94, r16_7:95, r16_8:96,
+  qf_1:97, qf_2:98, qf_3:99, qf_4:100,
+  sf_1:101, sf_2:102,
+  bronze:103, final:104,
+};
+
 async function propagateBracket(matchId, homeNor, awayNor, homeGoals, awayGoals, result) {
-  const allMatches = [...KNOCKOUT_MATCHES];
-  const match = allMatches.find(m => m.id === matchId);
-  if (!match) return;
-  const slots = BRACKET_SLOTS[match.matchNum];
+  const matchNum = MATCH_NUM_BY_ID[matchId];
+  if (!matchNum) return;
+  const slots = BRACKET_SLOTS[matchNum];
   if (!slots || slots.length === 0) return;
 
   // Bestem vinner – bruk API-Footballs eget vinnerfelt (tar høyde for
@@ -584,7 +595,7 @@ async function propagateBracket(matchId, homeNor, awayNor, homeGoals, awayGoals,
     updates[`${nextId}.${side === 'home' ? 'homeTeam' : 'awayTeam'}`] = team;
   }
   await resultsRef.set(updates, { merge: true });
-  console.log(`Bracket propagert fra ${matchId} (kamp ${match.matchNum}):`, updates);
+  console.log(`Bracket propagert fra ${matchId} (kamp ${matchNum}):`, updates);
 }
 
 async function handleMatchFinished(matchId, homeNor, awayNor, homeGoals, awayGoals, updatedResults) {
@@ -841,10 +852,24 @@ async function pollAndUpdate(checkFinished = true) {
   const liveRef        = db.collection('config').doc('liveEvent');
   const prevGoalsRef   = db.collection('config').doc('prevGoals');
   const prevCardsRef   = db.collection('config').doc('prevCards');
+  const finishedDedupRef = db.collection('config').doc('finishedMatchesDedup');
 
   const currentResults = (await resultsRef.get()).data() || {};
   const prevGoals      = (await prevGoalsRef.get()).data() || {};
   const prevCards      = (await prevCardsRef.get()).data() || {};
+
+  // Selvhelbredende etterfyll: kjør propagateBracket på nytt for alle allerede
+  // ferdigspilte sluttspillkamper. Trengs pga. en tidligere bug der propagateBracket
+  // alltid kastet en (stille fanget) feil og derfor aldri faktisk fremrykket noen
+  // kamper. Idempotent og billig (kun Firestore, ingen API-kall), så helt trygt
+  // å kjøre på nytt hver eneste poll.
+  for (const [mid, matchNum] of Object.entries(MATCH_NUM_BY_ID)) {
+    const r = currentResults[mid];
+    if (r && r.isFinished && r.homeTeam && r.awayTeam) {
+      await propagateBracket(mid, r.homeTeam, r.awayTeam, r.home, r.away, r)
+        .catch(e => console.error(`backfill propagateBracket feil (${mid}):`, e.message));
+    }
+  }
 
   const updatedResults = { ...currentResults };
   let   resultsChanged = false;
@@ -873,6 +898,19 @@ async function pollAndUpdate(checkFinished = true) {
       // Trigger tabellreferat når kamp er ferdig (FT) og ikke allerede trigget
       const justFinished = FINISHED_STATUSES.has(result.status) && (!existing || !FINISHED_STATUSES.has(existing.status));
       if (justFinished) {
+        // Transaksjonssikker dedup: sørg for at KUN én samtidig poll-kjøring
+        // (manuell + planlagt kan overlappe i tid) faktisk trigger
+        // tabellreferat + "Slutt!"-banner for denne kampen.
+        let isFirstToFireFinished = false;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(finishedDedupRef);
+          const data = snap.exists ? snap.data() : {};
+          if (data[matchId] !== result.status) {
+            tx.set(finishedDedupRef, { ...data, [matchId]: result.status }, { merge: true });
+            isFirstToFireFinished = true;
+          }
+        });
+        if (isFirstToFireFinished) {
         // Tabellreferat (lagres i 'summaries', ikke i chat) skal fortsatt postes
         // automatisk når en kamp avsluttes. Det er KUN auto-kommentarer på mål
         // (handleGoalEvent, i selve chat-loggen) som skal være deaktivert –
@@ -889,6 +927,7 @@ async function pollAndUpdate(checkFinished = true) {
           homeGoals: result.home, awayGoals: result.away,
           ts: Date.now(),
         };
+        }
       }
     }
 
@@ -1156,8 +1195,8 @@ async function pollAndUpdate(checkFinished = true) {
   }
 
   if (resultsChanged) batch.set(resultsRef, updatedResults, { merge: true });
-  batch.set(prevGoalsRef, newPrevGoals);
-  batch.set(prevCardsRef, newPrevCards);
+  batch.set(prevGoalsRef, newPrevGoals, { merge: true });
+  batch.set(prevCardsRef, newPrevCards, { merge: true });
 
   await batch.commit();
   console.log(`Poll ferdig. Live: ${liveFixtures.length}, Ferdig: ${finishedFixtures.length}`);

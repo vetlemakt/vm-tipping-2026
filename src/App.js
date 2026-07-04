@@ -2862,8 +2862,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
       {(() => {
         const nowTs = Date.now();
         const isKickedOff = m => new Date(m.date + 'T' + (m.time || '00:00') + ':00+02:00').getTime() < nowTs;
-        const finishedCount = GROUP_MATCHES.filter(m => results[m.id]?.home !== undefined && isKickedOff(m)).length;
-        const totalGoals = GROUP_MATCHES.reduce((s,m) => {
+        const finishedCount = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].filter(m => results[m.id]?.home !== undefined && isKickedOff(m)).length;
+        const totalGoals = [...GROUP_MATCHES, ...KNOCKOUT_MATCHES].reduce((s,m) => {
           const r = results[m.id];
           return r?.home !== undefined && isKickedOff(m) ? s + (r.home||0) + (r.away||0) : s;
         }, 0);
