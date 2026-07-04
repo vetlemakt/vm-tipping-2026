@@ -6,7 +6,7 @@ import {
   getCardStats, setCardStats,
   subscribeChatMessages, sendChatMessage, deleteChatMessage, addReaction,
   subscribePhase, subscribeResults,
-  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache,
+  updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache, subscribeCardStats,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore'; // eslint-disable-line no-unused-vars
@@ -2642,7 +2642,7 @@ function StatsCarousel({ widgets }) {
   );
 }
 
-function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
+function StatBoxWithTooltip({ num, label, tooltip, mobile = false, customBody = null }) {
   const [show, setShow] = useState(false);
   const boxRef = useRef(null);
   const [rect, setRect] = useState(null);
@@ -2690,10 +2690,14 @@ function StatBoxWithTooltip({ num, label, tooltip, mobile = false }) {
       onMouseEnter={() => !mobile && openTooltip()}
       onMouseLeave={() => !mobile && closeTooltip()}
       onClick={toggle}>
-      <div style={{ ...C.statNum, fontSize: mobile ? 32 : 28 }}>{num}</div>
-      <div style={{ ...C.statLabel, fontSize: mobile ? 10 : 9, letterSpacing: 1.5 }}>{label}
-        {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
-      </div>
+      {customBody ? customBody : (
+        <>
+          <div style={{ ...C.statNum, fontSize: mobile ? 32 : 28 }}>{num}</div>
+          <div style={{ ...C.statLabel, fontSize: mobile ? 10 : 9, letterSpacing: 1.5 }}>{label}
+            {tooltip && <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>}
+          </div>
+        </>
+      )}
       {show && tooltip && typeof document !== 'undefined' && createPortal(
         <>
           <div
@@ -2775,6 +2779,8 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
   useEffect(() => { const u = subscribeMatchSummaries(setSummaries); return u; }, []);
   useEffect(() => { const u = subscribeLiveEvent(ev => setLiveEvent(ev?.type ? ev : null)); return u; }, []);
   useEffect(() => { const u = subscribeStatsCache(data => setScorers(data?.scorers || [])); return u; }, []);
+  const [cardStats, setCardStatsState] = useState({});
+  useEffect(() => { const u = subscribeCardStats(data => setCardStatsState(data || {})); return u; }, []);
   const chatBoxRef = useRef(null);
   useEffect(() => { if(chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }, [msgs]);
   useEffect(() => {
@@ -2867,6 +2873,16 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           const r = results[m.id];
           return r?.home !== undefined && isKickedOff(m) ? s + (r.home||0) + (r.away||0) : s;
         }, 0);
+
+        // ── Kortstatistikk: totalt gule/røde i turneringa + topp 10 lag ──
+        const cardTeamKeys = Object.keys(cardStats).filter(k => !k.startsWith('_y_') && !k.startsWith('_r_'));
+        const totalYellow = cardTeamKeys.reduce((s, t) => s + (cardStats[`_y_${t}`] || 0), 0);
+        const totalRed    = cardTeamKeys.reduce((s, t) => s + (cardStats[`_r_${t}`] || 0), 0);
+        const topCardTeams = cardTeamKeys
+          .map(t => ({ team: t, y: cardStats[`_y_${t}`] || 0, r: cardStats[`_r_${t}`] || 0, pts: cardStats[t] || 0 }))
+          .filter(t => t.pts > 0)
+          .sort((a, b) => b.pts - a.pts)
+          .slice(0, 10);
         // const myPts removed – replaced by form table
 
         // ── Formtabell: siste N kamper (N = min(finishedCount, 5)) ──────
@@ -2969,10 +2985,44 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
           </div>
         );
 
+        const cardTooltipContent = (mobileMode) => (
+          <div style={{ minWidth: mobileMode ? 230 : 200 }}>
+            <div style={{ fontFamily:"'Kanit',sans-serif", fontWeight:700, fontSize:11, color:'#FFD700', letterSpacing:2, textAlign:'center', marginBottom:8 }}>KORTPOENG</div>
+            <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, color:'rgba(255,255,255,.5)', textAlign:'center', paddingBottom:4, borderBottom:'1px solid rgba(255,255,255,.1)' }}>
+              <span style={{ flex:1, textAlign:'left' }}></span>
+              <span style={{ width:26 }}>🟨</span>
+              <span style={{ width:26 }}>🟥</span>
+              <span style={{ width:26 }}>P.</span>
+            </div>
+            <div style={{ maxHeight: 240, overflowY: 'auto', overflowX: 'hidden' }}>
+              {topCardTeams.length > 0 ? topCardTeams.map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems:'center', gap:4, fontSize: 11, padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                  <span style={{ flex:1, color: 'rgba(255,255,255,.8)', display:'flex', alignItems:'center', gap:4, minWidth:0 }}>
+                    <Flag team={t.team} size={14} />
+                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{mobileMode ? (TEAM_SHORT[t.team] || t.team.slice(0,3).toUpperCase()) : t.team}</span>
+                  </span>
+                  <span style={{ width:26, textAlign:'center', color:'#FFD700', fontWeight:700 }}>{t.y}</span>
+                  <span style={{ width:26, textAlign:'center', color:'#ef4444', fontWeight:700 }}>{t.r}</span>
+                  <span style={{ width:26, textAlign:'center', color:'#4ade80', fontWeight:700 }}>{t.pts}</span>
+                </div>
+              )) : <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontStyle: 'italic' }}>Kortstatistikk kommer</div>}
+            </div>
+          </div>
+        );
+        const cardBoxBody = (mobileMode) => (
+          <>
+            <img src="/cards.png" alt="Kort" style={{ height: mobileMode ? 24 : 20, width: 'auto', marginBottom: 3, filter:'drop-shadow(0 0 6px rgba(255,215,0,.3))' }} />
+            <div style={{ ...C.statNum, fontSize: mobileMode ? 18 : 15 }}>{totalYellow} / {totalRed}</div>
+            <div style={{ ...C.statLabel, fontSize: mobileMode ? 10 : 9, letterSpacing: 1.5 }}>Kort
+              <span style={{ fontSize: 8, color: 'rgba(255,215,0,.5)', marginLeft: 2 }}>▲</span>
+            </div>
+          </>
+        );
+
         const simpleStats = [
           { key: 'rank',  num: myRank ? `#${myRank}` : '–', label: 'Plass' },
-          { key: 'games', num: finishedCount, label: 'Kamper' },
           { key: 'goals', num: totalGoals,    label: 'Mål' },
+          { key: 'cards', label: 'Kort' },
         ];
 
         // Karusell-widgets: faste dimensjoner, like i stående og liggende
@@ -2993,6 +3043,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 </div>
               } />
             );
+          }
+          if (key === 'cards') {
+            return <StatBoxWithTooltip key={key} mobile={true} customBody={cardBoxBody(true)} tooltip={cardTooltipContent(true)} />;
           }
           if (key === 'rank') {
             return (
@@ -3028,6 +3081,9 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
                 </div>
               } />
             );
+          }
+          if (key === 'cards') {
+            return <StatBoxWithTooltip key={key} customBody={cardBoxBody(false)} tooltip={cardTooltipContent(false)} />;
           }
           if (key === 'rank') {
             return (

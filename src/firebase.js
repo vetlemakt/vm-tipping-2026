@@ -165,3 +165,10 @@ export function subscribeScorers(callback) {
     callback(list.sort((a, b) => b.goals - a.goals));
   });
 }
+
+// ── Kortstatistikk (live) ────────────────────────────────────────────
+export function subscribeCardStats(callback) {
+  return onSnapshot(doc(db, 'config', 'cards'), snap => {
+    callback(snap.exists() ? snap.data() : {});
+  });
+}
