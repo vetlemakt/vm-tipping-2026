@@ -3143,8 +3143,7 @@ function Dashboard({ me, phase, onShowTips, setTab }) {
         <div style={C.dashCardFixedBody}>
           {users.length === 0 && <p style={{ color: '#4a5a80', textAlign: 'center', padding: 20, fontSize: 13 }}>Ingen deltakere ennå.</p>}
           {users.map((r) => {
-            const tipsLocked = !OPEN_PHASES.has(phase);
-            const canView = tipsLocked || r.id === me.username;
+            const canView = true;
             return (
             <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
               onClick={() => canView && onShowTips && onShowTips(r)}>
@@ -3561,12 +3560,11 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
   );
 }
 
-function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }) {
+function Leaderboard({ me, initialSelected, onClearSelected, onShowTips }) {
   const [rows, setRows] = useState([]);
   const [results, setResultsState] = useState({});
   const [selected, setSelected] = useState(initialSelected || null);
 
-  const tipsLocked = !OPEN_PHASES.has(phase);
   useEffect(() => { const u = subscribeResults(setResultsState); return u; }, []);
   useEffect(() => {
     Promise.all([getAllUsers(), getQuizBonusMap()]).then(([us, quizBonus]) => {
@@ -3585,7 +3583,7 @@ function Leaderboard({ me, phase, initialSelected, onClearSelected, onShowTips }
       <div style={C.cardHeader}><span style={C.cardTitle}><span style={C.cardTitleDot} /> Full poengtabell</span></div>
       <div style={C.cardBody}>
         {rows.map((r) => {
-          const canView = tipsLocked || r.id === me.username;
+          const canView = true;
           return (
           <div key={r.id} style={{ ...C.lbRow, ...(r.id === me.username ? C.lbMe : {}), cursor: canView ? 'pointer' : 'default' }}
             onClick={() => canView && (onShowTips ? onShowTips(r) : setSelected(r))}>
@@ -4400,7 +4398,7 @@ function TipsForm({ me, phase, viewUser }) {
                         {align==='left' && <span style={{fontSize:11,color: resolved ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.4)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{resolved || slot}</span>}
                       </div>
                       {/* User's tip in parens when group not done */}
-                      {!resolved && tip && (
+                      {!resolved && tip && isOwn && (
                         <div style={{display:'flex',alignItems:'center',gap:3,marginTop:2,justifyContent: align==='right' ? 'flex-end' : 'flex-start'}}>
                           {align==='right' && <span style={{fontSize:9,color:'rgba(255,215,0,.5)',fontFamily:"'Fira Code',monospace",whiteSpace:'nowrap'}}>({tip})</span>}
                           {tipCode && <img src={`https://flagcdn.com/w20/${tipCode}.png`} alt="" style={{width:14,height:10,objectFit:'cover',borderRadius:1,flexShrink:0,opacity:0.6}} />}
@@ -4447,10 +4445,10 @@ function TipsForm({ me, phase, viewUser }) {
                     }}>
                       <div style={{display:'flex',alignItems:'center',gap:4}}>
                         <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:(isMatchOpen(m.id)||hasAct)?1:.4,color:hasAct?(rightHome?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
-                          value={t.home??''} placeholder='–' onChange={e => setTip(m.id,'home',e.target.value)} />
+                          value={(isOwn||hasAct) ? (t.home??'') : ''} placeholder={(isOwn||hasAct) ? '–' : '?'} onChange={e => setTip(m.id,'home',e.target.value)} />
                         <span style={{color:superbonus?'#FFD700':rightOutcome?'#FFD700':'rgba(255,255,255,.5)',fontWeight:800,fontSize:15,lineHeight:1}}>–</span>
                         <input style={{...C.sInp,width:32,fontSize:15,background:'transparent',border:'none',opacity:(isMatchOpen(m.id)||hasAct)?1:.4,color:hasAct?(rightAway?'#FFD700':'#e8edf8'):'#e8edf8',textAlign:'center',padding:0}} type="number" min={0} max={20} disabled={!isMatchOpen(m.id)}
-                          value={t.away??''} placeholder='–' onChange={e => setTip(m.id,'away',e.target.value)} />
+                          value={(isOwn||hasAct) ? (t.away??'') : ''} placeholder={(isOwn||hasAct) ? '–' : '?'} onChange={e => setTip(m.id,'away',e.target.value)} />
                       </div>
                       {hasAct && <span style={{fontSize:9,color:'rgba(0,229,255,.75)',fontFamily:"'Fira Code',monospace",letterSpacing:1}}>Res: {act.home}–{act.away}</span>}
                     </div>
@@ -6904,9 +6902,7 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
   });
-  const [tab, setTab] = useState(() => {
-    try { return localStorage.getItem('vm_tab') || 'dashboard'; } catch { return 'dashboard'; }
-  });
+  const [tab, setTab] = useState('dashboard');
   const podiumMode = window.location.pathname === '/podium';
   const [podiumDismissed, setPodiumDismissed] = useState(false);
   const [podiumPlayers, setPodiumPlayers] = useState({ gold: '', silver: '', bronze: '' });
@@ -6930,7 +6926,6 @@ export default function App() {
 
   // Browser back/forward navigation
   const setTabWithHistory = useCallback((newTab) => {
-    try { localStorage.setItem('vm_tab', newTab); } catch {}
     window.history.pushState({ tab: newTab }, '', '');
     setTab(newTab);
   }, []);
@@ -6938,13 +6933,11 @@ export default function App() {
   useEffect(() => {
     const onPop = (e) => {
       const t = e.state?.tab || 'dashboard';
-      try { localStorage.setItem('vm_tab', t); } catch {}
       setTab(t);
     };
     window.addEventListener('popstate', onPop);
-    // Set initial history entry with the restored tab
-    const initialTab = (() => { try { return localStorage.getItem('vm_tab') || 'dashboard'; } catch { return 'dashboard'; } })();
-    window.history.replaceState({ tab: initialTab }, '', '');
+    // Fersk sideinnlasting starter alltid på dashboard, ikke sist besøkte fane
+    window.history.replaceState({ tab: 'dashboard' }, '', '');
     return () => window.removeEventListener('popstate', onPop);
   }, []);
   const [phase, setPhaseState] = useState('pre');
