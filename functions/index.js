@@ -594,8 +594,9 @@ async function propagateBracket(matchId, homeNor, awayNor, homeGoals, awayGoals,
     const team = role === 'winner' ? winner : loser;
     updates[`${nextId}.${side === 'home' ? 'homeTeam' : 'awayTeam'}`] = team;
   }
-  await resultsRef.set(updates, { merge: true });
+  await resultsRef.update(updates);
   console.log(`Bracket propagert fra ${matchId} (kamp ${matchNum}):`, updates);
+  return updates;
 }
 
 async function handleMatchFinished(matchId, homeNor, awayNor, homeGoals, awayGoals, updatedResults) {
@@ -773,6 +774,21 @@ function buildMatchResult(fixture) {
     penHome, penAway, etHome, etAway, winnerSide, updatedAt: Date.now() };
 }
 
+// Bytter om hjemme/borte i et resultatobjekt. Trengs når API-Footballs faktiske
+// hjemme/borte-side for en sluttspillkamp er motsatt av rekkefølgen vi har lagret
+// i homeTeam/awayTeam (f.eks. satt av propagateBracket basert på vår egen
+// bracket-definisjon, som ikke nødvendigvis følger FIFAs offisielle hjemme/borte-valg).
+function swapResultSides(result) {
+  if (!result) return result;
+  return {
+    ...result,
+    home: result.away, away: result.home,
+    etHome: result.etAway, etAway: result.etHome,
+    penHome: result.penAway, penAway: result.penHome,
+    winnerSide: result.winnerSide === 'home' ? 'away' : result.winnerSide === 'away' ? 'home' : result.winnerSide,
+  };
+}
+
 function buildLiveEvent(fixture, includeCards = false) {
   const events = fixture.events || [];
   if (!events.length) return null;
@@ -863,11 +879,26 @@ async function pollAndUpdate(checkFinished = true) {
   // alltid kastet en (stille fanget) feil og derfor aldri faktisk fremrykket noen
   // kamper. Idempotent og billig (kun Firestore, ingen API-kall), så helt trygt
   // å kjøre på nytt hver eneste poll.
+  // VIKTIG: propagateBracket skriver direkte til Firestore, men currentResults
+  // (lest inn rett over) er allerede hentet ut og blir IKKE automatisk oppdatert
+  // av det. Uten å merge inn updates her ville resten av denne poll-kjøringen
+  // (bl.a. matchId-oppslag for live/ferdige kamper) jobbe med utdaterte data –
+  // nøyaktig det som gjorde at en fersk fremrykket kamp (f.eks. Paraguay-Frankrike
+  // rett etter at r32_2/r32_5 ble ferdigspilt) forble usynlig helt til NESTE poll.
   for (const [mid, matchNum] of Object.entries(MATCH_NUM_BY_ID)) {
     const r = currentResults[mid];
     if (r && r.isFinished && r.homeTeam && r.awayTeam) {
-      await propagateBracket(mid, r.homeTeam, r.awayTeam, r.home, r.away, r)
-        .catch(e => console.error(`backfill propagateBracket feil (${mid}):`, e.message));
+      try {
+        const updates = await propagateBracket(mid, r.homeTeam, r.awayTeam, r.home, r.away, r);
+        if (updates) {
+          for (const [path, value] of Object.entries(updates)) {
+            const [nid, field] = path.split('.');
+            currentResults[nid] = { ...(currentResults[nid] || {}), [field]: value };
+          }
+        }
+      } catch (e) {
+        console.error(`backfill propagateBracket feil (${mid}):`, e.message);
+      }
     }
   }
 
@@ -881,15 +912,27 @@ async function pollAndUpdate(checkFinished = true) {
     const homeNor = toNor(fixture.teams?.home?.name);
     const awayNor = toNor(fixture.teams?.away?.name);
     let matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
-    // Fallback: slå opp via homeTeam/awayTeam satt manuelt i results (r16+)
+    let sidesSwapped = false;
+    // Fallback: slå opp via homeTeam/awayTeam satt manuelt i results (r16+).
+    // Sjekk BEGGE retninger – API-ens hjemme/borte-side stemmer ikke alltid med
+    // rekkefølgen vi lagret via propagateBracket.
     if (!matchId) {
-      matchId = Object.entries(currentResults).find(([, r]) =>
-        r.homeTeam === homeNor && r.awayTeam === awayNor
-      )?.[0] || null;
+      const direct = Object.entries(currentResults).find(([, r]) => r.homeTeam === homeNor && r.awayTeam === awayNor);
+      if (direct) {
+        matchId = direct[0];
+      } else {
+        const reversed = Object.entries(currentResults).find(([, r]) => r.homeTeam === awayNor && r.awayTeam === homeNor);
+        if (reversed) { matchId = reversed[0]; sidesSwapped = true; }
+      }
     }
-    if (!matchId) continue;
-    const result = buildMatchResult(fixture);
+    if (!matchId) {
+      console.log(`Ferdig kamp uten matchId: API sier "${fixture.teams?.home?.name}" (${homeNor}) vs "${fixture.teams?.away?.name}" (${awayNor}) – ingen treff i lookup eller currentResults`);
+      continue;
+    }
+    let result = buildMatchResult(fixture);
     if (!result) continue;
+    let homeLabel = homeNor, awayLabel = awayNor;
+    if (sidesSwapped) { result = swapResultSides(result); homeLabel = awayNor; awayLabel = homeNor; }
     const existing = currentResults[matchId];
     const isNew = !existing || existing.home !== result.home || existing.away !== result.away || existing.status !== result.status;
     if (isNew) {
@@ -915,11 +958,11 @@ async function pollAndUpdate(checkFinished = true) {
         // automatisk når en kamp avsluttes. Det er KUN auto-kommentarer på mål
         // (handleGoalEvent, i selve chat-loggen) som skal være deaktivert –
         // bot-kommentarer i chat skal kun trigges av @navn/@funfact.
-        handleMatchFinished(matchId, homeNor, awayNor, result.home, result.away, { ...updatedResults, [matchId]: result })
+        handleMatchFinished(matchId, homeLabel, awayLabel, result.home, result.away, { ...updatedResults, [matchId]: result })
           .catch(e => console.error('handleMatchFinished feil:', e.message));
         // Lagre finished-event – sendes til klienten etter live-loop
-        const shortH = NOR_TO_SHORT[homeNor] || homeNor.slice(0,3).toUpperCase();
-        const shortA = NOR_TO_SHORT[awayNor] || awayNor.slice(0,3).toUpperCase();
+        const shortH = NOR_TO_SHORT[homeLabel] || homeLabel.slice(0,3).toUpperCase();
+        const shortA = NOR_TO_SHORT[awayLabel] || awayLabel.slice(0,3).toUpperCase();
         finishedEvent = {
           type: 'finished',
           text: `Slutt! ${shortH} ${result.home}–${result.away} ${shortA}`,
@@ -1016,19 +1059,29 @@ async function pollAndUpdate(checkFinished = true) {
       const homeNor = toNor(fixture.teams?.home?.name);
       const awayNor = toNor(fixture.teams?.away?.name);
       let matchId = lookup[`${homeNor}_${awayNor}`] || lookup[`${fixture.teams?.home?.name}_${fixture.teams?.away?.name}`];
+      let sidesSwapped = false;
       // Fallback: slå opp via homeTeam/awayTeam satt manuelt i results (r16+/sluttspill) –
       // samme fallback som brukes for ferdigspilte kamper. Uten denne forblir en
       // sluttspillkamp usynlig for live-visning helt til den er ferdigspilt,
       // siden fixtureLookup-konfigurasjonen aldri fylles ut automatisk fra appen.
+      // Sjekk BEGGE retninger – API-ens hjemme/borte-side stemmer ikke alltid med
+      // rekkefølgen vi lagret via propagateBracket.
       if (!matchId) {
-        matchId = Object.entries(currentResults).find(([, r]) =>
-          r.homeTeam === homeNor && r.awayTeam === awayNor
-        )?.[0] || null;
+        const direct = Object.entries(currentResults).find(([, r]) => r.homeTeam === homeNor && r.awayTeam === awayNor);
+        if (direct) {
+          matchId = direct[0];
+        } else {
+          const reversed = Object.entries(currentResults).find(([, r]) => r.homeTeam === awayNor && r.awayTeam === homeNor);
+          if (reversed) { matchId = reversed[0]; sidesSwapped = true; }
+        }
       }
 
       if (matchId) {
-        const result = buildMatchResult(fixture);
+        let result = buildMatchResult(fixture);
+        if (sidesSwapped) result = swapResultSides(result);
         if (result) { updatedResults[matchId] = result; resultsChanged = true; }
+      } else {
+        console.log(`Live-kamp uten matchId: API sier "${fixture.teams?.home?.name}" (${homeNor}) vs "${fixture.teams?.away?.name}" (${awayNor}) – ingen treff i lookup eller currentResults`);
       }
 
       // Hent hendelser separat for denne kampen
