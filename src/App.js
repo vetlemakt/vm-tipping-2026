@@ -3498,7 +3498,6 @@ function PlayerTipsTooltip({ user, results, onShowTips }) {
               {currentMatch && (() => {
                 const m = currentMatch;
                 const tip = fmtTip(m.id);
-                const isLive = true;
                 const r = results[m.id];
                 const tipParts = tip !== "–" ? tip.split(" – ") : null;
                 const tipH = tipParts ? parseInt(tipParts[0]) : null;
