@@ -7,6 +7,7 @@ import {
   subscribeChatMessages, sendChatMessage, deleteChatMessage, addReaction,
   subscribePhase, subscribeResults,
   updatePresence, subscribeOnlineUsers, subscribeLiveEvent, subscribeQuizPlayer, subscribeStatsCache, subscribeCardStats,
+  subscribePodium, setPodiumActive,
   db,
 } from './firebase';
 import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc } from 'firebase/firestore'; // eslint-disable-line no-unused-vars
@@ -4540,6 +4541,8 @@ function AdminPanel() {
   const [phase, setPhaseState] = useState('pre');
   const [results, setResultsState] = useState({});
   const [cards, setCardsState] = useState({});
+  const [podium, setPodiumState] = useState({ active: false });
+  useEffect(() => { const u = subscribePodium(setPodiumState); return u; }, []);
   const [aTab, setATab] = useState('phase');
   const [ag, setAg] = useState('A');
   const [generatingBots, setGeneratingBots] = useState(false);
@@ -4726,6 +4729,24 @@ function AdminPanel() {
             {PHASE_OPTIONS.map(p => (
               <button key={p.value} onClick={() => updPhase(p.value)} style={{ ...C.phBtn, ...(phase === p.value ? C.phBtnOn : {}) }}>{p.label}</button>
             ))}
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,.08)' }}>
+              <span style={{ ...C.mono12, marginBottom: 8, display: 'block' }}>
+                🏆 Vinnerpodiet: <strong style={{ color: podium.active ? '#4ade80' : 'rgba(255,255,255,.5)' }}>{podium.active ? 'VISES FOR ALLE' : 'Skjult'}</strong>
+              </span>
+              <button
+                onClick={async () => { await setPodiumActive(!podium.active); }}
+                style={{
+                  ...C.phBtn,
+                  background: podium.active ? 'rgba(239,68,68,.15)' : 'rgba(255,215,0,.15)',
+                  border: podium.active ? '1px solid rgba(239,68,68,.4)' : '1px solid rgba(255,215,0,.4)',
+                  color: podium.active ? '#ef4444' : '#FFD700',
+                }}>
+                {podium.active ? '🚫 Skjul vinnerpodiet igjen' : '🏆 Vis vinnerpodiet for alle nå'}
+              </button>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginTop: 6 }}>
+                Vises for alle besøkende med det samme du trykker "Vis". De kan lukke det selv med "Lukk"-knappen, men det dukker opp igjen for dem hvis du skjuler og viser det på nytt.
+              </div>
+            </div>
           </div>
         )}
         {aTab === 'results' && <>
@@ -6876,7 +6897,7 @@ function PodiumPopup({ gold, silver, bronze, onClose }) {
             zIndex: 2001, position: 'relative',
           }}
         >
-          Snakkes! 🏆
+          Lukk
         </button>
       </div>
 
@@ -6903,8 +6924,23 @@ export default function App() {
     } catch { return null; }
   });
   const [tab, setTab] = useState('dashboard');
-  const podiumMode = window.location.pathname === '/podium';
-  const [podiumDismissed, setPodiumDismissed] = useState(false);
+  const [podiumConfig, setPodiumConfig] = useState({ active: false });
+  useEffect(() => { const u = subscribePodium(setPodiumConfig); return u; }, []);
+  const podiumMode = podiumConfig.active === true;
+  const [podiumDismissed, setPodiumDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('vm_podium_dismissed_at') === String(podiumConfig.activatedAt);
+    } catch { return false; }
+  });
+  useEffect(() => {
+    try {
+      setPodiumDismissed(localStorage.getItem('vm_podium_dismissed_at') === String(podiumConfig.activatedAt));
+    } catch {}
+  }, [podiumConfig.activatedAt]);
+  const dismissPodium = () => {
+    setPodiumDismissed(true);
+    try { localStorage.setItem('vm_podium_dismissed_at', String(podiumConfig.activatedAt)); } catch {}
+  };
   const [podiumPlayers, setPodiumPlayers] = useState({ gold: '', silver: '', bronze: '' });
 
   // Fetch top 3 for podium
@@ -6922,7 +6958,7 @@ export default function App() {
         bronze: nameAt(3),
       });
     });
-  }, []); // eslint-disable-line
+  }, [podiumMode]);
 
   // Browser back/forward navigation
   const setTabWithHistory = useCallback((newTab) => {
@@ -7062,7 +7098,7 @@ export default function App() {
             gold={podiumPlayers.gold}
             silver={podiumPlayers.silver}
             bronze={podiumPlayers.bronze}
-            onClose={() => setPodiumDismissed(true)}
+            onClose={dismissPodium}
           />
         </>
       )}

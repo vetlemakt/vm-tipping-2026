@@ -541,12 +541,12 @@ const BRACKET_SLOTS = {
   94:  [{ nextId: 'qf_2',  side: 'away', role: 'winner' }],
   95:  [{ nextId: 'qf_4',  side: 'home', role: 'winner' }],
   96:  [{ nextId: 'qf_4',  side: 'away', role: 'winner' }],
-  97:  [{ nextId: 'sf_1',  side: 'home', role: 'winner' }, { nextId: 'bronze', side: 'home', role: 'loser' }],
-  98:  [{ nextId: 'sf_1',  side: 'away', role: 'winner' }, { nextId: 'bronze', side: 'away', role: 'loser' }],
-  99:  [{ nextId: 'sf_2',  side: 'home', role: 'winner' }, { nextId: 'bronze', side: 'home', role: 'loser' }],
-  100: [{ nextId: 'sf_2',  side: 'away', role: 'winner' }, { nextId: 'bronze', side: 'away', role: 'loser' }],
-  101: [{ nextId: 'final', side: 'home', role: 'winner' }],
-  102: [{ nextId: 'final', side: 'away', role: 'winner' }],
+  97:  [{ nextId: 'sf_1',  side: 'home', role: 'winner' }],
+  98:  [{ nextId: 'sf_1',  side: 'away', role: 'winner' }],
+  99:  [{ nextId: 'sf_2',  side: 'home', role: 'winner' }],
+  100: [{ nextId: 'sf_2',  side: 'away', role: 'winner' }],
+  101: [{ nextId: 'final', side: 'home', role: 'winner' }, { nextId: 'bronze', side: 'home', role: 'loser' }],
+  102: [{ nextId: 'final', side: 'away', role: 'winner' }, { nextId: 'bronze', side: 'away', role: 'loser' }],
 };
 
 // Duplisert fra constants.js sin KNOCKOUT_MATCHES (kun id->matchNum trengs her,

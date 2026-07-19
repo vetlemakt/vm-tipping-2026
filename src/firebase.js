@@ -172,3 +172,14 @@ export function subscribeCardStats(callback) {
     callback(snap.exists() ? snap.data() : {});
   });
 }
+
+// ── Vinnerpodiet (admin-styrt visning for alle besøkende) ───────────
+export function subscribePodium(callback) {
+  return onSnapshot(doc(db, 'config', 'podium'), snap => {
+    callback(snap.exists() ? snap.data() : { active: false });
+  });
+}
+
+export async function setPodiumActive(active) {
+  await setDoc(doc(db, 'config', 'podium'), { active, activatedAt: Date.now() }, { merge: true });
+}
