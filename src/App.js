@@ -4537,6 +4537,35 @@ function VideoChat({ me }) {
 // ══════════════════════════════════════════════════════════════════════
 //  ADMIN
 // ══════════════════════════════════════════════════════════════════════
+function BonusAdjustInput({ userId, current }) {
+  const [delta, setDelta] = useState('');
+  const [saving, setSaving] = useState(false);
+  const apply = async () => {
+    const d = parseFloat(delta.replace(',', '.'));
+    if (isNaN(d) || d === 0) return;
+    setSaving(true);
+    try {
+      await updateUser(userId, { bonusAdjustment: current + d });
+      setDelta('');
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      <input
+        type="text" inputMode="decimal" placeholder="±0.5" value={delta}
+        onChange={e => setDelta(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && apply()}
+        style={{ width: 56, fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(0,0,0,.25)', color: '#e8edf8', textAlign: 'center' }}
+      />
+      <button onClick={apply} disabled={saving || !delta} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,215,0,.3)', background: 'rgba(255,215,0,.1)', color: '#FFD700', cursor: 'pointer' }}>
+        {saving ? '…' : 'Legg til'}
+      </button>
+    </div>
+  );
+}
+
 function AdminPanel() {
   const [phase, setPhaseState] = useState('pre');
   const [results, setResultsState] = useState({});
@@ -4719,7 +4748,7 @@ function AdminPanel() {
       </div>
       <div style={C.cardBody}>
         <div style={C.tabs}>
-          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort'], ['msg', 'Melding'], ['matches', 'Kamper'], ['missing', '⚠️ Mangler'], ['live', '📡 Live']].map(([t, l]) => (
+          {[['phase', 'Fase'], ['results', 'Gruppe'], ['knockout', 'Sluttspill'], ['special', 'Spesial'], ['cards', 'Kort'], ['bonus', '➕ Bonus'], ['msg', 'Melding'], ['matches', 'Kamper'], ['missing', '⚠️ Mangler'], ['live', '📡 Live']].map(([t, l]) => (
             <button key={t} style={{ ...C.tab, ...(aTab === t ? C.tabOn : {}) }} onClick={() => setATab(t)}>{l}</button>
           ))}
         </div>
@@ -4958,6 +4987,28 @@ function AdminPanel() {
             )}
           </div>
         )}
+        {aTab === 'bonus' && (() => {
+          const realUsers = allUsers.filter(u => !u.id.startsWith('panel_') && u.id !== 'admin').sort((a,b) => (a.displayName||a.id).localeCompare(b.displayName||b.id, 'no'));
+          return (
+            <div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginBottom: 12 }}>
+                Legg til (eller trekk fra) et fast poengtillegg for en spiller – f.eks. quiz-seier eller annen kompensasjon. Legges til spillerens totalsum automatisk.
+              </div>
+              {realUsers.map(u => {
+                const current = u.bonusAdjustment || 0;
+                return (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                    <span style={{ flex: 1, fontSize: 13, color: '#e8edf8' }}>{u.displayName || u.id}</span>
+                    <span style={{ fontSize: 11, color: current ? '#FFD700' : 'rgba(255,255,255,.3)', fontFamily: "'Fira Code',monospace", minWidth: 40, textAlign: 'right' }}>
+                      {current > 0 ? '+' : ''}{current}
+                    </span>
+                    <BonusAdjustInput userId={u.id} current={current} />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
         {aTab === 'cards' && <>
           <span style={{ ...C.mono12, marginBottom: 10, display: 'block' }}>🟨 Gult = 1kp · 🟥 Rødt = 3kp</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 500, overflowY: 'auto' }}>
