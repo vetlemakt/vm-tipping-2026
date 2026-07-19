@@ -44,9 +44,10 @@ export function calcScore(user, results, quizBonus = 0) {
     }
   });
 
+  const normStr = s => typeof s === 'string' ? s.trim().toLowerCase() : s;
   SPEC_FIELDS.forEach(({ key, pts }) => {
     const sp = user.specialTips?.[key];
-    if (sp && results[key] && sp === results[key]) {
+    if (sp && results[key] && normStr(sp) === normStr(results[key])) {
       bd.special[key] = pts; total += pts;
     }
   });

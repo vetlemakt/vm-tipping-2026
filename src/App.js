@@ -4944,13 +4944,16 @@ function AdminPanel() {
                 {results[key] && <Flag team={results[key]} />}
               </div>
             ))}
-            {/* Toppscorer – text + popup */}
+            {/* Toppscorer – samme spillervelger som brukerne selv bruker, for å garantere eksakt samme skrivemåte (unngår at "riktig" tips ikke gir poeng pga. stave-/formatteringsavvik) */}
             <div style={C.specRow}>
               <span style={C.specLabel}>⚽ Toppscorer</span>
-              <input style={{ ...C.inp, marginBottom:0, flex:1, fontSize:13, padding:'6px 10px' }}
-                value={results['topscorer'] || ''}
-                onChange={e => setSpec('topscorer', e.target.value)}
-                placeholder="Skriv spillernavn…" />
+              <div style={{ flex:1 }}>
+                <PlayerAutocomplete
+                  value={results['topscorer'] || ''}
+                  onChange={val => setSpec('topscorer', val)}
+                  placeholder="Søk etter spiller…"
+                />
+              </div>
               <button style={{ ...C.btnSecondary, padding:'6px 12px', fontSize:12, marginLeft:6 }}
                 onClick={() => setShowTopscorer(true)}>
                 Se tips
@@ -4971,7 +4974,7 @@ function AdminPanel() {
                   {allUsers.length === 0 && <p style={{ color:'rgba(255,255,255,.4)', fontSize:13 }}>Ingen spillere.</p>}
                   {allUsers.map(u => {
                     const tip = u.specialTips?.topscorer || '';
-                    const correct = results['topscorer'] && tip && tip.toLowerCase() === results['topscorer'].toLowerCase();
+                    const correct = results['topscorer'] && tip && tip.trim().toLowerCase() === results['topscorer'].trim().toLowerCase();
                     return (
                       <div key={u.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
                         <span style={{ flex:1, fontSize:13, color: correct ? '#4ade80' : '#e8edf8' }}>{u.displayName}</span>
